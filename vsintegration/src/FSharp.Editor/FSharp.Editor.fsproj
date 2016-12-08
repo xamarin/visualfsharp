@@ -66,6 +66,9 @@
     <Compile Include="CommentUncommentService.fs">
       <Link>BlockComment\CommentUncommentService.fs</Link>
     </Compile>
+    <Compile Include="HelpContextService.fs">
+      <Link>HelpContext\HelpContextService.fs</Link>
+    </Compile>
     <Compile Include="QuickInfoProvider.fs">
       <Link>QuickInfo\QuickInfoProvider.fs</Link>
     </Compile>
