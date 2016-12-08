@@ -77,6 +77,8 @@
     </Compile>
     <Compile Include="DocumentHighlightsService.fs">
       <Link>DocumentHighlights\DocumentHighlightsService.fs</Link>
+    <Compile Include="InlineRenameService.fs">
+      <Link>InlineRename\InlineRenameService.fs</Link>
     </Compile>
     <Compile Include="ContentType.fs" />
     <Compile Include="FsiCommandService.fs" />
