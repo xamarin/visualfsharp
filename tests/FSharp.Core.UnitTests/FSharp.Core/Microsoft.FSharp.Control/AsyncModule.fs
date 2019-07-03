@@ -168,7 +168,7 @@ type AsyncModule() =
 
     let dispose(d : #IDisposable) = d.Dispose()
 
-    let testErrorAndCancelRace testCaseName computation = 
+    let testErrorAndCancelRace testcaseName computation =
         for i in 1..20 do
             let cts = new System.Threading.CancellationTokenSource()
             use barrier = new System.Threading.ManualResetEvent(false)
@@ -180,7 +180,7 @@ type AsyncModule() =
 
             Async.StartWithContinuations(
                 computation,
-                (fun _ -> failwith (sprintf "Testcase: %s  --- success not expected iterations 1 .. 20 - failed on iteration %d" testCaseName i)),
+                (fun _ -> failwith (sprintf "%s -- success not expected -- iteration %d" testcaseName i)),
                 (fun _ -> incr()),
                 (fun _ -> incr()),
                 cts.Token
@@ -427,11 +427,12 @@ type AsyncModule() =
     member this.``RaceBetweenCancellationAndError.AwaitWaitHandle``() = 
         let disposedEvent = new System.Threading.ManualResetEvent(false)
         dispose disposedEvent
+
         testErrorAndCancelRace "RaceBetweenCancellationAndError.AwaitWaitHandle" (Async.AwaitWaitHandle disposedEvent)
 
     [<Test>]
     member this.``RaceBetweenCancellationAndError.Sleep``() =
-        testErrorAndCancelRace "RaceBetweenCancellationAndError.Sleep" (Async.Sleep (-5))
+        testErrorAndCancelRace "RaceBetweenCancellationAndError.Sleep" (Async.Sleep -5)
 
 #if EXPENSIVE
 #if NET46
@@ -630,7 +631,6 @@ type AsyncModule() =
     member this.``Parallel with maxDegreeOfParallelism`` () =
         let mutable i = 1
         let action j = async {
-            do! Async.Sleep 1
             Assert.AreEqual(j, i)
             i <- i + 1
         }
@@ -664,16 +664,10 @@ type AsyncModule() =
             Assert.True(exc.Message.Contains("maxDegreeOfParallelism must be positive, was -1"))
 
     [<Test>]
-    member this.``RaceBetweenCancellationAndError.Parallel(maxDegreeOfParallelism)``() =
-        [| for i in 1 .. 1000 -> async { failwith "boom" } |]
-        |> fun cs -> Async.Parallel(cs, 1)
-        |> testErrorAndCancelRace "RaceBetweenCancellationAndError.Parallel(maxDegreeOfParallelism)"
-
-    [<Test>]
     member this.``RaceBetweenCancellationAndError.Parallel``() =
-        [| for i in 1 .. 1000 -> async { failwith "boom" } |]
-        |> fun cs -> Async.Parallel(cs)
-        |> testErrorAndCancelRace "RaceBetweenCancellationAndError.Parallel"
+        [| for i in 1 .. 1000 -> async { return i } |]
+        |> fun cs -> Async.Parallel(cs, 1)
+        |> testErrorAndCancelRace "RaceBetweenCancellationAndError.Parallel`"
 
     [<Test>]
     member this.``error on one workflow should cancel all others with maxDegreeOfParallelism``() =
@@ -683,11 +677,13 @@ type AsyncModule() =
                 let job i = async {
                     if i = 55 then failwith "boom"
                     else
+                        do! Async.Sleep 1000
                         incr counter
                 }
 
-                let! _ = Async.Parallel ([ for i in 1 .. 100 -> job i ], 1) |> Async.Catch
+                let! _ = Async.Parallel ([ for i in 1 .. 100 -> job i ], 2) |> Async.Catch
+                do! Async.Sleep 5000
                 return !counter
             } |> Async.RunSynchronously
 
-        Assert.AreEqual(54, counter)
+        Assert.AreEqual(0, counter)
