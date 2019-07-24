@@ -73,7 +73,6 @@ let FSharpScriptFileSuffixes = [".fsscript";".fsx"]
 let doNotRequireNamespaceOrModuleSuffixes = [".mli";".ml"] @ FSharpScriptFileSuffixes
 let FSharpLightSyntaxFileSuffixes: string list = [ ".fs";".fsscript";".fsx";".fsi" ]
 
-
 //----------------------------------------------------------------------------
 // ERROR REPORTING
 //--------------------------------------------------------------------------
@@ -435,7 +434,7 @@ let SplitRelatedDiagnostics(err: PhasedDiagnostic) =
     SplitRelatedException err.Exception
 
 
-let DeclareMessage = FSharp.Compiler.DiagnosticMessage.DeclareResourceString
+let DeclareMesssage = FSharp.Compiler.DiagnosticMessage.DeclareResourceString
 
 do FSComp.SR.RunStartupValidation()
 let SeeAlsoE() = DeclareResourceString("SeeAlso", "%s")
@@ -1493,15 +1492,15 @@ let OutputPhasedErrorR (os: StringBuilder) (err: PhasedDiagnostic) (canSuggestNa
 
       | IntfImplInExtrinsicAugmentation(_) -> os.Append(IntfImplInExtrinsicAugmentationE().Format) |> ignore
 
-      | UnresolvedReferenceError(assemblyName, _)
+      | UnresolvedReferenceError(assemblyname, _)
 
-      | UnresolvedReferenceNoRange assemblyName ->
-          os.Append(UnresolvedReferenceNoRangeE().Format assemblyName) |> ignore
+      | UnresolvedReferenceNoRange assemblyname ->
+          os.Append(UnresolvedReferenceNoRangeE().Format assemblyname) |> ignore
 
-      | UnresolvedPathReference(assemblyName, pathname, _) 
+      | UnresolvedPathReference(assemblyname, pathname, _) 
 
-      | UnresolvedPathReferenceNoRange(assemblyName, pathname) ->
-          os.Append(UnresolvedPathReferenceNoRangeE().Format pathname assemblyName) |> ignore
+      | UnresolvedPathReferenceNoRange(assemblyname, pathname) ->
+          os.Append(UnresolvedPathReferenceNoRangeE().Format pathname assemblyname) |> ignore
 
       | DeprecatedCommandLineOptionFull(fullText, _) ->
           os.Append fullText |> ignore
@@ -1893,9 +1892,9 @@ type IRawFSharpAssemblyData =
     /// in the language service
     abstract TryGetILModuleDef: unit -> ILModuleDef option
     ///  The raw F# signature data in the assembly, if any
-    abstract GetRawFSharpSignatureData: range * ilShortAssemName: string * fileName: string -> (string * (unit -> ReadOnlyByteMemory)) list
+    abstract GetRawFSharpSignatureData: range * ilShortAssemName: string * fileName: string -> (string * (unit -> byte[])) list
     ///  The raw F# optimization data in the assembly, if any
-    abstract GetRawFSharpOptimizationData: range * ilShortAssemName: string * fileName: string -> (string * (unit -> ReadOnlyByteMemory)) list
+    abstract GetRawFSharpOptimizationData: range * ilShortAssemName: string * fileName: string -> (string * (unit -> byte[])) list
     ///  The table of type forwarders in the assembly
     abstract GetRawTypeForwarders: unit -> ILExportedTypesAndForwarders
     /// The identity of the module
@@ -2009,12 +2008,16 @@ type CcuLoadFailureAction =
 [<NoEquality; NoComparison>]
 type TcConfigBuilder =
     { mutable primaryAssembly: PrimaryAssembly
+      mutable autoResolveOpenDirectivesToDlls: bool
       mutable noFeedback: bool
       mutable stackReserveSize: int32 option
       mutable implicitIncludeDir: string (* normally "." *)
       mutable openDebugInformationForLaterStaticLinking: bool (* only for --standalone *)
       defaultFSharpBinariesDir: string
       mutable compilingFslib: bool
+      mutable compilingFslib20: string option
+      mutable compilingFslib40: bool
+      mutable compilingFslibNoBigInt: bool
       mutable useIncrementalBuilder: bool
       mutable includes: string list
       mutable implicitOpens: string list
@@ -2024,9 +2027,10 @@ type TcConfigBuilder =
       mutable implicitlyResolveAssemblies: bool
       mutable light: bool option
       mutable conditionalCompilationDefines: string list
-      mutable loadedSources: (range * string) list
+      mutable loadedSources: (range * string * string) list
       mutable compilerToolPaths: string list
       mutable referencedDLLs: AssemblyReference list
+      mutable packageManagerLines: Map<string, (bool * string * range) list>
       mutable projectReferences: IProjectReference list
       mutable knownUnresolvedReferences: UnresolvedAssemblyReference list
       reduceMemoryUsage: ReduceMemoryFlag
@@ -2038,6 +2042,7 @@ type TcConfigBuilder =
       mutable mlCompatibility: bool
       mutable checkOverflow: bool
       mutable showReferenceResolutions: bool
+      mutable outputDir : string option
       mutable outputFile: string option
       mutable platform: ILPlatform option
       mutable prefer32Bit: bool
@@ -2170,15 +2175,19 @@ type TcConfigBuilder =
 
     static member Initial =
         {
-          primaryAssembly = PrimaryAssembly.Mscorlib // default value, can be overridden using the command line switch
+          primaryAssembly = PrimaryAssembly.Mscorlib // defaut value, can be overridden using the command line switch
           light = None
           noFeedback = false
           stackReserveSize = None
           conditionalCompilationDefines = []
           implicitIncludeDir = String.Empty
+          autoResolveOpenDirectivesToDlls = false
           openDebugInformationForLaterStaticLinking = false
           defaultFSharpBinariesDir = String.Empty
           compilingFslib = false
+          compilingFslib20 = None
+          compilingFslib40 = false
+          compilingFslibNoBigInt = false
           useIncrementalBuilder = false
           useFsiAuxLib = false
           implicitOpens = []
@@ -2188,6 +2197,7 @@ type TcConfigBuilder =
           implicitlyResolveAssemblies = true
           compilerToolPaths = []
           referencedDLLs = []
+          packageManagerLines = Map.empty
           projectReferences = []
           knownUnresolvedReferences = []
           loadedSources = []
@@ -2200,6 +2210,7 @@ type TcConfigBuilder =
           mlCompatibility = false
           checkOverflow = false
           showReferenceResolutions = false
+          outputDir = None
           outputFile = None
           platform = None
           prefer32Bit = false
@@ -2323,7 +2334,6 @@ type TcConfigBuilder =
             isInvalidationSupported = isInvalidationSupported
             copyFSharpCore = defaultCopyFSharpCore
             tryGetMetadataSnapshot = tryGetMetadataSnapshot
-            useFsiAuxLib = isInteractive
         }
 
     member tcConfigB.ResolveSourceFile(m, nm, pathLoadedFrom) = 
@@ -2400,18 +2410,19 @@ type TcConfigBuilder =
         if ok && not (List.contains absolutePath tcConfigB.includes) then 
            tcConfigB.includes <- tcConfigB.includes ++ absolutePath
 
-    member tcConfigB.AddLoadedSource(m, path, pathLoadedFrom) =
-        if FileSystem.IsInvalidPathShim path then
-            warning(Error(FSComp.SR.buildInvalidFilename path, m))    
+    member tcConfigB.AddLoadedSource(m, originalPath, pathLoadedFrom) =
+        if FileSystem.IsInvalidPathShim originalPath then
+            warning(Error(FSComp.SR.buildInvalidFilename originalPath, m))
         else 
             let path = 
-                match TryResolveFileUsingPaths(tcConfigB.includes @ [pathLoadedFrom], m, path) with 
+                match TryResolveFileUsingPaths(tcConfigB.includes @ [pathLoadedFrom], m, originalPath) with
                 | Some path -> path
                 | None ->
-                    // File doesn't exist in the paths. Assume it will be in the load-ed from directory.
-                    ComputeMakePathAbsolute pathLoadedFrom path
-            if not (List.contains path (List.map snd tcConfigB.loadedSources)) then 
-                tcConfigB.loadedSources <- tcConfigB.loadedSources ++ (m, path)
+                        // File doesn't exist in the paths. Assume it will be in the load-ed from directory.
+                        ComputeMakePathAbsolute pathLoadedFrom originalPath
+            if not (List.contains path (List.map (fun (_, _, path) -> path) tcConfigB.loadedSources)) then
+                tcConfigB.loadedSources <- tcConfigB.loadedSources ++ (m, originalPath, path)
+
 
     member tcConfigB.AddEmbeddedSourceFile (file) = 
         tcConfigB.embedSourceList <- tcConfigB.embedSourceList ++ file
@@ -2419,12 +2430,11 @@ type TcConfigBuilder =
     member tcConfigB.AddEmbeddedResource filename =
         tcConfigB.embedResources <- tcConfigB.embedResources ++ filename
 
-    member tcConfigB.AddCompilerToolsByPath (m:range, path) = 
-        if FileSystem.IsInvalidPathShim(path) then
-            warning(Error(FSComp.SR.buildInvalidAssemblyName(path), m))
-        elif not (tcConfigB.compilerToolPaths  |> List.exists (fun text -> path = text)) then // NOTE: We keep same paths if range is different.
+    member tcConfigB.AddCompilerToolsByPath (path) = 
+        if not (tcConfigB.compilerToolPaths  |> List.exists (fun text -> path = text)) then // NOTE: We keep same paths if range is different.
             let compilerToolPath = tcConfigB.compilerToolPaths |> List.tryPick (fun text -> if text = path then Some text else None)
-            tcConfigB.compilerToolPaths <- tcConfigB.compilerToolPaths ++ (Option.defaultValue "" compilerToolPath)   //AssemblyReference(m, path, projectReference)             
+            if compilerToolPath.IsNone then
+                tcConfigB.compilerToolPaths <- tcConfigB.compilerToolPaths ++ path
 
     member tcConfigB.AddReferencedAssemblyByPath (m, path) = 
         if FileSystem.IsInvalidPathShim path then
@@ -2433,6 +2443,13 @@ type TcConfigBuilder =
              let projectReference = tcConfigB.projectReferences |> List.tryPick (fun pr -> if pr.FileName = path then Some pr else None)
              tcConfigB.referencedDLLs <- tcConfigB.referencedDLLs ++ AssemblyReference(m, path, projectReference)
              
+    member tcConfigB.AddDependencyManagerText (packageManager:DependencyManagerIntegration.IDependencyManagerProvider, m, path:string) = 
+        let path = DependencyManagerIntegration.removeDependencyManagerKey packageManager.Key path
+
+        match tcConfigB.packageManagerLines |> Map.tryFind packageManager.Key with
+        | Some lines -> tcConfigB.packageManagerLines <- Map.add packageManager.Key (lines ++ (false, path, m)) tcConfigB.packageManagerLines
+        | _ -> tcConfigB.packageManagerLines <- Map.add packageManager.Key [false, path, m] tcConfigB.packageManagerLines
+
     member tcConfigB.RemoveReferencedAssemblyByPath (m, path) =
         tcConfigB.referencedDLLs <- tcConfigB.referencedDLLs |> List.filter (fun ar -> not (Range.equals ar.Range m) || ar.Text <> path)
 
@@ -2488,7 +2505,7 @@ type AssemblyResolution =
       resolvedPath: string    
       prepareToolTip: unit -> string
       sysdir: bool 
-      mutable ilAssemblyRef: ILAssemblyRef option
+      ilAssemblyRef: ILAssemblyRef option ref
     }
     override this.ToString() = sprintf "%s%s" (if this.sysdir then "[sys]" else "") this.resolvedPath
 
@@ -2503,7 +2520,7 @@ type AssemblyResolution =
     //
     member this.GetILAssemblyRef(ctok, reduceMemoryUsage, tryGetMetadataSnapshot) = 
       cancellable {
-        match this.ilAssemblyRef with 
+        match !this.ilAssemblyRef with 
         | Some assemblyRef -> return assemblyRef
         | None ->
             let! assemblyRefOpt = 
@@ -2531,7 +2548,7 @@ type AssemblyResolution =
                           tryGetMetadataSnapshot = tryGetMetadataSnapshot } 
                     use reader = OpenILModuleReader this.resolvedPath readerSettings
                     mkRefToILAssembly reader.ILModuleDef.ManifestOfAssembly
-            this.ilAssemblyRef <- Some assemblyRef
+            this.ilAssemblyRef := Some assemblyRef
             return assemblyRef
       }
 
@@ -2580,22 +2597,35 @@ type TcConfig private (data: TcConfigBuilder, validate: bool) =
             let filename = ComputeMakePathAbsolute data.implicitIncludeDir r.Text
             if FileSystem.SafeExists filename then 
                 r, Some filename
-            else
+            else   
                 // If the file doesn't exist, let reference resolution logic report the error later...
                 defaultCoreLibraryReference, if Range.equals r.Range rangeStartup then Some(filename) else None
         match data.referencedDLLs |> List.filter (fun assemblyReference -> assemblyReference.SimpleAssemblyNameIs libraryName) with
-        | [] -> defaultCoreLibraryReference, None
-        | [r]
-        | r :: _ -> nameOfDll r
+        | [r] -> nameOfDll r
+        | [] -> 
+            defaultCoreLibraryReference, None
+        | r :: _ -> 
+            // Recover by picking the first one.
+            errorR(Error(FSComp.SR.buildMultipleReferencesNotAllowed libraryName, rangeCmdArgs)) 
+            nameOfDll r
 
-    // Look for an explicit reference to mscorlib/netstandard.dll or System.Runtime.dll and use that to compute clrRoot and targetFrameworkVersion
+    // Look for an explicit reference to mscorlib and use that to compute clrRoot and targetFrameworkVersion
     let primaryAssemblyReference, primaryAssemblyExplicitFilenameOpt = computeKnownDllReference(data.primaryAssembly.Name)
-    let fslibReference =
-        // Look for explicit FSharp.Core reference otherwise use version that was referenced by compiler
-        let dllReference, fileNameOpt = computeKnownDllReference getFSharpCoreLibraryName
+    let fslibReference, fslibExplicitFilenameOpt = 
+        let (_, fileNameOpt) as res = computeKnownDllReference getFSharpCoreLibraryName
         match fileNameOpt with
-        | Some _ -> dllReference
-        | None -> AssemblyReference(range0, getDefaultFSharpCoreLocation, None)
+        | None -> 
+            // if FSharp.Core was not provided explicitly - use version that was referenced by compiler
+            AssemblyReference(range0, getDefaultFSharpCoreReference, None), None
+        | _ -> res
+
+    // If either mscorlib.dll/System.Runtime.dll/netstandard.dll or FSharp.Core.dll are explicitly specified then we require the --noframework flag.
+    // The reason is that some non-default frameworks may not have the default dlls. For example, Client profile does
+    // not have System.Web.dll.
+    do if ((primaryAssemblyExplicitFilenameOpt.IsSome || fslibExplicitFilenameOpt.IsSome) && data.framework) then
+            error(Error(FSComp.SR.buildExplicitCoreLibRequiresNoFramework("--noframework"), rangeStartup))
+
+    let ilGlobals = mkILGlobals ILScopeRef.Local
 
     // clrRoot: the location of the primary assembly (mscorlib.dll or netstandard.dll or System.Runtime.dll)
     //
@@ -2626,13 +2656,41 @@ type TcConfig private (data: TcConfigBuilder, validate: bool) =
 
     let systemAssemblies = systemAssemblies
 
+    // Look for an explicit reference to FSharp.Core and use that to compute fsharpBinariesDir
+    // FUTURE: remove this, we only read the binary for the exception it raises
+    let fsharpBinariesDirValue = 
+// NOTE: It's not clear why this behaviour has been changed for the NETSTANDARD compilations of the F# compiler
+#if NETSTANDARD
+        ignore ilGlobals
+        data.defaultFSharpBinariesDir
+#else
+        match fslibExplicitFilenameOpt with
+        | Some fslibFilename ->
+            let filename = ComputeMakePathAbsolute data.implicitIncludeDir fslibFilename
+            if fslibReference.ProjectReference.IsNone then 
+                try 
+                    use ilReader = OpenILBinary(filename, data.reduceMemoryUsage, ilGlobals, None, data.shadowCopyReferences, data.tryGetMetadataSnapshot)
+                    ()
+                with e -> 
+                    error(Error(FSComp.SR.buildErrorOpeningBinaryFile(filename, e.Message), rangeStartup))
+                
+            let fslibRoot = Path.GetDirectoryName(FileSystem.GetFullPathShim filename)
+            fslibRoot
+        | _ ->
+            data.defaultFSharpBinariesDir
+#endif
+
     member x.primaryAssembly = data.primaryAssembly
+    member x.autoResolveOpenDirectivesToDlls = data.autoResolveOpenDirectivesToDlls
     member x.noFeedback = data.noFeedback
     member x.stackReserveSize = data.stackReserveSize   
     member x.implicitIncludeDir = data.implicitIncludeDir
     member x.openDebugInformationForLaterStaticLinking = data.openDebugInformationForLaterStaticLinking
-    member x.fsharpBinariesDir = data.defaultFSharpBinariesDir
+    member x.fsharpBinariesDir = fsharpBinariesDirValue
     member x.compilingFslib = data.compilingFslib
+    member x.compilingFslib20 = data.compilingFslib20
+    member x.compilingFslib40 = data.compilingFslib40
+    member x.compilingFslibNoBigInt = data.compilingFslibNoBigInt
     member x.useIncrementalBuilder = data.useIncrementalBuilder
     member x.includes = data.includes
     member x.implicitOpens = data.implicitOpens
@@ -2656,6 +2714,7 @@ type TcConfig private (data: TcConfigBuilder, validate: bool) =
     member x.mlCompatibility = data.mlCompatibility
     member x.checkOverflow = data.checkOverflow
     member x.showReferenceResolutions = data.showReferenceResolutions
+    member x.outputDir = data.outputDir
     member x.outputFile = data.outputFile
     member x.platform = data.platform
     member x.prefer32Bit = data.prefer32Bit
@@ -2696,6 +2755,7 @@ type TcConfig private (data: TcConfigBuilder, validate: bool) =
     member x.embedAllSource = data.embedAllSource
     member x.embedSourceList = data.embedSourceList
     member x.sourceLink = data.sourceLink
+    member x.packageManagerLines  = data.packageManagerLines
     member x.ignoreSymbolStoreSequencePoints = data.ignoreSymbolStoreSequencePoints
     member x.internConstantStrings = data.internConstantStrings
     member x.extraOptimizationIterations = data.extraOptimizationIterations
@@ -2792,7 +2852,7 @@ type TcConfig private (data: TcConfigBuilder, validate: bool) =
                     if Directory.Exists runtimeRootWPF then
                         yield runtimeRootWPF // PresentationCore.dll is in C:\Windows\Microsoft.NET\Framework\v4.0.30319\WPF
 
-                    match frameworkRefsPackDirectory with
+                    match getFrameworkRefsPackDirectory with
                     | Some path when Directory.Exists(path) ->
                         yield path
                     | _ -> ()
@@ -2827,11 +2887,7 @@ type TcConfig private (data: TcConfigBuilder, validate: bool) =
                         let facades = Path.Combine(frameworkRootVersion, "Facades")
                         if Directory.Exists facades then
                             yield facades
-                        match frameworkRefsPackDirectory with
-                        | Some path when Directory.Exists(path) ->
-                            yield path
-                        | _ -> ()
-                  ]
+                  ]                    
         with e -> 
             errorRecovery e range0; [] 
 
@@ -2843,13 +2899,23 @@ type TcConfig private (data: TcConfigBuilder, validate: bool) =
 
     member tcConfig.GetAvailableLoadedSources() =
         use unwindBuildPhase = PushThreadBuildPhaseUntilUnwind BuildPhase.Parameter
-        let resolveLoadedSource (m, path) =
+        let resolveLoadedSource (m, originalPath, path) =
             try
-                if not(FileSystem.SafeExists path) then 
-                    error(LoadedSourceNotFoundIgnoring(path, m))                         
-                    None
-                else Some(m, path)
+                if not(FileSystem.SafeExists(path)) then 
+                    let secondTrial = 
+                        tcConfig.includes
+                        |> List.tryPick (fun root ->
+                            let path = ComputeMakePathAbsolute root originalPath
+                            if FileSystem.SafeExists(path) then Some path else None)
+
+                    match secondTrial with
+                    | Some path -> Some(m,path)
+                    | None ->
+                        error(LoadedSourceNotFoundIgnoring(path,m))
+                        None
+                else Some(m,path)
             with e -> errorRecovery e m; None
+
         tcConfig.loadedSources 
         |> List.choose resolveLoadedSource 
         |> List.distinct     
@@ -2902,7 +2968,7 @@ type TcConfig private (data: TcConfigBuilder, validate: bool) =
                   resolvedPath = resolved
                   prepareToolTip = (fun () -> resolved)
                   sysdir = sysdir
-                  ilAssemblyRef = None }
+                  ilAssemblyRef = ref None }
         | None -> 
 
         if String.Compare(ext, ".dll", StringComparison.OrdinalIgnoreCase)=0 
@@ -2937,11 +3003,11 @@ type TcConfig private (data: TcConfigBuilder, validate: bool) =
                             let line(append: string) = append.Trim([|' '|])+"\n"
                             line resolved + line fusionName)
                       sysdir = sysdir
-                      ilAssemblyRef = None }
+                      ilAssemblyRef = ref None }
             | None -> None
         else None
 
-    member tcConfig.ResolveLibWithDirectories (ccuLoadFailureAction, r: AssemblyReference) =
+    member tcConfig.ResolveLibWithDirectories (ccuLoadFaulureAction, r: AssemblyReference) =
         let m, nm = r.Range, r.Text
         use unwindBuildPhase = PushThreadBuildPhaseUntilUnwind BuildPhase.Parameter
         // test for both libraries and executables
@@ -2959,7 +3025,7 @@ type TcConfig private (data: TcConfigBuilder, validate: bool) =
         match rs |> List.tryPick (fun r -> tcConfig.TryResolveLibWithDirectories r) with
         | Some res -> Some res
         | None ->
-            match ccuLoadFailureAction with
+            match ccuLoadFaulureAction with
             | CcuLoadFailureAction.RaiseError ->
                 let searchMessage = String.concat "\n " (tcConfig.GetSearchPathsForLibraryFiles())
                 raise (FileNameNotResolved(nm, searchMessage, m))
@@ -3067,7 +3133,7 @@ type TcConfig private (data: TcConfigBuilder, validate: bool) =
                                                       resolvedPath=canonicalItemSpec 
                                                       prepareToolTip = (fun () -> resolvedFile.prepareToolTip (originalReference.Text, canonicalItemSpec))
                                                       sysdir= tcConfig.IsSystemAssembly canonicalItemSpec
-                                                      ilAssemblyRef = None })
+                                                      ilAssemblyRef = ref None })
                                     (maxIndexOfReference, assemblyResolutions))
 
             // When calculating the resulting resolutions, we're going to use the index of the reference
@@ -3204,14 +3270,14 @@ let QualFileNameOfImpls filename specs =
     | [SynModuleOrNamespace(_, _, kind, _, _, _, _, m)] when not kind.IsModule -> QualFileNameOfFilename m filename
     | _ -> QualFileNameOfFilename (mkRange filename pos0 pos0) filename
 
-let PrependPathToQualFileName x (QualifiedNameOfFile q) = ComputeQualifiedNameOfFileFromUniquePath (q.idRange, pathOfLid x@[q.idText])
-let PrependPathToImpl x (SynModuleOrNamespace(p, b, c, d, e, f, g, h)) = SynModuleOrNamespace(x@p, b, c, d, e, f, g, h)
-let PrependPathToSpec x (SynModuleOrNamespaceSig(p, b, c, d, e, f, g, h)) = SynModuleOrNamespaceSig(x@p, b, c, d, e, f, g, h)
+let PrepandPathToQualFileName x (QualifiedNameOfFile q) = ComputeQualifiedNameOfFileFromUniquePath (q.idRange, pathOfLid x@[q.idText])
+let PrepandPathToImpl x (SynModuleOrNamespace(p, b, c, d, e, f, g, h)) = SynModuleOrNamespace(x@p, b, c, d, e, f, g, h)
+let PrepandPathToSpec x (SynModuleOrNamespaceSig(p, b, c, d, e, f, g, h)) = SynModuleOrNamespaceSig(x@p, b, c, d, e, f, g, h)
 
 let PrependPathToInput x inp = 
     match inp with 
-    | ParsedInput.ImplFile (ParsedImplFileInput (b, c, q, d, hd, impls, e)) -> ParsedInput.ImplFile (ParsedImplFileInput (b, c, PrependPathToQualFileName x q, d, hd, List.map (PrependPathToImpl x) impls, e))
-    | ParsedInput.SigFile (ParsedSigFileInput (b, q, d, hd, specs)) -> ParsedInput.SigFile (ParsedSigFileInput (b, PrependPathToQualFileName x q, d, hd, List.map (PrependPathToSpec x) specs))
+    | ParsedInput.ImplFile (ParsedImplFileInput (b, c, q, d, hd, impls, e)) -> ParsedInput.ImplFile (ParsedImplFileInput (b, c, PrepandPathToQualFileName x q, d, hd, List.map (PrepandPathToImpl x) impls, e))
+    | ParsedInput.SigFile (ParsedSigFileInput (b, q, d, hd, specs)) -> ParsedInput.SigFile (ParsedSigFileInput (b, PrepandPathToQualFileName x q, d, hd, List.map (PrepandPathToSpec x) specs))
 
 let ComputeAnonModuleName check defaultNamespace filename (m: range) = 
     let modname = CanonicalizeFilename filename
@@ -3405,7 +3471,7 @@ let ParseOneInputLexbuf (tcConfig: TcConfig, lexResourceManager, conditionalComp
     try 
         let skip = true in (* don't report whitespace from lexer *)
         let lightSyntaxStatus = LightSyntaxStatus (tcConfig.ComputeLightSyntaxInitialStatus filename, true) 
-        let lexargs = mkLexargs (filename, conditionalCompilationDefines@tcConfig.conditionalCompilationDefines, lightSyntaxStatus, lexResourceManager, [], errorLogger, tcConfig.pathMap)
+        let lexargs = mkLexargs (filename, conditionalCompilationDefines@tcConfig.conditionalCompilationDefines, lightSyntaxStatus, lexResourceManager, ref [], errorLogger, tcConfig.pathMap)
         let shortFilename = SanitizeFileName filename tcConfig.implicitIncludeDir 
         let input = 
             Lexhelp.usingLexbufForParsing (lexbuf, filename) (fun lexbuf ->
@@ -3447,7 +3513,7 @@ let ParseOneInputLexbuf (tcConfig: TcConfig, lexResourceManager, conditionalComp
         if verbose then dprintn ("Parsed "+shortFilename)
         Some input 
     with e -> (* errorR(Failure("parse failed")); *) errorRecovery e rangeStartup; None 
-
+            
             
 let ParseOneInputFile (tcConfig: TcConfig, lexResourceManager, conditionalCompilationDefines, filename, isLastCompiland, errorLogger, retryLocked) =
     try 
@@ -3456,8 +3522,7 @@ let ParseOneInputFile (tcConfig: TcConfig, lexResourceManager, conditionalCompil
             if not(FileSystem.SafeExists filename) then
                 error(Error(FSComp.SR.buildCouldNotFindSourceFile filename, rangeStartup))
             let isFeatureSupported featureId = tcConfig.langVersion.SupportsFeature featureId
-            use reader = File.OpenReaderAndRetry (filename, tcConfig.inputCodePage, retryLocked)
-            let lexbuf = UnicodeLexing.StreamReaderAsLexbuf(isFeatureSupported, reader)
+            let lexbuf = UnicodeLexing.UnicodeFileAsLexbuf(isFeatureSupported, filename, tcConfig.inputCodePage, retryLocked) 
             ParseOneInputLexbuf(tcConfig, lexResourceManager, conditionalCompilationDefines, lexbuf, filename, isLastCompiland, errorLogger)
        else error(Error(FSComp.SR.buildInvalidSourceFileExtension(SanitizeFileName filename tcConfig.implicitIncludeDir), rangeStartup))
     with e -> (* errorR(Failure("parse failed")); *) errorRecovery e rangeStartup; None 
@@ -3523,8 +3588,12 @@ type TcAssemblyResolutions(tcConfig: TcConfig, results: AssemblyResolution list,
 
             let assumeDotNetFramework = primaryReference.SimpleAssemblyNameIs("mscorlib")
             if tcConfig.framework then
-                for s in defaultReferencesForScriptsAndOutOfProjectSources tcConfig.useFsiAuxLib assumeDotNetFramework tcConfig.useSdkRefs do
+                for s in defaultReferencesForScriptsAndOutOfProjectSources assumeDotNetFramework tcConfig.useSdkRefs do
                     yield AssemblyReference(rangeStartup, (if s.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) then s else s+".dll"), None)
+
+            if tcConfig.useFsiAuxLib then
+                let name = Path.Combine(tcConfig.fsharpBinariesDir, getFsiLibraryName + ".dll")
+                yield AssemblyReference(rangeStartup, name, None)
 
             yield! tcConfig.referencedDLLs
         ]
@@ -3535,24 +3604,24 @@ type TcAssemblyResolutions(tcConfig: TcConfig, results: AssemblyResolution list,
         let frameworkDLLs, nonFrameworkReferences = resolutions.GetAssemblyResolutions() |> List.partition (fun r -> r.sysdir) 
         let unresolved = resolutions.GetUnresolvedReferences()
 #if DEBUG
-        let mutable itFailed = false
+        let itFailed = ref false
         let addedText = "\nIf you want to debug this right now, attach a debugger, and put a breakpoint in 'CompileOps.fs' near the text '!itFailed', and you can re-step through the assembly resolution logic."
         unresolved 
         |> List.iter (fun (UnresolvedAssemblyReference(referenceText, _ranges)) ->
             if referenceText.Contains("mscorlib") then
                 System.Diagnostics.Debug.Assert(false, sprintf "whoops, did not resolve mscorlib: '%s'%s" referenceText addedText)
-                itFailed <- true)
+                itFailed := true)
         frameworkDLLs 
         |> List.iter (fun x ->
             if not(FileSystem.IsPathRootedShim(x.resolvedPath)) then
                 System.Diagnostics.Debug.Assert(false, sprintf "frameworkDLL should be absolute path: '%s'%s" x.resolvedPath addedText)
-                itFailed <- true)
+                itFailed := true)
         nonFrameworkReferences 
         |> List.iter (fun x -> 
             if not(FileSystem.IsPathRootedShim(x.resolvedPath)) then
                 System.Diagnostics.Debug.Assert(false, sprintf "nonFrameworkReference should be absolute path: '%s'%s" x.resolvedPath addedText) 
-                itFailed <- true)
-        if itFailed then
+                itFailed := true)
+        if !itFailed then
             // idea is, put a breakpoint here and then step through
             let assemblyList = TcAssemblyResolutions.GetAllDllReferences tcConfig
             let resolutions = TcAssemblyResolutions.ResolveAssemblyReferences (ctok, tcConfig, assemblyList, [])
@@ -3595,18 +3664,18 @@ let GetOptimizationDataResourceName (r: ILResource) =
 let IsReflectedDefinitionsResource (r: ILResource) =
     r.Name.StartsWithOrdinal(QuotationPickler.SerializedReflectedDefinitionsResourceNameBase)
 
-let MakeILResource rName bytes = 
-    { Name = rName
-      Location = ILResourceLocation.Local(ByteMemory.FromArray(bytes).AsReadOnly())
+let MakeILResource rname bytes = 
+    { Name = rname
+      Location = ILResourceLocation.LocalOut bytes
       Access = ILResourceAccess.Public
       CustomAttrsStored = storeILCustomAttrs emptyILCustomAttrs
       MetadataIndex = NoMetadataIdx }
 
-let PickleToResource inMem file (g: TcGlobals) scope rName p x =
+let PickleToResource inMem file (g: TcGlobals) scope rname p x =
     let file = PathMap.apply g.pathMap file
 
-    { Name = rName
-      Location = (let bytes = pickleObjWithDanglingCcus inMem file g scope p x in ILResourceLocation.Local(ByteMemory.FromArray(bytes).AsReadOnly()))
+    { Name = rname
+      Location = (let bytes = pickleObjWithDanglingCcus inMem file g scope p x in ILResourceLocation.LocalOut bytes)
       Access = ILResourceAccess.Public
       CustomAttrsStored = storeILCustomAttrs emptyILCustomAttrs
       MetadataIndex = NoMetadataIdx }
@@ -3619,7 +3688,7 @@ let WriteSignatureData (tcConfig: TcConfig, tcGlobals, exportRemapping, ccu: Ccu
     let mspec = ApplyExportRemappingToEntity tcGlobals exportRemapping mspec
     // For historical reasons, we use a different resource name for FSharp.Core, so older F# compilers 
     // don't complain when they see the resource.
-    let rName = if ccu.AssemblyName = getFSharpCoreLibraryName then FSharpSignatureDataResourceName2 else FSharpSignatureDataResourceName
+    let rname = if ccu.AssemblyName = getFSharpCoreLibraryName then FSharpSignatureDataResourceName2 else FSharpSignatureDataResourceName
 
     let includeDir =
         if String.IsNullOrEmpty tcConfig.implicitIncludeDir then ""
@@ -3628,7 +3697,7 @@ let WriteSignatureData (tcConfig: TcConfig, tcGlobals, exportRemapping, ccu: Ccu
             |> System.IO.Path.GetFullPath
             |> PathMap.applyDir tcGlobals.pathMap
  
-    PickleToResource inMem file tcGlobals ccu (rName+ccu.AssemblyName) pickleCcuInfo 
+    PickleToResource inMem file tcGlobals ccu (rname+ccu.AssemblyName) pickleCcuInfo 
         { mspec=mspec 
           compileTimeWorkingDir=includeDir
           usesQuotations = ccu.UsesFSharp20PlusQuotations }
@@ -3639,8 +3708,8 @@ let GetOptimizationData (file, ilScopeRef, ilModule, byteReader) =
 let WriteOptimizationData (tcGlobals, file, inMem, ccu: CcuThunk, modulInfo) = 
     // For historical reasons, we use a different resource name for FSharp.Core, so older F# compilers 
     // don't complain when they see the resource.
-    let rName = if ccu.AssemblyName = getFSharpCoreLibraryName then FSharpOptimizationDataResourceName2 else FSharpOptimizationDataResourceName 
-    PickleToResource inMem file tcGlobals ccu (rName+ccu.AssemblyName) Optimizer.p_CcuOptimizationInfo modulInfo
+    let rname = if ccu.AssemblyName = getFSharpCoreLibraryName then FSharpOptimizationDataResourceName2 else FSharpOptimizationDataResourceName 
+    PickleToResource inMem file tcGlobals ccu (rname+ccu.AssemblyName) Optimizer.p_CcuOptimizationInfo modulInfo
 
 //----------------------------------------------------------------------------
 // Abstraction for project reference
@@ -3664,7 +3733,7 @@ type RawFSharpAssemblyDataBackedByFileOnDisk (ilModule: ILModuleDef, ilAssemblyR
                     let sigFileName = Path.ChangeExtension(filename, "sigdata")
                     if not (FileSystem.SafeExists sigFileName) then 
                         error(Error(FSComp.SR.buildExpectedSigdataFile (FileSystem.GetFullPathShim sigFileName), m))
-                    [ (ilShortAssemName, fun () -> ByteMemory.FromFile(sigFileName, FileAccess.Read, canShadowCopy=true).AsReadOnly())]
+                    [ (ilShortAssemName, fun () -> FileSystem.ReadAllBytesShim sigFileName)]
                 else
                     sigDataReaders
             sigDataReaders
@@ -3679,7 +3748,7 @@ type RawFSharpAssemblyDataBackedByFileOnDisk (ilModule: ILModuleDef, ilAssemblyR
                     let optDataFile = Path.ChangeExtension(filename, "optdata")
                     if not (FileSystem.SafeExists optDataFile) then 
                         error(Error(FSComp.SR.buildExpectedFileAlongSideFSharpCore(optDataFile, FileSystem.GetFullPathShim optDataFile), m))
-                    [ (ilShortAssemName, (fun () -> ByteMemory.FromFile(optDataFile, FileAccess.Read, canShadowCopy=true).AsReadOnly()))]
+                    [ (ilShortAssemName, (fun () -> FileSystem.ReadAllBytesShim optDataFile))]
                 else
                     optDataReaders
             optDataReaders
@@ -4130,7 +4199,7 @@ and [<Sealed>] TcImports(tcConfigP: TcConfigProvider, initialResolutions: TcAsse
             (typeProviderEnvironment, 
              tcConfig: TcConfig, 
              m, entity: Entity, 
-             injectedNamespace, remainingNamespace, 
+             injectedNamspace, remainingNamespace, 
              provider, 
              st: Tainted<ProvidedType> option) = 
         match remainingNamespace with
@@ -4138,13 +4207,13 @@ and [<Sealed>] TcImports(tcConfigP: TcConfigProvider, initialResolutions: TcAsse
             // Inject the namespace entity 
             match entity.ModuleOrNamespaceType.ModulesAndNamespacesByDemangledName.TryFind next with
             | Some childEntity ->
-                tcImports.InjectProvidedNamespaceOrTypeIntoEntity (typeProviderEnvironment, tcConfig, m, childEntity, next :: injectedNamespace, rest, provider, st)
+                tcImports.InjectProvidedNamespaceOrTypeIntoEntity (typeProviderEnvironment, tcConfig, m, childEntity, next :: injectedNamspace, rest, provider, st)
             | None -> 
                 // Build up the artificial namespace if there is not a real one.
-                let cpath = CompPath(ILScopeRef.Local, injectedNamespace |> List.rev |> List.map (fun n -> (n, ModuleOrNamespaceKind.Namespace)) )
+                let cpath = CompPath(ILScopeRef.Local, injectedNamspace |> List.rev |> List.map (fun n -> (n, ModuleOrNamespaceKind.Namespace)) )
                 let newNamespace = NewModuleOrNamespace (Some cpath) taccessPublic (ident(next, rangeStartup)) XmlDoc.Empty [] (MaybeLazy.Strict (NewEmptyModuleOrNamespaceType Namespace)) 
                 entity.ModuleOrNamespaceType.AddModuleOrNamespaceByMutation newNamespace
-                tcImports.InjectProvidedNamespaceOrTypeIntoEntity (typeProviderEnvironment, tcConfig, m, newNamespace, next :: injectedNamespace, rest, provider, st)
+                tcImports.InjectProvidedNamespaceOrTypeIntoEntity (typeProviderEnvironment, tcConfig, m, newNamespace, next :: injectedNamspace, rest, provider, st)
         | [] -> 
             match st with
             | Some st ->
@@ -4217,15 +4286,22 @@ and [<Sealed>] TcImports(tcConfigP: TcConfigProvider, initialResolutions: TcAsse
             let systemRuntimeContainsType =  
                 // NOTE: do not touch this, edit: but we did, we had no choice - TPs cannot hold a strong reference on TcImports "ever".
                 let tcImports = tcImportsWeak
-                let mutable systemRuntimeContainsTypeRef = fun typeName -> tcImports.SystemRuntimeContainsType typeName
-                tcImportsStrong.AttachDisposeTypeProviderAction(fun () -> systemRuntimeContainsTypeRef <- fun _ -> raise (System.ObjectDisposedException("The type provider has been disposed")))
-                fun arg -> systemRuntimeContainsTypeRef arg  
+                let systemRuntimeContainsTypeRef = ref (fun typeName -> tcImports.SystemRuntimeContainsType typeName)
+                tcImportsStrong.AttachDisposeTypeProviderAction(fun () -> systemRuntimeContainsTypeRef := (fun _ -> raise (System.ObjectDisposedException("The type provider has been disposed"))))  
+                fun arg -> systemRuntimeContainsTypeRef.Value arg  
 
-            let providers = 
-                [ for designTimeAssemblyName in designTimeAssemblyNames do
-                      yield! ExtensionTyping.GetTypeProvidersOfAssembly(fileNameOfRuntimeAssembly, ilScopeRefOfRuntimeAssembly, designTimeAssemblyName, typeProviderEnvironment, 
-                                                                        tcConfig.isInvalidationSupported, tcConfig.isInteractive, systemRuntimeContainsType, primaryAssemblyVersion, tcConfig.compilerToolPaths, m) ]
-
+            let providers = [
+                for designTimeAssemblyName in designTimeAssemblyNames do
+                    yield! ExtensionTyping.GetTypeProvidersOfAssembly(fileNameOfRuntimeAssembly,
+                                                                      ilScopeRefOfRuntimeAssembly,
+                                                                      designTimeAssemblyName,
+                                                                      typeProviderEnvironment,
+                                                                      tcConfig.isInvalidationSupported,
+                                                                      tcConfig.isInteractive,
+                                                                      systemRuntimeContainsType,
+                                                                      primaryAssemblyVersion,
+                                                                      tcConfig.compilerToolPaths,
+                                                                      m) ]
             // Note, type providers are disposable objects. The TcImports owns the provider objects - when/if it is disposed, the providers are disposed.
             // We ignore all exceptions from provider disposal.
             for provider in providers do 
@@ -4595,7 +4671,7 @@ and [<Sealed>] TcImports(tcConfigP: TcConfigProvider, initialResolutions: TcAsse
                     | None ->
                         ErrorD(AssemblyNotResolved(assemblyReference.Text, assemblyReference.Range))
                 else 
-                    // This is a previously unencountered assembly. Resolve it and add it to the list.
+                    // This is a previously unencounterd assembly. Resolve it and add it to the list.
                     // But don't cache resolution failures because the assembly may appear on the disk later.
                     let resolved, unresolved = TcConfig.TryResolveLibsUsingMSBuildRules(tcConfig, [ assemblyReference ], assemblyReference.Range, mode)
                     match resolved, unresolved with
@@ -4685,7 +4761,7 @@ and [<Sealed>] TcImports(tcConfigP: TcConfigProvider, initialResolutions: TcAsse
                             error(InternalError("BuildFrameworkTcImports: no successful import of "+coreLibraryResolution.resolvedPath, coreLibraryResolution.originalReference.Range))
                     | None -> 
                         error(InternalError(sprintf "BuildFrameworkTcImports: no resolution of '%s'" coreLibraryReference.Text, rangeStartup))
-                IlxSettings.ilxFsharpCoreLibAssemRef <- 
+                IlxSettings.ilxFsharpCoreLibAssemRef := 
                     (let scoref = fslibCcuInfo.ILScopeRef
                      match scoref with
                      | ILScopeRef.Assembly aref -> Some aref
@@ -4700,11 +4776,11 @@ and [<Sealed>] TcImports(tcConfigP: TcConfigProvider, initialResolutions: TcAsse
 
 #if DEBUG
         // the global_g reference cell is used only for debug printing
-        global_g <- Some tcGlobals
+        global_g := Some tcGlobals
 #endif
         // do this prior to parsing, since parsing IL assembly code may refer to mscorlib
 #if !NO_INLINE_IL_PARSER
-        FSharp.Compiler.AbstractIL.Internal.AsciiConstants.parseILGlobals <- tcGlobals.ilg 
+        FSharp.Compiler.AbstractIL.Internal.AsciiConstants.parseILGlobals := tcGlobals.ilg 
 #endif
         frameworkTcImports.SetTcGlobals tcGlobals
         return tcGlobals, frameworkTcImports
@@ -4751,7 +4827,7 @@ and [<Sealed>] TcImports(tcConfigP: TcConfigProvider, initialResolutions: TcAsse
         
 /// Process #r in F# Interactive.
 /// Adds the reference to the tcImports and add the ccu to the type checking environment.
-let RequireDLL (ctok, tcImports: TcImports, tcEnv, thisAssemblyName, m, file, assemblyReferenceAdded: string -> unit) =
+let RequireDLL (ctok, tcImports: TcImports, tcEnv, thisAssemblyName, m, file) = 
     let resolutions = CommitOperationResult(tcImports.TryResolveAssemblyReference(ctok, AssemblyReference(m, file, None), ResolveAssemblyReferenceMode.ReportErrors))
     let dllinfos, ccuinfos = tcImports.RegisterAndImportReferencedAssemblies(ctok, resolutions) |> Cancellable.runWithoutCancellation
    
@@ -4762,23 +4838,16 @@ let RequireDLL (ctok, tcImports: TcImports, tcEnv, thisAssemblyName, m, file, as
 
     let g = tcImports.GetTcGlobals()
     let amap = tcImports.GetImportMap()
-    let buildTcEnv tcEnv asm =
-        let tcEnv = AddCcuToTcEnv(g, amap, m, tcEnv, thisAssemblyName, asm.FSharpViewOfMetadata, asm.AssemblyAutoOpenAttributes, asm.AssemblyInternalsVisibleToAttributes)
-        match asm.FSharpViewOfMetadata.FileName with
-        | Some asmPath -> assemblyReferenceAdded asmPath
-        | None -> ()
-        tcEnv
-    let tcEnv = (tcEnv, asms) ||> List.fold buildTcEnv
+    let tcEnv = (tcEnv, asms) ||> List.fold (fun tcEnv asm -> AddCcuToTcEnv(g, amap, m, tcEnv, thisAssemblyName, asm.FSharpViewOfMetadata, asm.AssemblyAutoOpenAttributes, asm.AssemblyInternalsVisibleToAttributes)) 
     tcEnv, (dllinfos, asms)
 
-       
-       
 let ProcessMetaCommandsFromInput 
-     (nowarnF: 'state -> range * string -> 'state, 
-      dllRequireF: 'state -> range * string -> 'state, 
-      loadSourceF: 'state -> range * string -> unit) 
-     (tcConfig: TcConfigBuilder, inp, pathOfMetaCommandSource, state0) =
-     
+     (nowarnF: 'state -> range * string -> 'state,
+      dllRequireF: 'state -> range * string -> 'state,
+      packageRequireF: 'state -> DependencyManagerIntegration.IDependencyManagerProvider * range * string -> 'state,
+      loadSourceF: 'state -> range * string -> unit)
+     (tcConfig:TcConfigBuilder, inp, pathOfMetaCommandSource, state0) =
+
     use unwindBuildPhase = PushThreadBuildPhaseUntilUnwind BuildPhase.Parse
 
     let canHaveScriptMetaCommands = 
@@ -4801,15 +4870,22 @@ let ProcessMetaCommandsFromInput
                | _ -> 
                    errorR(Error(FSComp.SR.buildInvalidHashIDirective(), m))
                    state
-            | ParsedHashDirective("nowarn", numbers, m) ->
-               List.fold (fun state d -> nowarnF state (m, d)) state numbers
-            | ParsedHashDirective(("reference" | "r"), args, m) -> 
+            | ParsedHashDirective("nowarn",numbers,m) ->
+               List.fold (fun state d -> nowarnF state (m,d)) state numbers
+
+            | ParsedHashDirective(("reference" | "r"),args,m) -> 
                if not canHaveScriptMetaCommands then 
                    errorR(HashReferenceNotAllowedInNonScript m)
                match args with 
                | [path] -> 
                    matchedm<-m
-                   dllRequireF state (m, path)
+                   match DependencyManagerIntegration.tryFindDependencyManagerInPath tcConfig.compilerToolPaths tcConfig.outputDir m (path:string) with
+                   | DependencyManagerIntegration.ReferenceType.RegisteredDependencyManager packageManager -> 
+                       packageRequireF state (packageManager,m,path)
+                   | DependencyManagerIntegration.ReferenceType.Library path ->
+                       dllRequireF state (m,path)
+                   | DependencyManagerIntegration.ReferenceType.UnknownType ->
+                       state // error already reported
                | _ -> 
                    errorR(Error(FSComp.SR.buildInvalidHashrDirective(), m))
                    state
@@ -4886,19 +4962,21 @@ let ProcessMetaCommandsFromInput
 let ApplyNoWarnsToTcConfig (tcConfig: TcConfig, inp: ParsedInput, pathOfMetaCommandSource) = 
     // Clone
     let tcConfigB = tcConfig.CloneOfOriginalBuilder 
-    let addNoWarn = fun () (m, s) -> tcConfigB.TurnWarningOff(m, s)
-    let addReferencedAssemblyByPath = fun () (_m, _s) -> ()
-    let addLoadedSource = fun () (_m, _s) -> ()
-    ProcessMetaCommandsFromInput (addNoWarn, addReferencedAssemblyByPath, addLoadedSource) (tcConfigB, inp, pathOfMetaCommandSource, ())
+    let addNoWarn = fun () (m,s) -> tcConfigB.TurnWarningOff(m, s)
+    let addReferencedAssemblyByPath = fun () (_m,_s) -> ()
+    let addDependencyManagerText = fun () (_prefix,_m,_s) -> ()
+    let addLoadedSource = fun () (_m,_s) -> ()
+    ProcessMetaCommandsFromInput (addNoWarn, addReferencedAssemblyByPath, addDependencyManagerText, addLoadedSource) (tcConfigB, inp, pathOfMetaCommandSource, ())
     TcConfig.Create(tcConfigB, validate=false)
 
 let ApplyMetaCommandsFromInputToTcConfig (tcConfig: TcConfig, inp: ParsedInput, pathOfMetaCommandSource) = 
     // Clone
     let tcConfigB = tcConfig.CloneOfOriginalBuilder 
     let getWarningNumber = fun () _ -> () 
-    let addReferencedAssemblyByPath = fun () (m, s) -> tcConfigB.AddReferencedAssemblyByPath(m, s)
-    let addLoadedSource = fun () (m, s) -> tcConfigB.AddLoadedSource(m, s, pathOfMetaCommandSource)
-    ProcessMetaCommandsFromInput (getWarningNumber, addReferencedAssemblyByPath, addLoadedSource) (tcConfigB, inp, pathOfMetaCommandSource, ())
+    let addReferencedAssemblyByPath = fun () (m,s) -> tcConfigB.AddReferencedAssemblyByPath(m,s)
+    let addDependencyManagerText = fun () (packageManager, m,s) -> tcConfigB.AddDependencyManagerText(packageManager,m,s)
+    let addLoadedSource = fun () (m,s) -> tcConfigB.AddLoadedSource(m,s,pathOfMetaCommandSource)
+    ProcessMetaCommandsFromInput (getWarningNumber, addReferencedAssemblyByPath, addDependencyManagerText, addLoadedSource) (tcConfigB, inp, pathOfMetaCommandSource, ())
     TcConfig.Create(tcConfigB, validate=false)
 
 //----------------------------------------------------------------------------
@@ -4910,7 +4988,6 @@ let GetAssemblyResolutionInformation(ctok, tcConfig: TcConfig) =
     let assemblyList = TcAssemblyResolutions.GetAllDllReferences tcConfig
     let resolutions = TcAssemblyResolutions.ResolveAssemblyReferences (ctok, tcConfig, assemblyList, [])
     resolutions.GetAssemblyResolutions(), resolutions.GetUnresolvedReferences()
-    
 
 [<RequireQualifiedAccess>]
 type LoadClosureInput = 
@@ -4930,7 +5007,7 @@ type LoadClosure =
       /// The list of all sources in the closure with inputs when available
       Inputs: LoadClosureInput list
       /// The #load, including those that didn't resolve
-      OriginalLoadReferences: (range * string) list
+      OriginalLoadReferences: (range * string * string) list
       /// The #nowarns
       NoWarns: (string * range list) list
       /// Diagnostics seen while processing resolutions
@@ -4946,9 +5023,10 @@ type CodeContext =
     | CompilationAndEvaluation // in fsi.exe
     | Compilation  // in fsc.exe
     | Editing // in VS
-    
 
-module private ScriptPreprocessClosure = 
+
+module ScriptPreprocessClosure = 
+    open Internal.Utilities.Text.Lexing
     
     /// Represents an input to the closure finding process
     type ClosureSource = ClosureSource of filename: string * referenceRange: range * sourceText: ISourceText * parseRequired: bool 
@@ -5044,12 +5122,13 @@ module private ScriptPreprocessClosure =
            (tcConfig: TcConfig, inp: ParsedInput, pathOfMetaCommandSource) = 
 
         let tcConfigB = tcConfig.CloneOfOriginalBuilder 
-        let mutable nowarns = [] 
-        let getWarningNumber = fun () (m, s) -> nowarns <- (s, m) :: nowarns
-        let addReferencedAssemblyByPath = fun () (m, s) -> tcConfigB.AddReferencedAssemblyByPath(m, s)
-        let addLoadedSource = fun () (m, s) -> tcConfigB.AddLoadedSource(m, s, pathOfMetaCommandSource)
+        let nowarns = ref [] 
+        let getWarningNumber = fun () (m,s) -> nowarns := (s,m) :: !nowarns
+        let addReferencedAssemblyByPath = fun () (m,s) -> tcConfigB.AddReferencedAssemblyByPath(m,s)
+        let addDependencyManagerText = fun () (packageManagerPrefix,m,s) -> tcConfigB.AddDependencyManagerText(packageManagerPrefix,m,s)
+        let addLoadedSource = fun () (m,s) -> tcConfigB.AddLoadedSource(m,s,pathOfMetaCommandSource)
         try 
-            ProcessMetaCommandsFromInput (getWarningNumber, addReferencedAssemblyByPath, addLoadedSource) (tcConfigB, inp, pathOfMetaCommandSource, ())
+            ProcessMetaCommandsFromInput (getWarningNumber, addReferencedAssemblyByPath, addDependencyManagerText, addLoadedSource) (tcConfigB, inp, pathOfMetaCommandSource, ())
         with ReportedError _ ->
             // Recover by using whatever did end up in the tcConfig
             ()
@@ -5061,40 +5140,89 @@ module private ScriptPreprocessClosure =
             let tcConfigB = tcConfig.CloneOfOriginalBuilder 
             TcConfig.Create(tcConfigB, validate=false), nowarns
     
-    let FindClosureFiles
-           (closureSources, tcConfig: TcConfig, codeContext, 
-            lexResourceManager: Lexhelp.LexResourceManager) =
-
-        let mutable tcConfig = tcConfig
+    let FindClosureFiles(mainFile, _m, closureSources, origTcConfig:TcConfig, codeContext, lexResourceManager: Lexhelp.LexResourceManager) =
+        let tcConfig = ref origTcConfig
         
         let observedSources = Observed()
-        let rec loop (ClosureSource(filename, m, sourceText, parseRequired)) = 
-          [     if not (observedSources.HaveSeen(filename)) then
+        let loadScripts = HashSet<_>()
+
+        // Resolve the packages
+        let rec resolveDependencyManagerSources scriptName =
+            if not (loadScripts.Contains scriptName) then
+                [ for kv in tcConfig.Value.packageManagerLines do
+                    let packageManagerKey, packageManagerLines = kv.Key, kv.Value
+                    match packageManagerLines with
+                    | [] -> ()
+                    | (_, _, m)::_ ->
+                        match origTcConfig.packageManagerLines |> Map.tryFind packageManagerKey with
+                        | Some oldDependencyManagerLines when oldDependencyManagerLines = packageManagerLines -> ()
+                        | _ ->
+                            match DependencyManagerIntegration.tryFindDependencyManagerByKey tcConfig.Value.compilerToolPaths tcConfig.Value.outputDir m packageManagerKey with
+                            | None ->
+                                errorR(DependencyManagerIntegration.createPackageManagerUnknownError tcConfig.Value.compilerToolPaths tcConfig.Value.outputDir packageManagerKey m)
+                            | Some packageManager ->
+                                let inline snd3 (_, b, _) = b
+                                let packageManagerTextLines = packageManagerLines |> List.map snd3
+
+                                match DependencyManagerIntegration.resolve packageManager tcConfig.Value.implicitIncludeDir mainFile scriptName m packageManagerTextLines with
+                                | None -> () // error already reported
+                                | Some (succeeded, generatedScripts, additionalIncludeFolders) ->  //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+                                    // This may incrementally update tcConfig too with new #r references
+                                    // New package text is ignored on this second phase
+                                    match succeeded with
+                                    | true ->
+                                        // Resolution produced no errors
+                                        if not (isNil additionalIncludeFolders) then
+                                            let tcConfigB = tcConfig.Value.CloneOfOriginalBuilder
+                                            for folder in additionalIncludeFolders do 
+                                                tcConfigB.AddIncludePath(m, folder, "")
+                                            tcConfigB.packageManagerLines <- tcConfigB.packageManagerLines |> Map.map(fun _ l -> l |> List.map(fun (_, p, m) -> true, p, m))
+                                            tcConfig := TcConfig.Create(tcConfigB, validate=false)
+                                        for script in generatedScripts do
+                                            let scriptText = File.ReadAllText script
+                                            loadScripts.Add script |> ignore
+                                            let iSourceText = SourceText.ofString scriptText
+                                            yield! loop (ClosureSource(script, m, iSourceText, true))
+                                    | false ->
+                                        // Resolution produced errors update packagerManagerLines entries to note these failure
+                                        // failed resolutions will no longer be considered
+                                        let tcConfigB = tcConfig.Value.CloneOfOriginalBuilder
+                                        tcConfigB.packageManagerLines <- tcConfigB.packageManagerLines |> Map.map(fun _ l -> l |> List.filter(fun (tried, _, _) -> tried))
+                                        tcConfig := TcConfig.Create(tcConfigB, validate=false)]
+            else []
+
+        and loop (ClosureSource(filename, m, sourceText, parseRequired)) = 
+            [   if not (observedSources.HaveSeen(filename)) then
                     observedSources.SetSeen(filename)
                     //printfn "visiting %s" filename
                     if IsScript filename || parseRequired then 
                         let parseResult, parseDiagnostics =
-                            let errorLogger = CapturingErrorLogger("FindClosureParse")                    
+                            let errorLogger = CapturingErrorLogger("FindClosureParse")
                             use _unwindEL = PushErrorLoggerPhaseUntilUnwind (fun _ -> errorLogger)
-                            let result = ParseScriptText (filename, sourceText, tcConfig, codeContext, lexResourceManager, errorLogger) 
+                            let result = ParseScriptText (filename, sourceText, !tcConfig, codeContext, lexResourceManager, errorLogger) 
                             result, errorLogger.Diagnostics
 
                         match parseResult with 
-                        | Some parsedScriptAst ->                    
-                            let errorLogger = CapturingErrorLogger("FindClosureMetaCommands")                    
+                        | Some parsedScriptAst ->
+                            let errorLogger = CapturingErrorLogger("FindClosureMetaCommands")
                             use _unwindEL = PushErrorLoggerPhaseUntilUnwind (fun _ -> errorLogger)
-                            let pathOfMetaCommandSource = Path.GetDirectoryName filename
-                            let preSources = tcConfig.GetAvailableLoadedSources()
+                            let pathOfMetaCommandSource = Path.GetDirectoryName(filename)
 
-                            let tcConfigResult, noWarns = ApplyMetaCommandsFromInputToTcConfigAndGatherNoWarn (tcConfig, parsedScriptAst, pathOfMetaCommandSource)
-                            tcConfig <- tcConfigResult // We accumulate the tcConfig in order to collect assembly references
-                        
-                            let postSources = tcConfig.GetAvailableLoadedSources()
+                            let preSources = (!tcConfig).GetAvailableLoadedSources()
+
+                            let tcConfigResult, noWarns = ApplyMetaCommandsFromInputToTcConfigAndGatherNoWarn (!tcConfig, parsedScriptAst, pathOfMetaCommandSource)
+                            tcConfig := tcConfigResult // We accumulate the tcConfig in order to collect assembly references
+
+                            yield! resolveDependencyManagerSources filename
+
+                            let postSources = (!tcConfig).GetAvailableLoadedSources()
                             let sources = if preSources.Length < postSources.Length then postSources.[preSources.Length..] else []
 
-                            //for (_, subFile) in sources do
-                            //   printfn "visiting %s - has subsource of %s " filename subFile
-
+                            yield! resolveDependencyManagerSources filename
+#if DEBUG
+                            for (_,subFile) in sources do
+                               printfn "visiting %s - has subsource of %s " filename subFile
+#endif
                             for (m, subFile) in sources do
                                 if IsScript subFile then 
                                     for subSource in ClosureSourceOfFilename(subFile, m, tcConfigResult.inputCodePage, false) do
@@ -5102,18 +5230,22 @@ module private ScriptPreprocessClosure =
                                 else
                                     yield ClosureFile(subFile, m, None, [], [], []) 
 
-                            //printfn "yielding source %s" filename
-                            yield ClosureFile(filename, m, Some parsedScriptAst, parseDiagnostics, errorLogger.Diagnostics, noWarns)
+#if DEBUG
+                            printfn "yielding source %s" filename
+#endif
+                            yield ClosureFile(filename, m, Some parsedScriptAst, parseDiagnostics, errorLogger.Diagnostics, !noWarns)
 
                         | None -> 
-                            //printfn "yielding source %s (failed parse)" filename
+                            printfn "yielding source %s (failed parse)" filename
                             yield ClosureFile(filename, m, None, parseDiagnostics, [], [])
                     else 
                         // Don't traverse into .fs leafs.
-                        //printfn "yielding non-script source %s" filename
+                        printfn "yielding non-script source %s" filename
                         yield ClosureFile(filename, m, None, [], [], []) ]
 
-        closureSources |> List.collect loop, tcConfig
+        let sources = closureSources |> List.collect loop
+
+        sources, !tcConfig
         
     /// Reduce the full directive closure into LoadClosure
     let GetLoadClosure(ctok, rootFilename, closureFiles, tcConfig: TcConfig, codeContext) = 
@@ -5174,11 +5306,11 @@ module private ScriptPreprocessClosure =
                 let isThisFileName = (0 = String.Compare(rootFilename, m.FileName, StringComparison.OrdinalIgnoreCase))
                 isArgParameterWhileNotEditing || isThisFileName
             | None -> true
-        
+
         // Filter out non-root errors and warnings
         let allRootDiagnostics = allRootDiagnostics |> List.filter (fst >> isRootRange)
         
-        let result: LoadClosure = 
+        let result: LoadClosure =
             { SourceFiles = List.groupBy fst sourceFiles |> List.map (map2Of2 (List.map snd))
               References = List.groupBy fst references |> List.map (map2Of2 (List.map snd))
               UnresolvedReferences = unresolvedReferences
@@ -5187,7 +5319,7 @@ module private ScriptPreprocessClosure =
               OriginalLoadReferences = tcConfig.loadedSources
               ResolutionDiagnostics = resolutionDiagnostics
               AllRootFileDiagnostics = allRootDiagnostics
-              LoadClosureRootFileDiagnostics = loadClosureRootDiagnostics }       
+              LoadClosureRootFileDiagnostics = loadClosureRootDiagnostics }
 
         result
 
@@ -5197,7 +5329,7 @@ module private ScriptPreprocessClosure =
             filename, sourceText, codeContext, 
             useSimpleResolution, useFsiAuxLib, useSdkRefs,
             lexResourceManager: Lexhelp.LexResourceManager, 
-            applyCommandLineArgs, assumeDotNetFramework,
+            applyCommmandLineArgs, assumeDotNetFramework,
             tryGetMetadataSnapshot, reduceMemoryUsage) =
 
         // Resolve the basic references such as FSharp.Core.dll first, before processing any #I directives in the script
@@ -5208,7 +5340,7 @@ module private ScriptPreprocessClosure =
             let tcConfig = 
                 CreateScriptTextTcConfig(legacyReferenceResolver, defaultFSharpBinariesDir, 
                     filename, codeContext, useSimpleResolution, 
-                    useFsiAuxLib, None, applyCommandLineArgs, assumeDotNetFramework, 
+                    useFsiAuxLib, None, applyCommmandLineArgs, assumeDotNetFramework, 
                     useSdkRefs, tryGetMetadataSnapshot, reduceMemoryUsage)
 
             let resolutions0, _unresolvedReferences = GetAssemblyResolutionInformation(ctok, tcConfig)
@@ -5218,24 +5350,19 @@ module private ScriptPreprocessClosure =
         let tcConfig = 
             CreateScriptTextTcConfig(legacyReferenceResolver, defaultFSharpBinariesDir, filename, 
                  codeContext, useSimpleResolution, useFsiAuxLib, Some references0, 
-                 applyCommandLineArgs, assumeDotNetFramework, useSdkRefs,
+                 applyCommmandLineArgs, assumeDotNetFramework, useSdkRefs,
                  tryGetMetadataSnapshot, reduceMemoryUsage)
 
         let closureSources = [ClosureSource(filename, range0, sourceText, true)]
-        let closureFiles, tcConfig = FindClosureFiles(closureSources, tcConfig, codeContext, lexResourceManager)
+        let closureFiles, tcConfig = FindClosureFiles(filename, range0, closureSources, tcConfig, codeContext, lexResourceManager)
         GetLoadClosure(ctok, filename, closureFiles, tcConfig, codeContext)
-        
+
     /// Given source filename, find the full load closure
     /// Used from fsi.fs and fsc.fs, for #load and command line
-    let GetFullClosureOfScriptFiles
-           (ctok, tcConfig: TcConfig, 
-            files:(string*range) list, 
-            codeContext, 
-            lexResourceManager: Lexhelp.LexResourceManager) = 
-
-        let mainFile = fst (List.last files)
-        let closureSources = files |> List.collect (fun (filename, m) -> ClosureSourceOfFilename(filename, m, tcConfig.inputCodePage, true))
-        let closureFiles, tcConfig = FindClosureFiles(closureSources, tcConfig, codeContext, lexResourceManager)
+    let GetFullClosureOfScriptFiles(ctok, tcConfig:TcConfig, files:(string*range) list,codeContext,lexResourceManager: Lexhelp.LexResourceManager) = 
+        let mainFile, mainFileRange = List.last files
+        let closureSources = files |> List.collect (fun (filename, m) -> ClosureSourceOfFilename(filename, m,tcConfig.inputCodePage,true))
+        let closureFiles,tcConfig = FindClosureFiles(mainFile, mainFileRange, closureSources, tcConfig, codeContext, lexResourceManager)
         GetLoadClosure(ctok, mainFile, closureFiles, tcConfig, codeContext)        
 
 type LoadClosure with
@@ -5248,13 +5375,13 @@ type LoadClosure with
                      (ctok, legacyReferenceResolver, defaultFSharpBinariesDir, 
                       filename: string, sourceText: ISourceText, codeContext, useSimpleResolution: bool, 
                       useFsiAuxLib, useSdkRefs, lexResourceManager: Lexhelp.LexResourceManager, 
-                      applyCommandLineArgs, assumeDotNetFramework, tryGetMetadataSnapshot, reduceMemoryUsage) = 
+                      applyCommmandLineArgs, assumeDotNetFramework, tryGetMetadataSnapshot, reduceMemoryUsage) = 
 
         use unwindBuildPhase = PushThreadBuildPhaseUntilUnwind BuildPhase.Parse
         ScriptPreprocessClosure.GetFullClosureOfScriptText
             (ctok, legacyReferenceResolver, defaultFSharpBinariesDir, filename, sourceText, 
              codeContext, useSimpleResolution, useFsiAuxLib, useSdkRefs, lexResourceManager, 
-             applyCommandLineArgs, assumeDotNetFramework, tryGetMetadataSnapshot, reduceMemoryUsage)
+             applyCommmandLineArgs, assumeDotNetFramework, tryGetMetadataSnapshot, reduceMemoryUsage)
 
     /// Analyze a set of script files and find the closure of their references.
     static member ComputeClosureOfScriptFiles
@@ -5262,8 +5389,6 @@ type LoadClosure with
                       lexResourceManager: Lexhelp.LexResourceManager) =
         use unwindBuildPhase = PushThreadBuildPhaseUntilUnwind BuildPhase.Parse
         ScriptPreprocessClosure.GetFullClosureOfScriptFiles (ctok, tcConfig, files, codeContext, lexResourceManager)
-        
-              
 
 //----------------------------------------------------------------------------
 // Initial type checking environment
@@ -5560,4 +5685,4 @@ let TypeCheckClosedInputSet (ctok, checkForErrors, tcConfig, tcImports, tcGlobal
 
 // Existing public APIs delegate to newer implementations
 let GetFSharpCoreLibraryName () = getFSharpCoreLibraryName
-let DefaultReferencesForScriptsAndOutOfProjectSources assumeDotNetFramework = defaultReferencesForScriptsAndOutOfProjectSources (*useFsiAuxLib*)false assumeDotNetFramework (*useSdkRefs*)false
+let DefaultReferencesForScriptsAndOutOfProjectSources assumeDotNetFramework = defaultReferencesForScriptsAndOutOfProjectSources assumeDotNetFramework false
