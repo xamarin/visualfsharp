@@ -7,44 +7,54 @@
         <target state="translated">{0} pour F# {1}</target>
         <note />
       </trans-unit>
+      <trans-unit id="optsLangVersion">
+        <source>Display the allowed values for language version, specify language version such as 'latest' or 'preview'</source>
+        <target state="translated">Afficher les valeurs autorisées pour la version du langage, spécifier la version du langage comme 'dernière' ou 'préversion'</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="optsSupportedLangVersions">
+        <source>Supported language versions:</source>
+        <target state="translated">Versions linguistiques prises en charge :</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="optsUnrecognizedLanguageVersion">
+        <source>Unrecognized value '{0}' for --langversion use --langversion:? for complete list</source>
+        <target state="translated">Valeur non reconnue '{0}' pour --langversion use --langversion:? pour la liste complète</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="packageManagementRequiresVFive">
+        <source>The package management feature requires language version 5.0 use /langversion:preview</source>
+        <target state="new">The package management feature requires language version 5.0 use /langversion:preview</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="parsUnexpectedSymbolDot">
+        <source>Unexpected symbol '.' in member definition. Expected 'with', '=' or other token.</source>
+        <target state="translated">Symbole '.' inattendu dans la définition du membre. 'with','=' ou autre jeton attendu.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="nativeResourceFormatError">
         <source>Stream does not begin with a null resource and is not in '.RES' format.</source>
-        <target state="translated">Le flux ne commence pas par une ressource null et n'est pas au format '.RES'.</target>
+        <target state="new">Stream does not begin with a null resource and is not in '.RES' format.</target>
         <note />
       </trans-unit>
       <trans-unit id="nativeResourceHeaderMalformed">
         <source>Resource header beginning at offset {0} is malformed.</source>
-        <target state="translated">L'en-tête de ressource commençant au décalage {0} est mal formé.</target>
+        <target state="new">Resource header beginning at offset {0} is malformed.</target>
         <note />
       </trans-unit>
       <trans-unit id="optsChecksumAlgorithm">
         <source>Specify algorithm for calculating source file checksum stored in PDB. Supported values are: SHA1 or SHA256 (default)</source>
-        <target state="new">Specify algorithm for calculating source file checksum stored in PDB. Supported values are: SHA1 or SHA256 (default)</target>
+        <target state="translated">Spécifiez l'algorithme pour calculer la somme de contrôle du fichier source stocké au format PDB. Les valeurs prises en charge sont : SHA1 ou SHA256 (par défaut)</target>
         <note />
       </trans-unit>
       <trans-unit id="optsUnknownChecksumAlgorithm">
         <source>Algorithm '{0}' is not supported</source>
-        <target state="new">Algorithm '{0}' is not supported</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="tcAnonRecdFieldNameDifferent">
-        <source>This is the wrong anonymous record. It should have the fields {0}.</source>
-        <target state="new">This is the wrong anonymous record. It should have the fields {0}.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="tcAnonRecdFieldNameSubset">
-        <source>This anonymous record does not have enough fields. Add the missing fields {0}.</source>
-        <target state="new">This anonymous record does not have enough fields. Add the missing fields {0}.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="tcAnonRecdFieldNameSuperset">
-        <source>This anonymous record has too many fields. Remove the extra fields {0}.</source>
-        <target state="new">This anonymous record has too many fields. Remove the extra fields {0}.</target>
+        <target state="translated">Algorithme '{0}' non pris en charge</target>
         <note />
       </trans-unit>
       <trans-unit id="tcAugmentationsCannotHaveAttributes">
         <source>Attributes cannot be applied to type extensions.</source>
-        <target state="translated">Impossible d'appliquer des attributs aux extensions de type.</target>
+        <target state="new">Attributes cannot be applied to type extensions.</target>
         <note />
       </trans-unit>
       <trans-unit id="undefinedNameNamespace">
@@ -260,6 +270,11 @@
       <trans-unit id="buildInvalidPrivacy">
         <source>Unrecognized privacy setting '{0}' for managed resource, valid options are 'public' and 'private'</source>
         <target state="translated">Paramètre de confidentialité '{0}' non reconnu pour la ressource managée, les options valides sont 'public' et 'private'</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="buildMultipleReferencesNotAllowed">
+        <source>Multiple references to '{0}.dll' are not permitted</source>
+        <target state="translated">Les références multiples à '{0}.dll' ne sont pas autorisées</target>
         <note />
       </trans-unit>
       <trans-unit id="buildCannotReadAssembly">
@@ -2259,7 +2274,7 @@
       </trans-unit>
       <trans-unit id="parsInvalidLiteralInType">
         <source>Invalid literal in type</source>
-        <target state="translated">littéral non valide dans le type</target>
+        <target state="translated">Littéral non valide dans le type</target>
         <note />
       </trans-unit>
       <trans-unit id="parsUnexpectedOperatorForUnitOfMeasure">
@@ -5317,6 +5332,11 @@
         <target state="translated">Les liaisons DLLImport doivent être des membres statiques dans une classe ou des définitions de fonction dans un module</target>
         <note />
       </trans-unit>
+      <trans-unit id="buildExplicitCoreLibRequiresNoFramework">
+        <source>When mscorlib.dll or FSharp.Core.dll is explicitly referenced the {0} option must also be passed</source>
+        <target state="translated">Lorsque mscorlib.dll ou FSharp.Core.dll est explicitement référencé, l'option {0} doit également être passée</target>
+        <note />
+      </trans-unit>
       <trans-unit id="buildExpectedSigdataFile">
         <source>FSharp.Core.sigdata not found alongside FSharp.Core. File expected in {0}. Consider upgrading to a more recent version of FSharp.Core, where this file is no longer be required.</source>
         <target state="translated">FSharp.Core.sigdata introuvable avec FSharp.Core. Fichier attendu dans {0}. Effectuez une mise à niveau vers une version plus récente de FSharp.Core, où ce fichier n'est plus nécessaire.</target>
@@ -7123,8 +7143,8 @@
         <note />
       </trans-unit>
       <trans-unit id="tcAnonRecdFieldNameMismatch">
-        <source>This anonymous record does not exactly match the expected shape. Add the missing fields {0} and remove the extra fields {1}.</source>
-        <target state="needs-review-translation">Deux types d'enregistrement anonyme ont des ensembles de noms de champ incompatibles '{0}' et '{1}'</target>
+        <source>Two anonymous record types have mismatched sets of field names '{0}' and '{1}'</source>
+        <target state="translated">Deux types d'enregistrement anonyme ont des ensembles de noms de champ incompatibles '{0}' et '{1}'</target>
         <note />
       </trans-unit>
       <trans-unit id="tcCannotCallExtensionMethodInrefToByref">
@@ -7190,6 +7210,16 @@
       <trans-unit id="typrelNoImplementationGivenSeveralTruncatedWithSuggestion">
         <source>No implementation was given for those members (some results omitted): {0}Note that all interface members must be implemented and listed under an appropriate 'interface' declaration, e.g. 'interface ... with member ...'.</source>
         <target state="translated">Aucune implémentation pour ces membres (certains résultats sont omis) : {0} Notez que tous les membres d'interface doivent être implémentés et listés sous une déclaration 'interface' appropriée, par ex., 'interface ... with member ... '.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="expressionHasNoName">
+        <source>Expression does not have a name.</source>
+        <target state="translated">L'expression n'a pas de nom.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="chkNoFirstClassNameOf">
+        <source>Using the 'nameof' operator as a first-class function value is not permitted.</source>
+        <target state="translated">L'utilisation de l'opérateur 'nameof' comme valeur de fonction de première classe n'est pas autorisée.</target>
         <note />
       </trans-unit>
       <trans-unit id="optsPathMap">
