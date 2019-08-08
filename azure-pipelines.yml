@@ -55,7 +55,6 @@ stages:
           variables:
           - group: DotNet-Blob-Feed
           - group: DotNet-Symbol-Server-Pats
-          - group: DotNet-DevDiv-Insertion-Workflow-Variables
           - name: _SignType
             value: Real
           - name: _DotNetPublishToBlobFeed
@@ -122,13 +121,6 @@ stages:
             inputs:
               PathtoPublish: '$(Build.SourcesDirectory)\artifacts\SymStore\$(_BuildConfig)'
               ArtifactName: 'NativeSymbols'
-            condition: succeeded()
-          - task: ms-vseng.MicroBuildTasks.4305a8de-ba66-4d8b-b2d1-0dc4ecbbf5e8.MicroBuildUploadVstsDropFolder@1
-            displayName: Upload VSTS Drop
-            inputs:
-              DropName: $(VisualStudioDropName)
-              DropFolder: '$(Build.SourcesDirectory)\artifacts\VSSetup\$(_BuildConfig)\Insertion'
-              AccessToken: $(dn-bot-devdiv-drop-rw-code-rw)
             condition: succeeded()
 
   #-------------------------------------------------------------------------------------------------------------------#
@@ -307,20 +299,20 @@ stages:
           steps:
           - checkout: self
             clean: true
-          - script: ./fcs/build.sh
+          - script: ./fcs/build.sh Build
             displayName: Build
 
-        # - job: MacOS_FCS
-        #   pool:
-        #     vmImage: macOS-10.13
-        #   variables:
-        #   - name: _SignType
-        #     value: Test
-        #   steps:
-        #   - checkout: self
-        #     clean: true
-        #   - script: ./fcs/build.sh
-        #     displayName: Build
+        - job: MacOS_FCS
+          pool:
+            vmImage: macOS-10.13
+          variables:
+          - name: _SignType
+            value: Test
+          steps:
+          - checkout: self
+            clean: true
+          - script: ./fcs/build.sh Build
+            displayName: Build
 
 #---------------------------------------------------------------------------------------------------------------------#
 #                                                    Post Build                                                       #
@@ -328,18 +320,7 @@ stages:
 - ${{ if and(ne(variables['System.TeamProject'], 'public'), notin(variables['Build.Reason'], 'PullRequest')) }}:
   - template: eng/common/templates/post-build/post-build.yml
     parameters:
+      # NuGet validation currently fails due to the `<author>` field of the package being set to `Microsoft and F# Software Foundation` instead of just `Microsoft`
+      enableNugetValidation: false
       # Symbol validation is not entirely reliable as of yet, so should be turned off until https://github.com/dotnet/arcade/issues/2871 is resolved.
       enableSymbolValidation: false
-      # SourceLink improperly looks for generated files.  See https://github.com/dotnet/arcade/issues/3069
-      enableSourceLinkValidation: false
-
-#---------------------------------------------------------------------------------------------------------------------#
-#                                                   VS Insertion                                                      #
-#---------------------------------------------------------------------------------------------------------------------#
-- ${{ if and(ne(variables['System.TeamProject'], 'public'), notin(variables['Build.Reason'], 'PullRequest')) }}:
-  - template: eng/release/insert-into-vs.yml
-    parameters:
-      componentBranchName: refs/heads/release/dev16.4
-      insertTargetBranch: master
-      insertTeamEmail: fsharpteam@microsoft.com
-      insertTeamName: 'F#'
