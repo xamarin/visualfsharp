@@ -26,8 +26,6 @@ stages:
       value: ${{ parameters.insertTeamEmail }}
     - name: InsertTeamName
       value: ${{ parameters.insertTeamName }}
-    - name: InsertPayloadName
-      value: 'F# $(Build.SourceBranchName) $(Build.BuildNumber)'
     steps:
     - task: DownloadBuildArtifacts@0
       displayName: Download Insertion Artifacts
@@ -49,8 +47,8 @@ stages:
       inputs:
         filePath: $(Build.SourcesDirectory)/eng/release/scripts/GetAssemblyVersions.ps1
         arguments: -assemblyVersionsPath $(Build.ArtifactStagingDirectory)\VSSetup\DevDivPackages\DependentAssemblyVersions.csv
-    - task: ms-vseng.MicroBuildShipTasks.55100717-a81d-45ea-a363-b8fe3ec375ad.MicroBuildInsertVsPayload@3
+    - task: ms-vseng.MicroBuildShipTasks.55100717-a81d-45ea-a363-b8fe3ec375ad.MicroBuildInsertVsPayload@2
       displayName: 'Insert VS Payload'
       inputs:
         LinkWorkItemsToPR: false
-      condition: and(succeeded(), eq(variables['Build.SourceBranch'], '${{ parameters.componentBranchName }}'))
+      condition: and(succeeded(), eq(variables['Build.SourceBranch'], ${{ parameters.componentBranchName }}))
