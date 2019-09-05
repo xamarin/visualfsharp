@@ -76,7 +76,6 @@ module SurfaceArea =
         // public types only
         let types = asm.ExportedTypes |> Seq.filter (fun ty -> let ti = ty.GetTypeInfo() in ti.IsPublic || ti.IsNestedPublic) |> Array.ofSeq
 
-        let typenames = new System.Collections.Generic.List<string>()
         // extract canonical string form for every public member of every type
         let getTypeMemberStrings (t : Type) =
             // for System.Runtime-based profiles, need to do lots of manual work
@@ -101,7 +100,7 @@ module SurfaceArea =
             types |> Array.collect getTypeMemberStrings
 
         asm,actual
-
+    
     // verify public surface area matches expected
     let verify expected platform (fileName : string) =
         let normalize (s:string) =
@@ -109,7 +108,7 @@ module SurfaceArea =
 
         let asm, actualNotNormalized = getActual ()
         let actual = actualNotNormalized |> Seq.map normalize |> Seq.filter (String.IsNullOrWhiteSpace >> not) |> set
-
+        
         let expected =
             // Split the "expected" string into individual lines, then normalize it.
             (normalize expected).Split([|"\r\n"; "\n"; "\r"|], StringSplitOptions.RemoveEmptyEntries)
@@ -161,3 +160,4 @@ module SurfaceArea =
             sb.ToString ()
 
         Assert.Fail msg
+        ()
