@@ -64,15 +64,14 @@ module SurfaceArea =
 
     // gets string form of public surface area for the currently-loaded FSharp.Core
     let private getActual () =
-
         // get current FSharp.Core
-        let asm = typeof<int list>.Assembly
+        let asm = typeof<int list>.GetTypeInfo().Assembly
         let fsCoreFullName = asm.FullName
 
         // public types only
         let types = asm.ExportedTypes |> Seq.filter (fun ty -> let ti = ty.GetTypeInfo() in ti.IsPublic || ti.IsNestedPublic) |> Array.ofSeq
-        let typenames = new System.Collections.Generic.List<string>()
 
+        let typenames = new System.Collections.Generic.List<string>()
         // extract canonical string form for every public member of every type
         let getTypeMemberStrings (t : Type) =
             // for System.Runtime-based profiles, need to do lots of manual work
@@ -96,16 +95,17 @@ module SurfaceArea =
         let actual =
             types |> Array.collect getTypeMemberStrings
 
-        asm, actual
+        asm,actual
 
     // verify public surface area matches expected
     let verify expected platform (fileName : string) =
+        printfn "Verify"
         let normalize (s:string) =
             Regex.Replace(s, "(\\r\\n|\\n|\\r)+", "\r\n").Trim()
 
         let asm, actualNotNormalized = getActual ()
         let actual = actualNotNormalized |> Seq.map normalize |> Seq.filter (String.IsNullOrWhiteSpace >> not) |> set
-        
+
         let expected =
             // Split the "expected" string into individual lines, then normalize it.
             (normalize expected).Split([|"\r\n"; "\n"; "\r"|], StringSplitOptions.RemoveEmptyEntries)
@@ -129,6 +129,7 @@ module SurfaceArea =
         let logFile =
             let workDir = TestContext.CurrentContext.WorkDirectory
             sprintf "%s\\FSharp.Core.SurfaceArea.%s.txt" workDir platform
+        printfn "logFile: %s" logFile
         System.IO.File.WriteAllText(logFile, String.Join("\r\n", actual))
 
         // The surface areas don't match; prepare an easily-readable output message.
@@ -157,4 +158,3 @@ module SurfaceArea =
             sb.ToString ()
 
         Assert.Fail msg
-        ()
