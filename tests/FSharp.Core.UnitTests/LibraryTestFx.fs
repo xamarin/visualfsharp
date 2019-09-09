@@ -54,12 +54,8 @@ let CheckThrowsFormatException       f = CheckThrowsExn<FormatException>        
 let VerifySeqsEqual (seq1 : seq<'T>) (seq2 : seq<'T>) =
     CollectionAssert.AreEqual(seq1, seq2)
 
-let sleep(n : int32) =        
-#if FX_NO_THREAD
-    async { do! Async.Sleep(n) } |> Async.RunSynchronously
-#else
+let sleep(n : int32) =
     System.Threading.Thread.Sleep(n)
-#endif
 
 module SurfaceArea =
     open System.Reflection
@@ -70,11 +66,12 @@ module SurfaceArea =
     let private getActual () =
 
         // get current FSharp.Core
-        let asm = typeof<int list>.GetTypeInfo().Assembly
+        let asm = typeof<int list>.Assembly
         let fsCoreFullName = asm.FullName
 
         // public types only
         let types = asm.ExportedTypes |> Seq.filter (fun ty -> let ti = ty.GetTypeInfo() in ti.IsPublic || ti.IsNestedPublic) |> Array.ofSeq
+        let typenames = new System.Collections.Generic.List<string>()
 
         // extract canonical string form for every public member of every type
         let getTypeMemberStrings (t : Type) =
@@ -99,8 +96,8 @@ module SurfaceArea =
         let actual =
             types |> Array.collect getTypeMemberStrings
 
-        asm,actual
-    
+        asm, actual
+
     // verify public surface area matches expected
     let verify expected platform (fileName : string) =
         let normalize (s:string) =
