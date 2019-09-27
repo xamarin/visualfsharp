@@ -1,5 +1,5 @@
 # output location
-artifacts/
+[Aa]rtifacts/
 
 /tests/scripts/current
 .dotnet/

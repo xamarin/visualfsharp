@@ -4,10 +4,14 @@ DEFAULT: all
 
 monocmd = $(shell which mono)
 monocmddir = $(dir $(monocmd))
-prefix = $(shell (cd $(monocmddir)/..; pwd))
+ifeq (x-$(PREFIX)-,x--)
+ prefix = $(shell (cd $(monocmddir)/..; pwd))
+else
+prefix = $(PREFIX)
+endif
 thisdir = $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
 topdir = $(thisdir)../
-builddir = $(topdir)
+builddir = $(topdir)artifacts/bin/
 libdir = $(prefix)/lib/
 bindir = $(prefix)/bin/
 monobindir = $(bindir)
@@ -15,11 +19,16 @@ monolibdir = $(libdir)
 monodir = $(monolibdir)mono
 
 debugvars:
+	@echo --------VARS--------
 	@echo prefix=$(prefix)
 	@echo topdir=$(topdir)
 	@echo monodir=$(monodir)
 	@echo monolibdir=$(monolibdir)
 	@echo monobindir=$(monobindir)
+	@echo DESTDIR=$(DESTDIR)
+	@echo outdir=$(outdir)
+	@echo builddir=$(builddir)
+	@echo --------ENDVARS-------
 
 TargetDotnetProfile = net40
 Configuration = Release
@@ -27,11 +36,10 @@ DISTVERSION = 201011
 
 # Version number mappings for various versions of FSharp.Core
 
-
 ifeq (x-$(TargetDotnetProfile)-,x-net40-)
 
 ifeq (x-$(FSharpCoreBackVersion)-,x--)
-VERSION = 4.4.1.0
+VERSION = 4.4.5.0
 PKGINSTALL = yes
 REFASSEMPATH = .NETFramework/v4.0
 outsuffix = $(TargetDotnetProfile)
@@ -53,6 +61,18 @@ ifeq (x-$(FSharpCoreBackVersion)-,x-4.0-)
 VERSION = 4.4.0.0
 REFASSEMPATH = .NETFramework/v4.0
 outsuffix = fsharp40/$(TargetDotnetProfile)
+endif
+
+ifeq (x-$(FSharpCoreBackVersion)-,x-4.1-)
+VERSION = 4.4.1.0
+REFASSEMPATH = .NETFramework/v4.0
+outsuffix = fsharp41/$(TargetDotnetProfile)
+endif
+
+ifeq (x-$(FSharpCoreBackVersion)-,x-4.3-)
+VERSION = 4.4.3.0
+REFASSEMPATH = .NETFramework/v4.0
+outsuffix = fsharp43/$(TargetDotnetProfile)
 endif
 
 endif
@@ -92,12 +112,31 @@ PCLPATH = .NETCore
 outsuffix = $(TargetDotnetProfile)
 endif
 
+ifeq (x-$(TargetDotnetProfile)-,x-net45-)
+# TODO: Correct this version
+VERSION = 4.5.0
+PCLPATH = .NETCore
+outsuffix = $(TargetDotnetProfile)
+endif
+
+ifeq (x-$(TargetDotnetProfile)-,x-net462-)
+# TODO: Correct this version
+VERSION = 4.6.2
+outsuffix = $(TargetDotnetProfile)
+endif
+
+ifeq (x-$(TargetDotnetProfile)-,x-net472-)
+# TODO: Correct this version
+VERSION = 4.7.2
+outsuffix = $(TargetDotnetProfile)
+endif
+
 
 FSCORE_DELAY_SIGN_TOKEN = b03f5f7f11d50a3a
 SIGN_TOKEN = f536804aa0eb945b
 
 tmpdir = .libs/$(Configuration)/
-outdir = $(builddir)$(Configuration)/$(outsuffix)/bin/
+outdir = $(builddir)$(NAME)/$(Configuration)/$(outsuffix)/
 
 INSTALL = $(SHELL) $(topdir)/mono/install-sh
 INSTALL_BIN = $(INSTALL) -c -m 755
@@ -130,12 +169,12 @@ NO_DIST = .gitignore lib/debug lib/proto lib/release
 #     .../lib/mono/xbuild/Microsoft/VisualStudio/v/FSharp/Microsoft.FSharp.Targets
 # since this is the location if 'xbuild' fails to set VisualStudioVersion.
 #
-install-sdk-lib:
+install-sdk-lib: debugvars
 	@echo "Installing $(ASSEMBLY)"
 	@mkdir -p $(DESTDIR)$(monodir)/fsharp
 	@if test "x$(DELAY_SIGN)" = "x1"; then \
 	    echo "Signing $(outdir)$(ASSEMBLY) with Mono key"; \
-	    $(monobindir)sn -q -R $(outdir)$(ASSEMBLY) $(topdir)mono/mono.snk; \
+	    $(monocmddir)sn -q -R $(outdir)$(ASSEMBLY) $(topdir)mono/mono.snk; \
 	fi
 	@if test x-$(NAME) = x-FSharp.Compiler.Private; then \
 	    echo "Installing extra dependency System.Collections.Immutable.dll to $(DESTDIR)$(monodir)/fsharp/"; \
@@ -156,6 +195,7 @@ install-sdk-lib:
 	    echo " --> $(DESTDIR)$(monodir)/xbuild/Microsoft/VisualStudio/v12.0/FSharp/"; \
 	    echo " --> $(DESTDIR)$(monodir)/xbuild/Microsoft/VisualStudio/v14.0/FSharp/"; \
 	    echo " --> $(DESTDIR)$(monodir)/xbuild/Microsoft/VisualStudio/v15.0/FSharp/"; \
+			echo " --> $(DESTDIR)$(monodir)/xbuild/Microsoft/VisualStudio/v16.0/FSharp/"; \
 	    \
 	    mkdir -p $(tmpdir); \
 	    mkdir -p $(DESTDIR)$(monodir)/Microsoft\ F#/v4.0/; \
@@ -168,6 +208,7 @@ install-sdk-lib:
 	    mkdir -p $(DESTDIR)$(monodir)/xbuild/Microsoft/VisualStudio/v12.0/FSharp/; \
 	    mkdir -p $(DESTDIR)$(monodir)/xbuild/Microsoft/VisualStudio/v14.0/FSharp/; \
 	    mkdir -p $(DESTDIR)$(monodir)/xbuild/Microsoft/VisualStudio/v15.0/FSharp/; \
+			mkdir -p $(DESTDIR)$(monodir)/xbuild/Microsoft/VisualStudio/v16.0/FSharp/; \
 	    \
 	    $(INSTALL_LIB) $(outdir)Microsoft.FSharp.Targets $(DESTDIR)$(monodir)/fsharp/; \
 	    $(INSTALL_LIB) $(outdir)Microsoft.Portable.FSharp.Targets $(DESTDIR)$(monodir)/fsharp/; \
@@ -185,6 +226,7 @@ install-sdk-lib:
 	    $(INSTALL_LIB) $(tmpdir)Microsoft.FSharp.Targets $(DESTDIR)$(monodir)/xbuild/Microsoft/VisualStudio/v12.0/FSharp/; \
 	    $(INSTALL_LIB) $(tmpdir)Microsoft.FSharp.Targets $(DESTDIR)$(monodir)/xbuild/Microsoft/VisualStudio/v14.0/FSharp/; \
 	    $(INSTALL_LIB) $(tmpdir)Microsoft.FSharp.Targets $(DESTDIR)$(monodir)/xbuild/Microsoft/VisualStudio/v15.0/FSharp/; \
+			$(INSTALL_LIB) $(tmpdir)Microsoft.FSharp.Targets $(DESTDIR)$(monodir)/xbuild/Microsoft/VisualStudio/v16.0/FSharp/; \
 	    \
 	    echo '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">' > $(tmpdir)Microsoft.Portable.FSharp.Targets; \
 	    echo '    <Import Project="$(monodir)/fsharp/Microsoft.Portable.FSharp.Targets" />' >> $(tmpdir)Microsoft.Portable.FSharp.Targets; \
@@ -199,24 +241,28 @@ install-sdk-lib:
 	    $(INSTALL_LIB) $(tmpdir)Microsoft.Portable.FSharp.Targets $(DESTDIR)$(monodir)/xbuild/Microsoft/VisualStudio/v12.0/FSharp/; \
 	    $(INSTALL_LIB) $(tmpdir)Microsoft.Portable.FSharp.Targets $(DESTDIR)$(monodir)/xbuild/Microsoft/VisualStudio/v14.0/FSharp/; \
 	    $(INSTALL_LIB) $(tmpdir)Microsoft.Portable.FSharp.Targets $(DESTDIR)$(monodir)/xbuild/Microsoft/VisualStudio/v15.0/FSharp/; \
+			$(INSTALL_LIB) $(tmpdir)Microsoft.Portable.FSharp.Targets $(DESTDIR)$(monodir)/xbuild/Microsoft/VisualStudio/v16.0/FSharp/; \
 	    \
 	    $(INSTALL_LIB) $(outdir)Microsoft.FSharp.NetSdk.props $(DESTDIR)$(monodir)/xbuild/Microsoft/VisualStudio/v/FSharp/; \
 	    $(INSTALL_LIB) $(outdir)Microsoft.FSharp.NetSdk.props $(DESTDIR)$(monodir)/xbuild/Microsoft/VisualStudio/v11.0/FSharp/; \
 	    $(INSTALL_LIB) $(outdir)Microsoft.FSharp.NetSdk.props $(DESTDIR)$(monodir)/xbuild/Microsoft/VisualStudio/v12.0/FSharp/; \
 	    $(INSTALL_LIB) $(outdir)Microsoft.FSharp.NetSdk.props $(DESTDIR)$(monodir)/xbuild/Microsoft/VisualStudio/v14.0/FSharp/; \
 	    $(INSTALL_LIB) $(outdir)Microsoft.FSharp.NetSdk.props $(DESTDIR)$(monodir)/xbuild/Microsoft/VisualStudio/v15.0/FSharp/; \
+			$(INSTALL_LIB) $(outdir)Microsoft.FSharp.NetSdk.props $(DESTDIR)$(monodir)/xbuild/Microsoft/VisualStudio/v16.0/FSharp/; \
 	    \
 	    $(INSTALL_LIB) $(outdir)Microsoft.FSharp.NetSdk.targets $(DESTDIR)$(monodir)/xbuild/Microsoft/VisualStudio/v/FSharp/; \
 	    $(INSTALL_LIB) $(outdir)Microsoft.FSharp.NetSdk.targets $(DESTDIR)$(monodir)/xbuild/Microsoft/VisualStudio/v11.0/FSharp/; \
 	    $(INSTALL_LIB) $(outdir)Microsoft.FSharp.NetSdk.targets $(DESTDIR)$(monodir)/xbuild/Microsoft/VisualStudio/v12.0/FSharp/; \
 	    $(INSTALL_LIB) $(outdir)Microsoft.FSharp.NetSdk.targets $(DESTDIR)$(monodir)/xbuild/Microsoft/VisualStudio/v14.0/FSharp/; \
 	    $(INSTALL_LIB) $(outdir)Microsoft.FSharp.NetSdk.targets $(DESTDIR)$(monodir)/xbuild/Microsoft/VisualStudio/v15.0/FSharp/; \
+			$(INSTALL_LIB) $(outdir)Microsoft.FSharp.NetSdk.targets $(DESTDIR)$(monodir)/xbuild/Microsoft/VisualStudio/v16.0/FSharp/; \
 	    \
 	    $(INSTALL_LIB) $(outdir)Microsoft.FSharp.Overrides.NetSdk.targets $(DESTDIR)$(monodir)/xbuild/Microsoft/VisualStudio/v/FSharp/; \
 	    $(INSTALL_LIB) $(outdir)Microsoft.FSharp.Overrides.NetSdk.targets $(DESTDIR)$(monodir)/xbuild/Microsoft/VisualStudio/v11.0/FSharp/; \
 	    $(INSTALL_LIB) $(outdir)Microsoft.FSharp.Overrides.NetSdk.targets $(DESTDIR)$(monodir)/xbuild/Microsoft/VisualStudio/v12.0/FSharp/; \
 	    $(INSTALL_LIB) $(outdir)Microsoft.FSharp.Overrides.NetSdk.targets $(DESTDIR)$(monodir)/xbuild/Microsoft/VisualStudio/v14.0/FSharp/; \
 	    $(INSTALL_LIB) $(outdir)Microsoft.FSharp.Overrides.NetSdk.targets $(DESTDIR)$(monodir)/xbuild/Microsoft/VisualStudio/v15.0/FSharp/; \
+			$(INSTALL_LIB) $(outdir)Microsoft.FSharp.Overrides.NetSdk.targets $(DESTDIR)$(monodir)/xbuild/Microsoft/VisualStudio/v16.0/FSharp/; \
 	fi
 	@if test x-$(outsuffix) = x-net40; then \
 	    if test -e $(outdir)$(NAME).dll; then \
@@ -268,7 +314,7 @@ install-sdk-lib:
 
 # The binaries fsc.exe and fsi.exe only get installed for Mono 4.5 profile
 # This also installs 'fsharpc' and 'fsharpi' and 'fsharpiAnyCpu'
-install-bin:
+install-bin: debugvars
 	chmod +x $(outdir)$(ASSEMBLY)
 	sed -e 's,[@]DIR[@],$(monodir)/fsharp,g' -e 's,[@]TOOL[@],$(ASSEMBLY),g' -e 's,[@]MONOBINDIR[@],$(monobindir),g' < $(topdir)mono/launcher > $(outdir)$(subst fs,fsharp,$(NAME))
 	chmod +x $(outdir)$(subst fs,fsharp,$(NAME))

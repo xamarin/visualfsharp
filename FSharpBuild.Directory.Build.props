@@ -49,7 +49,7 @@
     <FrameworkPathOverride Condition="'$(TargetFramework)' == 'net462'">$(MonoLibFolder)/4.6.2-api</FrameworkPathOverride>
     <FrameworkPathOverride Condition="'$(TargetFramework)' == 'net47'">$(MonoLibFolder)/4.7-api</FrameworkPathOverride>
     <FrameworkPathOverride Condition="'$(TargetFramework)' == 'net471'">$(MonoLibFolder)/4.7.1-api</FrameworkPathOverride>
-    <FrameworkPathOverride Condition="'$(TargetFramework)' == 'net472'">$(MonoLibFolder)/4.7.2-api</FrameworkPathOverride>
+    <FrameworkPathOverride Condition="'$(TargetFramework)' == 'net472'">$(MonoLibFolder)/4.7.2-api;$(MonoLibFolder)/4.7.2-api/Facades</FrameworkPathOverride>
   </PropertyGroup>
 
   <!-- signing -->

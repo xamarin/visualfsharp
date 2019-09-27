@@ -6,10 +6,12 @@
     <OutputType>Library</OutputType>
     <TargetFrameworks>net45;netstandard2.0</TargetFrameworks>
     <TargetFrameworks Condition="'$(OS)' == 'Unix'">netstandard2.0</TargetFrameworks>
+    <TargetFrameworks>net45;netstandard1.6</TargetFrameworks>
     <NoWarn>$(NoWarn);45;55;62;75;1204</NoWarn>
     <AllowCrossTargeting>true</AllowCrossTargeting>
     <DefineConstants>$(DefineConstants);FSHARP_CORE</DefineConstants>
     <DefineConstants Condition="'$(Configuration)' == 'Proto'">BUILDING_WITH_LKG;$(DefineConstants)</DefineConstants>
+    <DefineConstants Condition="'$(MonoPackaging)' == 'true'">BUILD_FROM_SOURCE;$(DefineConstants)</DefineConstants>
     <OtherFlags>$(OtherFlags) --warnon:1182 --compiling-fslib --compiling-fslib-40 --maxerrors:20 --extraoptimizationloops:1</OtherFlags>
     <Tailcalls>true</Tailcalls> <!-- .tail annotations always emitted for this binary, even in debug mode -->
     <NGenBinary>true</NGenBinary>
@@ -215,9 +217,19 @@
   </ItemGroup>
 
   <ItemGroup>
+
     <PackageReference Include="System.Linq.Queryable" Version="$(SystemLinqQueryableVersion)" />
     <PackageReference Include="System.Net.Requests" Version="$(SystemNetRequestsVersion)" />
     <PackageReference Include="System.Threading.Tasks.Parallel" Version="$(SystemThreadingTasksParallelVersion)" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard1.6'">
+    <PackageReference Include="System.Threading.Thread" Version="$(SystemThreadingThreadVersion)" />
+    <PackageReference Include="System.Threading.ThreadPool" Version="$(SystemThreadingThreadPoolVersion)" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net45'">
+    <PackageReference Include="System.Collections" Version="4.3.0" />
   </ItemGroup>
 
   <!-- Hook compilation phase to do custom work -->

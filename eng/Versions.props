@@ -66,6 +66,7 @@
     <!-- version numbers from files -->
     <RoslynVersion>$([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)..\RoslynPackageVersion.txt').Trim())</RoslynVersion>
     <!-- System.* packages -->
+    <SystemCollectionsVersion>4.3.0</SystemCollectionsVersion>
     <SystemCollectionsImmutableVersion>1.5.0</SystemCollectionsImmutableVersion>
     <SystemConsoleVersion>4.3.0</SystemConsoleVersion>
     <SystemDesignVersion>4.0.0</SystemDesignVersion>
