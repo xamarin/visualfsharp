@@ -15,6 +15,7 @@
     <Compile Include="TestHelpers.fs" />
     <Compile Include="FSharpScriptTests.fs" />
     <Compile Include="CompletionTests.fs" />
+    <None Include="housing.csv"  CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
