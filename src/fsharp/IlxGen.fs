@@ -4839,7 +4839,7 @@ and GenJoinPoint cenv cgbuf pos eenv ty m sequel =
         // go to the join point
         Br afterJoin, afterJoin, stackAfterJoin, sequel
 
-and GenPostponedDecisionTreeTargets cenv cgbuf targetInfos stackAtTargets sequel (contf: FakeUnit -> FakeUnit) : FakeUnit =
+and GenPostponedDecisionTreeTargets cenv cgbuf targetInfos stackAtTargets sequel contf =
     match targetInfos with
     | [] -> contf Fake
     | (KeyValue(_, (targetInfo, isTargetPostponed))) :: rest ->
