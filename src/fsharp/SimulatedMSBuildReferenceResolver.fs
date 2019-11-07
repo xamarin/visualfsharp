@@ -2,9 +2,9 @@
 
 #if INTERACTIVE
 #load "../utils/ResizeArray.fs" "../absil/illib.fs" "../fsharp/ReferenceResolver.fs"
-#else
-module internal FSharp.Compiler.SimulatedMSBuildReferenceResolver
 #endif
+
+module internal FSharp.Compiler.SimulatedMSBuildReferenceResolver
 
 open System
 open System.IO
@@ -13,7 +13,7 @@ open Microsoft.Win32
 open FSharp.Compiler.ReferenceResolver
 open FSharp.Compiler.AbstractIL.Internal.Library
 
-let private SimulatedMSBuildResolver =
+let internal SimulatedMSBuildResolver =
     let supportedFrameworks = [|
         "v4.7.2"
         "v4.7.1"

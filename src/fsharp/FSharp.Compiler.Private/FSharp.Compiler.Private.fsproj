@@ -39,6 +39,8 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="fsc" />
+    <InternalsVisibleTo Include="fsi" />
+    <InternalsVisibleTo Include="fsiAnyCpu" />
     <InternalsVisibleTo Include="FSharp.Compiler.Server.Shared" />
     <InternalsVisibleTo Include="VisualFSharp.Salsa" />
     <InternalsVisibleTo Include="VisualFSharp.UnitTests" />
@@ -272,7 +274,7 @@
       <Link>ReferenceResolution/reshapedmsbuild.fs</Link>
     </Compile>
     <!-- A legacy resolver used to help with scripting diagnostics in the Visual Studio tools -->
-    <Compile Include="..\LegacyMSBuildReferenceResolver.fsi">
+    <Compile Include="..\LegacyMSBuildReferenceResolver.fsi" Condition="'$(MonoPackaging)' != 'true'">
       <Link>ReferenceResolution/LegacyMSBuildReferenceResolver.fsi</Link>
     </Compile>
     <Compile Include="..\LegacyMSBuildReferenceResolver.fs" Condition="'$(MonoPackaging)' != 'true'">
