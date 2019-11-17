@@ -16,17 +16,23 @@ open System
 //   *  When a feature is assigned a release language, we will scrub the code of feature references and apply
 //      the Release Language version.
 
+/// LanguageFeature enumeration
 [<RequireQualifiedAccess>]
 type LanguageFeature =
-    | SingleUnderscorePattern
-    | WildCardInForLoop
-    | RelaxWhitespace
-    | NameOf
-    | ImplicitYield
-    | OpenStaticClasses
+    | PreviewVersion = 0
+    | LanguageVersion46 = 1
+    | LanguageVersion47 = 2
+    | SingleUnderscorePattern = 3
+    | WildCardInForLoop = 4
+    | RelaxWhitespace = 5
+    | NameOf = 6
+    | ImplicitYield = 7
+    | OpenStaticClasses = 8
+    | DotlessFloat32 = 9
+
 
 /// LanguageVersion management
-type LanguageVersion (specifiedVersionAsString) =
+type LanguageVersion (specifiedVersion) =
 
     // When we increment language versions here preview is higher than current RTM version
     static let languageVersion46 = 4.6m
@@ -39,29 +45,31 @@ type LanguageVersion (specifiedVersionAsString) =
     static let validOptions = [| "preview"; "default"; "latest"; "latestmajor" |]
     static let languageVersions = set [| languageVersion46; languageVersion47 |]
 
-    static let features =
-        dict [
-            // F# 4.7
-            LanguageFeature.SingleUnderscorePattern, languageVersion47
-            LanguageFeature.WildCardInForLoop, languageVersion47
-            LanguageFeature.RelaxWhitespace, languageVersion47
-            LanguageFeature.ImplicitYield, languageVersion47
-
-            // F# preview
-            LanguageFeature.NameOf, previewVersion
-            LanguageFeature.OpenStaticClasses, previewVersion
-        ]
+    static let features = dict [|
+        // Add new LanguageVersions here ...
+        LanguageFeature.LanguageVersion46, languageVersion46
+        LanguageFeature.LanguageVersion47, languageVersion47
+        LanguageFeature.PreviewVersion, previewVersion
+        LanguageFeature.SingleUnderscorePattern, languageVersion47
+        LanguageFeature.WildCardInForLoop, languageVersion47
+        LanguageFeature.RelaxWhitespace, languageVersion47
+        LanguageFeature.NameOf, previewVersion
+        LanguageFeature.ImplicitYield, languageVersion47
+        LanguageFeature.OpenStaticClasses, previewVersion
+        LanguageFeature.DotlessFloat32, previewVersion
+        |]
 
     let specified =
-        match specifiedVersionAsString with
+        match specifiedVersion with
         | "?" -> 0m
         | "preview" -> previewVersion
         | "default" -> defaultVersion
         | "latest" -> latestVersion
         | "latestmajor" -> latestMajorVersion
-        | "4.6" -> languageVersion46
-        | "4.7" -> languageVersion47
-        | _ -> 0m
+        | _ ->
+            match Decimal.TryParse(specifiedVersion) with
+            | true, v -> v
+            | _ -> 0m
 
     /// Check if this feature is supported by the selected langversion
     member __.SupportsFeature featureId =
@@ -73,17 +81,20 @@ type LanguageVersion (specifiedVersionAsString) =
     member __.ContainsVersion version =
         match version with
         | "?" | "preview" | "default" | "latest" | "latestmajor" -> true
-        | _ -> languageVersions.Contains specified
+        | _ -> 
+            match Decimal.TryParse(specifiedVersion) with
+            | true, v -> languageVersions.Contains v
+            | _ -> false
 
     /// Get a list of valid strings for help text
     member __.ValidOptions = validOptions
 
     /// Get a list of valid versions for help text
-    member __.ValidVersions =
-        [|
-            for v in languageVersions |> Seq.sort ->
-                sprintf "%M%s" v (if v = defaultVersion then " (Default)" else "")
-        |]
+    member __.ValidVersions = [|
+        for v in languageVersions |> Seq.sort do
+            let label = if v = defaultVersion then " (Default)" else ""
+            yield sprintf "%M%s" v label
+            |]
 
     /// Get the specified LanguageVersion
     member __.SpecifiedVersion = specified
