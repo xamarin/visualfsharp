@@ -1,5 +1,7 @@
 Configuration ?= Release
 ConfigurationProperty = /p:Configuration=$(Configuration)
+DotNetVersion = `cat DotnetCLIToolsVersion.txt`
+DotNetToolPath = $(CURDIR)/artifacts/toolset/dotnet
 
 Verbosity ?= normal
 VerbosityProperty = /Verbosity:$(Verbosity)
@@ -31,7 +33,10 @@ debug: debugvars
 
 all: proto restore build
 
-proto:
+tools:
+	$(CURDIR)/scripts/dotnet-install.sh --install-dir "$(DotNetToolPath)"
+
+proto: tools
 	$(RestoreCommand) $(NF472) src/buildtools/buildtools.proj 
 	$(RestoreCommand) $(NF472) src/fsharp/FSharp.Build/FSharp.Build.fsproj 
 	$(RestoreCommand) $(NF472) src/fsharp/fsc/fsc.fsproj
