@@ -7,6 +7,21 @@
         <target state="translated">{0} para F# {1}</target>
         <note />
       </trans-unit>
+      <trans-unit id="fromEndSlicingRequiresVFive">
+        <source>From the end slicing with requires language version 5.0, use /langversion:preview.</source>
+        <target state="new">From the end slicing with requires language version 5.0, use /langversion:preview.</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="nativeResourceFormatError">
+        <source>Stream does not begin with a null resource and is not in '.RES' format.</source>
+        <target state="translated">El flujo no comienza con un recurso nulo ni está en formato ".RES".</target>
+        <note />
+      </trans-unit>
+      <trans-unit id="nativeResourceHeaderMalformed">
+        <source>Resource header beginning at offset {0} is malformed.</source>
+        <target state="translated">El encabezado de los recursos que comienza en el desplazamiento {0} está mal formado.</target>
+        <note />
+      </trans-unit>
       <trans-unit id="optsLangVersion">
         <source>Display the allowed values for language version, specify language version such as 'latest' or 'preview'</source>
         <target state="translated">Mostrar los valores permitidos para la versión de idioma, especificar la versión de idioma como "latest" "preview"</target>
@@ -32,16 +47,6 @@
         <target state="translated">Símbolo inesperado "." en la definición de miembro. Se esperaba "with", "=" u otro token.</target>
         <note />
       </trans-unit>
-      <trans-unit id="nativeResourceFormatError">
-        <source>Stream does not begin with a null resource and is not in '.RES' format.</source>
-        <target state="new">Stream does not begin with a null resource and is not in '.RES' format.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="nativeResourceHeaderMalformed">
-        <source>Resource header beginning at offset {0} is malformed.</source>
-        <target state="new">Resource header beginning at offset {0} is malformed.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="optsChecksumAlgorithm">
         <source>Specify algorithm for calculating source file checksum stored in PDB. Supported values are: SHA1 or SHA256 (default)</source>
         <target state="translated">Especifique el algoritmo para calcular la suma de comprobación del archivo de origen almacenada en PDB. Los valores admitidos son SHA1 o SHA256 (predeterminado)</target>
@@ -54,7 +59,7 @@
       </trans-unit>
       <trans-unit id="tcAugmentationsCannotHaveAttributes">
         <source>Attributes cannot be applied to type extensions.</source>
-        <target state="new">Attributes cannot be applied to type extensions.</target>
+        <target state="translated">Los atributos no se pueden aplicar a las extensiones de tipo.</target>
         <note />
       </trans-unit>
       <trans-unit id="undefinedNameNamespace">
@@ -270,11 +275,6 @@
       <trans-unit id="buildInvalidPrivacy">
         <source>Unrecognized privacy setting '{0}' for managed resource, valid options are 'public' and 'private'</source>
         <target state="translated">Configuración de privacidad '{0}' no reconocida para un recurso administrado. Las opciones válidas son 'public' y 'private'.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="buildMultipleReferencesNotAllowed">
-        <source>Multiple references to '{0}.dll' are not permitted</source>
-        <target state="translated">No se permiten varias referencias a '{0}.dll'.</target>
         <note />
       </trans-unit>
       <trans-unit id="buildCannotReadAssembly">
@@ -5330,11 +5330,6 @@
       <trans-unit id="tcDllImportNotAllowed">
         <source>DLLImport bindings must be static members in a class or function definitions in a module</source>
         <target state="translated">Los enlaces DLLImport deben ser miembros estáticos en definiciones de función o clase dentro de un módulo.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="buildExplicitCoreLibRequiresNoFramework">
-        <source>When mscorlib.dll or FSharp.Core.dll is explicitly referenced the {0} option must also be passed</source>
-        <target state="translated">Cuando se hace referencia de forma explícita a mscorlib.dll o FSharp.Core.dll, debe pasarse también la opción {0}.</target>
         <note />
       </trans-unit>
       <trans-unit id="buildExpectedSigdataFile">
