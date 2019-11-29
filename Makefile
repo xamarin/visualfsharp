@@ -25,6 +25,7 @@ NUnitRunner = $(PackageRoot)nunit.consolerunner/$(NUnitVersion)/tools/nunit3-con
 NUnitCommand = $(monocmd) $(NUnitRunner)
 
 include $(topsrcdir)mono/config.make
+export PATH := "$(DotNetToolPath):$(PATH)"
 
 debug: debugvars
 	@echo PackageRoot=$(PackageRoot)
