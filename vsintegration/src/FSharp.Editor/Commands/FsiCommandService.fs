@@ -10,10 +10,10 @@ open Microsoft.VisualStudio.Editor
 open Microsoft.VisualStudio.OLE.Interop
 open Microsoft.VisualStudio.Text.Editor
 open Microsoft.VisualStudio.TextManager.Interop
-open Microsoft.VisualStudio.Utilities
+//open Microsoft.VisualStudio.Utilities
 open Microsoft.VisualStudio.Shell
 open Microsoft.VisualStudio.Shell.Interop
-open Microsoft.VisualStudio.FSharp.Interactive
+//open Microsoft.VisualStudio.FSharp.Interactive
 
 type internal FsiCommandFilter(serviceProvider: System.IServiceProvider) =
 

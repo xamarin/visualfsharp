@@ -6,7 +6,7 @@ open System
 open Microsoft.VisualStudio.Text
 open Microsoft.VisualStudio.Text.Editor
 open System.ComponentModel.Composition
-open Microsoft.VisualStudio.Utilities
+//open Microsoft.VisualStudio.Utilities
 open Microsoft.VisualStudio.Shell
 open Microsoft.VisualStudio
 open Microsoft.VisualStudio.LanguageServices

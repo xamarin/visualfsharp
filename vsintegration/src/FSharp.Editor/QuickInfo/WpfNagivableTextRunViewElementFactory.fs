@@ -5,11 +5,11 @@ namespace Microsoft.VisualStudio.FSharp.Editor
 open System
 open System.ComponentModel.Composition
 open System.Windows
-open System.Windows.Controls
+//open System.Windows.Controls
 
 open Microsoft.VisualStudio.Text.Adornments
 open Microsoft.VisualStudio.Text.Editor
-open Microsoft.VisualStudio.Utilities
+//open Microsoft.VisualStudio.Utilities
 
 [<Export(typeof<IViewElementFactory>)>]
 [<Name("NavigableTextRun to UIElement")>]
@@ -59,5 +59,5 @@ type WpfNavigableTextRunViewElementFactory
             | _ -> ()
 
             // add navigation
-            convertedElement.MouseDown.Add(fun _ -> navigableTextRun.NavigateAction())
+            //convertedElement.MouseDown.Add(fun _ -> navigableTextRun.NavigateAction())
             convertedElement :> obj :?> 'TView

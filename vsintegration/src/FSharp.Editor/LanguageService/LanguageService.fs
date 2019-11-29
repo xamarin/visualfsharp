@@ -91,36 +91,36 @@ type internal FSharpSettingsFactory
         member __.CreateService(_) = upcast settings
 
 [<Guid(FSharpConstants.packageGuidString)>]
-[<ProvideOptionPage(typeof<Microsoft.VisualStudio.FSharp.Interactive.FsiPropertyPage>,
-                    "F# Tools", "F# Interactive",   // category/sub-category on Tools>Options...
-                    6000s,      6001s,              // resource id for localisation of the above
-                    true)>]                         // true = supports automation
-[<ProvideKeyBindingTable("{dee22b65-9761-4a26-8fb2-759b971d6dfc}", 6001s)>] // <-- resource ID for localised name
-[<ProvideToolWindow(typeof<Microsoft.VisualStudio.FSharp.Interactive.FsiToolWindow>, 
-                    // The following should place the ToolWindow with the OutputWindow by default.
-                    Orientation=ToolWindowOrientation.Bottom,
-                    Style=VsDockStyle.Tabbed,
-                    PositionX = 0,
-                    PositionY = 0,
-                    Width = 360,
-                    Height = 120,
-                    Window="34E76E81-EE4A-11D0-AE2E-00A0C90FFFC3")>]
-[<ProvideLanguageEditorOptionPage(typeof<OptionsUI.IntelliSenseOptionPage>, "F#", null, "IntelliSense", "6008")>]
-[<ProvideLanguageEditorOptionPage(typeof<OptionsUI.QuickInfoOptionPage>, "F#", null, "QuickInfo", "6009")>]
-[<ProvideLanguageEditorOptionPage(typeof<OptionsUI.CodeFixesOptionPage>, "F#", null, "Code Fixes", "6010")>]
-[<ProvideLanguageEditorOptionPage(typeof<OptionsUI.LanguageServicePerformanceOptionPage>, "F#", null, "Performance", "6011")>]
-[<ProvideLanguageEditorOptionPage(typeof<OptionsUI.AdvancedSettingsOptionPage>, "F#", null, "Advanced", "6012")>]
-[<ProvideLanguageEditorOptionPage(typeof<OptionsUI.CodeLensOptionPage>, "F#", null, "CodeLens", "6013")>]
-[<ProvideLanguageEditorOptionPage(typeof<OptionsUI.FormattingOptionPage>, "F#", null, "Formatting", "6014")>]
-[<ProvideFSharpVersionRegistration(FSharpConstants.projectPackageGuidString, "Microsoft Visual F#")>]
-// 64 represents a hex number. It needs to be greater than 37 so the TextMate editor will not be chosen as higher priority.
-[<ProvideEditorExtension(typeof<FSharpEditorFactory>, ".fs", 64)>]
-[<ProvideEditorExtension(typeof<FSharpEditorFactory>, ".fsi", 64)>]
-[<ProvideEditorExtension(typeof<FSharpEditorFactory>, ".fsscript", 64)>]
-[<ProvideEditorExtension(typeof<FSharpEditorFactory>, ".fsx", 64)>]
-[<ProvideEditorExtension(typeof<FSharpEditorFactory>, ".ml", 64)>]
-[<ProvideEditorExtension(typeof<FSharpEditorFactory>, ".mli", 64)>]
-[<ProvideEditorFactory(typeof<FSharpEditorFactory>, 101s, CommonPhysicalViewAttributes = Constants.FSharpEditorFactoryPhysicalViewAttributes)>]
+//[<ProvideOptionPage(typeof<Microsoft.VisualStudio.FSharp.Interactive.FsiPropertyPage>,
+//                    "F# Tools", "F# Interactive",   // category/sub-category on Tools>Options...
+//                    6000s,      6001s,              // resource id for localisation of the above
+//                    true)>]                         // true = supports automation
+//[<ProvideKeyBindingTable("{dee22b65-9761-4a26-8fb2-759b971d6dfc}", 6001s)>] // <-- resource ID for localised name
+//[<ProvideToolWindow(typeof<Microsoft.VisualStudio.FSharp.Interactive.FsiToolWindow>, 
+//                    // The following should place the ToolWindow with the OutputWindow by default.
+//                    Orientation=ToolWindowOrientation.Bottom,
+//                    Style=VsDockStyle.Tabbed,
+//                    PositionX = 0,
+//                    PositionY = 0,
+//                    Width = 360,
+//                    Height = 120,
+//                    Window="34E76E81-EE4A-11D0-AE2E-00A0C90FFFC3")>]
+//[<ProvideLanguageEditorOptionPage(typeof<OptionsUI.IntelliSenseOptionPage>, "F#", null, "IntelliSense", "6008")>]
+//[<ProvideLanguageEditorOptionPage(typeof<OptionsUI.QuickInfoOptionPage>, "F#", null, "QuickInfo", "6009")>]
+//[<ProvideLanguageEditorOptionPage(typeof<OptionsUI.CodeFixesOptionPage>, "F#", null, "Code Fixes", "6010")>]
+//[<ProvideLanguageEditorOptionPage(typeof<OptionsUI.LanguageServicePerformanceOptionPage>, "F#", null, "Performance", "6011")>]
+//[<ProvideLanguageEditorOptionPage(typeof<OptionsUI.AdvancedSettingsOptionPage>, "F#", null, "Advanced", "6012")>]
+//[<ProvideLanguageEditorOptionPage(typeof<OptionsUI.CodeLensOptionPage>, "F#", null, "CodeLens", "6013")>]
+//[<ProvideLanguageEditorOptionPage(typeof<OptionsUI.FormattingOptionPage>, "F#", null, "Formatting", "6014")>]
+//[<ProvideFSharpVersionRegistration(FSharpConstants.projectPackageGuidString, "Microsoft Visual F#")>]
+//// 64 represents a hex number. It needs to be greater than 37 so the TextMate editor will not be chosen as higher priority.
+//[<ProvideEditorExtension(typeof<FSharpEditorFactory>, ".fs", 64)>]
+//[<ProvideEditorExtension(typeof<FSharpEditorFactory>, ".fsi", 64)>]
+//[<ProvideEditorExtension(typeof<FSharpEditorFactory>, ".fsscript", 64)>]
+//[<ProvideEditorExtension(typeof<FSharpEditorFactory>, ".fsx", 64)>]
+//[<ProvideEditorExtension(typeof<FSharpEditorFactory>, ".ml", 64)>]
+//[<ProvideEditorExtension(typeof<FSharpEditorFactory>, ".mli", 64)>]
+//[<ProvideEditorFactory(typeof<FSharpEditorFactory>, 101s, CommonPhysicalViewAttributes = Constants.FSharpEditorFactoryPhysicalViewAttributes)>]
 [<ProvideLanguageExtension(typeof<FSharpLanguageService>, ".fs")>]
 [<ProvideLanguageExtension(typeof<FSharpLanguageService>, ".fsi")>]
 [<ProvideLanguageExtension(typeof<FSharpLanguageService>, ".fsx")>]
@@ -148,17 +148,17 @@ type internal FSharpSettingsFactory
 type internal FSharpPackage() as this =
     inherit AbstractPackage<FSharpPackage, FSharpLanguageService>()
 
-    let mutable vfsiToolWindow = Unchecked.defaultof<Microsoft.VisualStudio.FSharp.Interactive.FsiToolWindow>
-    let GetToolWindowAsITestVFSI() =
-        if vfsiToolWindow = Unchecked.defaultof<_> then
-            vfsiToolWindow <- this.FindToolWindow(typeof<Microsoft.VisualStudio.FSharp.Interactive.FsiToolWindow>, 0, true) :?> Microsoft.VisualStudio.FSharp.Interactive.FsiToolWindow
-        vfsiToolWindow :> Microsoft.VisualStudio.FSharp.Interactive.ITestVFSI
+    //let mutable vfsiToolWindow = Unchecked.defaultof<Microsoft.VisualStudio.FSharp.Interactive.FsiToolWindow>
+    //let GetToolWindowAsITestVFSI() =
+        //if vfsiToolWindow = Unchecked.defaultof<_> then
+        //    vfsiToolWindow <- this.FindToolWindow(typeof<Microsoft.VisualStudio.FSharp.Interactive.FsiToolWindow>, 0, true) :?> Microsoft.VisualStudio.FSharp.Interactive.FsiToolWindow
+        //vfsiToolWindow :> Microsoft.VisualStudio.FSharp.Interactive.ITestVFSI
 
     let mutable solutionEventsOpt = None
 
     // FSI-LINKAGE-POINT: unsited init
-    do 
-        Microsoft.VisualStudio.FSharp.Interactive.Hooks.fsiConsoleWindowPackageCtorUnsited (this :> Package)
+    //do 
+        //Microsoft.VisualStudio.FSharp.Interactive.Hooks.fsiConsoleWindowPackageCtorUnsited (this :> Package)
 
     override this.InitializeAsync(cancellationToken: CancellationToken, progress: IProgress<ServiceProgressData>) : Tasks.Task =
         // `base.` methods can't be called in the `async` builder, so we have to cache it
@@ -167,14 +167,14 @@ type internal FSharpPackage() as this =
             async {
                 do! baseInitializeAsync |> Async.AwaitTask
 
-                let! commandService = this.GetServiceAsync(typeof<IMenuCommandService>) |> Async.AwaitTask // FSI-LINKAGE-POINT
-                let commandService = commandService :?> OleMenuCommandService
+                //let! commandService = this.GetServiceAsync(typeof<IMenuCommandService>) |> Async.AwaitTask // FSI-LINKAGE-POINT
+                //let commandService = commandService :?> OleMenuCommandService
                 let packageInit () =
                     // FSI-LINKAGE-POINT: sited init
-                    Microsoft.VisualStudio.FSharp.Interactive.Hooks.fsiConsoleWindowPackageInitalizeSited (this :> Package) commandService
+                    //Microsoft.VisualStudio.FSharp.Interactive.Hooks.fsiConsoleWindowPackageInitalizeSited (this :> Package) commandService
 
                     // FSI-LINKAGE-POINT: private method GetDialogPage forces fsi options to be loaded
-                    let _fsiPropertyPage = this.GetDialogPage(typeof<Microsoft.VisualStudio.FSharp.Interactive.FsiPropertyPage>)
+                    //let _fsiPropertyPage = this.GetDialogPage(typeof<Microsoft.VisualStudio.FSharp.Interactive.FsiPropertyPage>)
                     let projectInfoManager = this.ComponentModel.DefaultExportProvider.GetExport<FSharpProjectOptionsManager>().Value
                     let solution = this.GetServiceAsync(typeof<SVsSolution>).Result
                     let solution = solution :?> IVsSolution
@@ -203,15 +203,15 @@ type internal FSharpPackage() as this =
     override this.RoslynLanguageName = FSharpConstants.FSharpLanguageName
     override this.CreateWorkspace() = this.ComponentModel.GetService<VisualStudioWorkspaceImpl>()
     override this.CreateLanguageService() = FSharpLanguageService(this)
-    override this.CreateEditorFactories() = seq { yield FSharpEditorFactory(this) :> IVsEditorFactory }
+    override this.CreateEditorFactories() = this.CreateEditorFactories()// seq { yield FSharpEditorFactory(this) :> IVsEditorFactory }
     override this.RegisterMiscellaneousFilesWorkspaceInformation(miscFilesWorkspace) =
         miscFilesWorkspace.RegisterLanguage(Guid(FSharpConstants.languageServiceGuidString), FSharpConstants.FSharpLanguageName, ".fsx")
 
-    interface Microsoft.VisualStudio.FSharp.Interactive.ITestVFSI with
-        member this.SendTextInteraction(s:string) =
-            GetToolWindowAsITestVFSI().SendTextInteraction(s)
-        member this.GetMostRecentLines(n:int) : string[] =
-            GetToolWindowAsITestVFSI().GetMostRecentLines(n)
+    //interface Microsoft.VisualStudio.FSharp.Interactive.ITestVFSI with
+        //member this.SendTextInteraction(s:string) =
+        //    GetToolWindowAsITestVFSI().SendTextInteraction(s)
+        //member this.GetMostRecentLines(n:int) : string[] =
+            //GetToolWindowAsITestVFSI().GetMostRecentLines(n)
 
 [<Guid(FSharpConstants.languageServiceGuidString)>]
 type internal FSharpLanguageService(package : FSharpPackage) =

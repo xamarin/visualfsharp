@@ -198,7 +198,7 @@ module internal XmlDocumentation =
                     if not started then
                         started <- true
                         AppendHardLine collector
-                        AppendOnNewLine collector (SR.ExceptionsHeader())
+                        AppendOnNewLine collector ("SR.ExceptionsHeader()")
                     EnsureHardLine collector
                     collector.Add(tagSpace "    ")
                     WriteTypeName collector exnType.Value

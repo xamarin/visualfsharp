@@ -18,7 +18,7 @@ open Microsoft.VisualStudio.FSharp.Editor.Logging
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Diagnostics
 
 [<RequireQualifiedAccess>]
-module internal RoslynHelpers =
+module RoslynHelpers =
 
     let FSharpRangeToTextSpan(sourceText: SourceText, range: range) =
         // Roslyn TextLineCollection is zero-based, F# range lines are one-based

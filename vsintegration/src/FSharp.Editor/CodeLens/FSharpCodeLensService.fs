@@ -7,9 +7,9 @@ open System
 open System.Collections.Generic
 open System.Threading
 open System.Windows
-open System.Windows.Controls
+//open System.Windows.Controls
 open System.Windows.Media
-open System.Windows.Media.Animation
+//open System.Windows.Media.Animation
 
 open Microsoft.CodeAnalysis
 open Microsoft.CodeAnalysis.Editor.Shared.Extensions
