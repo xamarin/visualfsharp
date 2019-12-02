@@ -7,8 +7,8 @@ Verbosity ?= normal
 VerbosityProperty = /Verbosity:$(Verbosity)
 
 MSBuild = $(shell which msbuild)
-RestoreCommand = $(MSBuild) /t:Restore
-BuildCommand = $(MSBuild) /t:Build
+RestoreCommand = $(MSBuild) /t:Restore /v:diagnostic
+BuildCommand = $(MSBuild) /t:Build /v:diagnostic
 TestCommand = $(MSBuild) /t:VSTest
 ProtoConfiguration = /p:Configuration=Proto
 
