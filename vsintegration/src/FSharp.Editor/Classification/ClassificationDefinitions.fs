@@ -8,7 +8,7 @@ open System.Windows.Media
 
 open Microsoft.VisualStudio
 open Microsoft.VisualStudio.Editor
-open Microsoft.VisualStudio.PlatformUI
+//open Microsoft.VisualStudio.PlatformUI
 open Microsoft.VisualStudio.Shell
 open Microsoft.VisualStudio.Shell.Interop
 open Microsoft.Internal.VisualStudio.Shell.Interop
@@ -59,7 +59,7 @@ module internal ClassificationDefinitions =
     type internal ThemeColors
         [<ImportingConstructor>]
         (
-            classificationformatMapService: IClassificationFormatMapService,
+            //classificationformatMapService: IClassificationFormatMapService,
             //classificationTypeRegistry: IClassificationTypeRegistryService,
             [<Import(typeof<SVsServiceProvider>)>] serviceProvider: IServiceProvider
         ) =
@@ -87,25 +87,25 @@ module internal ClassificationDefinitions =
             fontAndColorCacheManager.CheckCache( ref DefGuidList.guidTextEditorFontCategory) |> ignore
             fontAndColorStorage.OpenCategory(ref DefGuidList.guidTextEditorFontCategory, uint32 __FCSTORAGEFLAGS.FCSF_READONLY) |> ignore
 
-            let formatMap = classificationformatMapService.GetClassificationFormatMap(category = "text")
-            try 
-                formatMap.BeginBatchUpdate()
-                //for ctype, (light, dark) in colorData do
-                    //// we don't touch the changes made by the user
-                    //if fontAndColorStorage.GetItem(ctype, Array.zeroCreate 1) <> VSConstants.S_OK  then
-                        //let ict = classificationTypeRegistry.GetClassificationType(ctype)
-                        //let oldProps = formatMap.GetTextProperties(ict)
-                        //let newProps = oldProps //match getCurrentThemeId() with
-                        //                //| LightTheme -> oldProps.SetForeground light
-                        //                //| DarkTheme -> oldProps.SetForeground dark
-                        //                //| UnknownTheme -> oldProps
-                        //formatMap.SetTextProperties(ict, newProps)
-                fontAndColorStorage.CloseCategory() |> ignore
-            finally formatMap.EndBatchUpdate()
+        //    let formatMap = classificationformatMapService.GetClassificationFormatMap(category = "text")
+        //    try 
+        //        formatMap.BeginBatchUpdate()
+        //        //for ctype, (light, dark) in colorData do
+        //            //// we don't touch the changes made by the user
+        //            //if fontAndColorStorage.GetItem(ctype, Array.zeroCreate 1) <> VSConstants.S_OK  then
+        //                //let ict = classificationTypeRegistry.GetClassificationType(ctype)
+        //                //let oldProps = formatMap.GetTextProperties(ict)
+        //                //let newProps = oldProps //match getCurrentThemeId() with
+        //                //                //| LightTheme -> oldProps.SetForeground light
+        //                //                //| DarkTheme -> oldProps.SetForeground dark
+        //                //                //| UnknownTheme -> oldProps
+        //                //formatMap.SetTextProperties(ict, newProps)
+        //        fontAndColorStorage.CloseCategory() |> ignore
+        //    finally formatMap.EndBatchUpdate()
 
-        let handler = ThemeChangedEventHandler setColors
-        do VSColorTheme.add_ThemeChanged handler
-        interface IDisposable with member __.Dispose() = VSColorTheme.remove_ThemeChanged handler
+        //let handler = ThemeChangedEventHandler setColors
+        //do VSColorTheme.add_ThemeChanged handler
+        interface IDisposable with member __.Dispose() = ()// VSColorTheme.remove_ThemeChanged handler
 
         member __.GetColor(_ctype) =
             //let light, dark = colorData |> Map.ofList |> Map.find ctype

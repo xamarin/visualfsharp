@@ -28,11 +28,11 @@ type internal FSharpNavigableSymbol(item: FSharpNavigableItem, span: SnapshotSpa
 
         member __.SymbolSpan = span
 
-type internal FSharpNavigableSymbolSource(checkerProvider: FSharpCheckerProvider, projectInfoManager: FSharpProjectOptionsManager, serviceProvider: IServiceProvider) =
+type internal FSharpNavigableSymbolSource(checkerProvider: FSharpCheckerProvider, projectInfoManager: FSharpProjectOptionsManager(*, serviceProvider: IServiceProvider*)) =
     
     let mutable disposed = false
     let gtd = GoToDefinition(checkerProvider.Checker, projectInfoManager)
-    let statusBar = StatusBar(serviceProvider.GetService<SVsStatusbar,IVsStatusbar>())
+    let statusBar = StatusBar((*serviceProvider.GetService<SVsStatusbar,IVsStatusbar>()*))
 
     interface INavigableSymbolSource with
         member __.GetNavigableSymbolAsync(triggerSpan: SnapshotSpan, cancellationToken: CancellationToken) =
@@ -89,11 +89,11 @@ type internal FSharpNavigableSymbolSource(checkerProvider: FSharpCheckerProvider
 type internal FSharpNavigableSymbolService
     [<ImportingConstructor>]
     (
-        [<Import(typeof<SVsServiceProvider>)>] serviceProvider: IServiceProvider,
+        //[<Import(typeof<SVsServiceProvider>)>] serviceProvider: IServiceProvider,
         checkerProvider: FSharpCheckerProvider,
         projectInfoManager: FSharpProjectOptionsManager
     ) =
 
     interface INavigableSymbolSourceProvider with
         member __.TryCreateNavigableSymbolSource(_: ITextView, _: ITextBuffer) =
-            new FSharpNavigableSymbolSource(checkerProvider, projectInfoManager, serviceProvider) :> INavigableSymbolSource
+            new FSharpNavigableSymbolSource(checkerProvider, projectInfoManager(*, serviceProvider*)) :> INavigableSymbolSource

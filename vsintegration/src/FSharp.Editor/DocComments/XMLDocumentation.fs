@@ -212,25 +212,25 @@ module internal XmlDocumentation =
     let vsToken = VsThreadToken()
     
     /// Provide Xml Documentation             
-    type Provider(xmlIndexService:IVsXMLMemberIndexService) = 
+    type Provider((*xmlIndexService:IVsXMLMemberIndexService*)) = 
         /// Index of assembly name to xml member index.
-        let cache = Dictionary<string, IVsXMLMemberIndex>()
+        //let cache = Dictionary<string, IVsXMLMemberIndex>()
         
-        do Events.SolutionEvents.OnAfterCloseSolution.Add (fun _ -> cache.Clear())
+        //do Events.SolutionEvents.OnAfterCloseSolution.Add (fun _ -> cache.Clear())
 
         /// Retrieve the pre-existing xml index or None
-        let GetMemberIndexOfAssembly(assemblyName) =
-            match cache.TryGetValue(assemblyName) with 
-            | true, memberIndex -> Some(memberIndex)
-            | false, _ -> 
-                let ok,memberIndex = xmlIndexService.CreateXMLMemberIndex(assemblyName)
-                if Com.Succeeded(ok) then 
-                    let ok = memberIndex.BuildMemberIndex()
-                    if Com.Succeeded(ok) then
-                        cache.Add(assemblyName, memberIndex)
-                        Some(memberIndex)
-                    else None
-                else None
+        //let GetMemberIndexOfAssembly(assemblyName) =
+            //match cache.TryGetValue(assemblyName) with 
+            //| true, memberIndex -> Some(memberIndex)
+            //| false, _ -> 
+                //let ok,memberIndex = xmlIndexService.CreateXMLMemberIndex(assemblyName)
+                //if Com.Succeeded(ok) then 
+                //    let ok = memberIndex.BuildMemberIndex()
+                //    if Com.Succeeded(ok) then
+                //        cache.Add(assemblyName, memberIndex)
+                //        Some(memberIndex)
+                //    else None
+                //else None
 
         let AppendMemberData(xmlCollector: ITaggedTextCollector, exnCollector: ITaggedTextCollector, xmlDocReader: XmlDocReader, showExceptions, showParameters) =
             AppendHardLine xmlCollector
@@ -259,9 +259,9 @@ module internal XmlDocumentation =
                               /// ITaggedTextCollector to add to
                               exnCollector: ITaggedTextCollector,
                               /// Name of the library file
-                              filename:string,
+                              _filename:string,
                               /// Signature of the comment
-                              signature:string,
+                              _signature:string,
                               /// Whether to show exceptions
                               showExceptions:bool,
                               /// Whether to show parameters and return
@@ -270,14 +270,15 @@ module internal XmlDocumentation =
                               paramName:string option                            
                              ) = 
                 try     
-                    match GetMemberIndexOfAssembly(filename) with
-                    | Some(index) ->
-                        let _,idx = index.ParseMemberSignature(signature)
-                        if idx <> 0u then
-                            let ok,xml = index.GetMemberXML(idx)
-                            if Com.Succeeded(ok) then 
-                                (this:>IDocumentationBuilder).AppendDocumentationFromProcessedXML(xmlCollector, exnCollector, xml, showExceptions, showParameters, paramName)
-                    | None -> ()
+                    //match GetMemberIndexOfAssembly(filename) with
+                    //| Some(index) ->
+                    //    let _,idx = index.ParseMemberSignature(signature)
+                    //    if idx <> 0u then
+                    //        let ok,xml = index.GetMemberXML(idx)
+                    //        if Com.Succeeded(ok) then 
+                    //            (this:>IDocumentationBuilder).AppendDocumentationFromProcessedXML(xmlCollector, exnCollector, xml, showExceptions, showParameters, paramName)
+                    //| None -> ()
+                    (this:>IDocumentationBuilder).AppendDocumentationFromProcessedXML(xmlCollector, exnCollector, "<root>Hi</root>", showExceptions, showParameters, paramName)
                 with e-> 
                     Assert.Exception(e)
                     reraise()    
@@ -317,7 +318,7 @@ module internal XmlDocumentation =
         let ProcessGenericParameters (tps: Layout list) =
             if not tps.IsEmpty then
                 AppendHardLine typeParameterMapCollector
-                AppendOnNewLine typeParameterMapCollector (SR.GenericParametersHeader())
+                AppendOnNewLine typeParameterMapCollector ("SR.GenericParametersHeader()")
                 for tp in tps do 
                     AppendHardLine typeParameterMapCollector
                     typeParameterMapCollector.Add(tagSpace "    ")
@@ -381,6 +382,7 @@ module internal XmlDocumentation =
     let BuildMethodParamText(documentationProvider, xmlCollector, xml, paramName) =
         AppendXmlComment(documentationProvider, TextSanitizingCollector(xmlCollector), TextSanitizingCollector(xmlCollector), xml, false, true, Some paramName)
 
-    let documentationBuilderCache = ConditionalWeakTable<IVsXMLMemberIndexService, IDocumentationBuilder>()
-    let CreateDocumentationBuilder(xmlIndexService: IVsXMLMemberIndexService) = 
-        documentationBuilderCache.GetValue(xmlIndexService,(fun _ -> Provider(xmlIndexService) :> IDocumentationBuilder))
+    //let documentationBuilderCache = ConditionalWeakTable<IVsXMLMemberIndexService, IDocumentationBuilder>()
+    let CreateDocumentationBuilder((*xmlIndexService: IVsXMLMemberIndexService*)) = 
+        //documentationBuilderCache.GetValue(xmlIndexService,(fun _ -> Provider((*xmlIndexService*)) :> IDocumentationBuilder))
+        Provider((*xmlIndexService*)) :> IDocumentationBuilder

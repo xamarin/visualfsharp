@@ -25,7 +25,7 @@ module Logger = Microsoft.VisualStudio.FSharp.Editor.Logger
 type internal FSharpCompletionProvider
     (
         workspace: Workspace,
-        serviceProvider: SVsServiceProvider,
+        //serviceProvider: SVsServiceProvider,
         checkerProvider: FSharpCheckerProvider,
         projectInfoManager: FSharpProjectOptionsManager,
         assemblyContentProvider: AssemblyContentProvider
@@ -57,7 +57,7 @@ type internal FSharpCompletionProvider
     
     let settings: EditorOptions = workspace.Services.GetService()
 
-    let documentationBuilder = XmlDocumentation.CreateDocumentationBuilder(serviceProvider.XMLMemberIndexService)
+    //let documentationBuilder = XmlDocumentation.CreateDocumentationBuilder(serviceProvider.XMLMemberIndexService)
         
     static let noCommitOnSpaceRules = 
         // These are important.  They make sure we don't _commit_ autocompletion when people don't expect them to.  Some examples:
@@ -237,12 +237,12 @@ type internal FSharpCompletionProvider
             | true, completionItemIndexStr ->
                 let completionItemIndex = int completionItemIndexStr
                 if completionItemIndex < declarationItems.Length then
-                    let declarationItem = declarationItems.[completionItemIndex]
-                    let! description = declarationItem.StructuredDescriptionTextAsync
+                    //let declarationItem = declarationItems.[completionItemIndex]
+                    //let! description = declarationItem.StructuredDescriptionTextAsync
                     let documentation = List()
-                    let collector = RoslynHelpers.CollectTaggedText documentation
+                    //let collector = RoslynHelpers.CollectTaggedText documentation
                     // mix main description and xmldoc by using one collector
-                    XmlDocumentation.BuildDataTipText(documentationBuilder, collector, collector, collector, collector, collector, description) 
+                    //XmlDocumentation.BuildDataTipText(documentationBuilder, collector, collector, collector, collector, collector, description) 
                     return CompletionDescription.Create(documentation.ToImmutableArray())
                 else 
                     return CompletionDescription.Empty

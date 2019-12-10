@@ -25,7 +25,7 @@ type internal FSharpGoToDefinitionService
     ) =
 
     let gtd = GoToDefinition(checkerProvider.Checker, projectInfoManager)
-    let statusBar = StatusBar(ServiceProvider.GlobalProvider.GetService<SVsStatusbar,IVsStatusbar>())  
+    let statusBar = StatusBar((*ServiceProvider.GlobalProvider.GetService<SVsStatusbar,IVsStatusbar>()*))  
    
     interface IFSharpGoToDefinitionService with
         /// Invoked with Peek Definition.

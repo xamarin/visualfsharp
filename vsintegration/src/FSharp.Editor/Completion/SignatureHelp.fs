@@ -24,13 +24,13 @@ open FSharp.Compiler.SourceCodeServices
 type internal FSharpSignatureHelpProvider 
     [<ImportingConstructor>]
     (
-        serviceProvider: SVsServiceProvider,
+        //serviceProvider: SVsServiceProvider,
         checkerProvider: FSharpCheckerProvider,
         projectInfoManager: FSharpProjectOptionsManager
     ) =
 
     static let userOpName = "SignatureHelpProvider"
-    let documentationBuilder = XmlDocumentation.CreateDocumentationBuilder(serviceProvider.XMLMemberIndexService)
+    let documentationBuilder = XmlDocumentation.CreateDocumentationBuilder((*serviceProvider.XMLMemberIndexService*))
 
     static let oneColAfter (lp: LinePosition) = LinePosition(lp.Line,lp.Character+1)
     static let oneColBefore (lp: LinePosition) = LinePosition(lp.Line,max 0 (lp.Character-1))

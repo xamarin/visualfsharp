@@ -80,7 +80,7 @@ type private FSharpProjectOptionsMessage =
     | ClearSingleFileOptionsCache of DocumentId
 
 [<Sealed>]
-type private FSharpProjectOptionsReactor (_workspace: VisualStudioWorkspace, settings: EditorOptions, _serviceProvider, checkerProvider: FSharpCheckerProvider) =
+type private FSharpProjectOptionsReactor ((*_workspace: VisualStudioWorkspace,*) settings: EditorOptions, (*_serviceProvider,*) checkerProvider: FSharpCheckerProvider) =
     let cancellationTokenSource = new CancellationTokenSource()
 
     // Hack to store command line options from HandleCommandLineChanges
@@ -133,15 +133,15 @@ type private FSharpProjectOptionsReactor (_workspace: VisualStudioWorkspace, set
                     return Some(parsingOptions, projectOptions)
         }
 
-    let tryGetProjectSite (project: Project) =
-        // Cps
-        if cpsCommandLineOptions.ContainsKey project.Id then
-            Some (mapCpsProjectToSite(project, cpsCommandLineOptions))
-        else
-            // Legacy
-            match legacyProjectSites.TryGetValue project.Id with
-            | true, site -> Some site
-            | _ -> None
+    //let tryGetProjectSite (project: Project) =
+        //// Cps
+        //if cpsCommandLineOptions.ContainsKey project.Id then
+        //    Some (mapCpsProjectToSite(project, cpsCommandLineOptions))
+        //else
+            //// Legacy
+            //match legacyProjectSites.TryGetValue project.Id with
+            //| true, site -> Some site
+            //| _ -> None
     
     let rec tryComputeOptions (project: Project) =
         async {
@@ -167,42 +167,48 @@ type private FSharpProjectOptionsReactor (_workspace: VisualStudioWorkspace, set
                     return None
                 else
 
-                match tryGetProjectSite project with
-                | None -> return None
-                | Some projectSite ->             
+                //match tryGetProjectSite project with
+                //| None -> return None
+                //| Some projectSite ->             
 
-                let otherOptions =
-                    project.ProjectReferences
-                    |> Seq.map (fun x -> "-r:" + project.Solution.GetProject(x.ProjectId).OutputFilePath)
-                    |> Array.ofSeq
-                    |> Array.append (
-                            project.MetadataReferences.OfType<PortableExecutableReference>()
-                            |> Seq.map (fun x -> "-r:" + x.FilePath)
-                            |> Array.ofSeq
-                            |> Array.append (
-                                    // Clear any references from CompilationOptions. 
-                                    // We get the references from Project.ProjectReferences/Project.MetadataReferences.
-                                    projectSite.CompilationOptions
-                                    |> Array.filter (fun x -> not (x.Contains("-r:")))
-                                )
-                        )
+                MonoDevelop.FSharp.MDLanguageService.DisableVirtualFileSystem()
+                let projectOpts = MonoDevelop.FSharp.MDLanguageService.Instance.GetProjectCheckerOptions(project.FilePath)
+                //let otherOptions =
+                //    project.ProjectReferences
+                //    |> Seq.map (fun x -> "-r:" + project.Solution.GetProject(x.ProjectId).OutputFilePath)
+                //    |> Array.ofSeq
+                //    |> Array.append (
+                //            project.MetadataReferences.OfType<PortableExecutableReference>()
+                //            |> Seq.map (fun x -> "-r:" + x.FilePath)
+                //            |> Array.ofSeq
+                //            |> Array.append (
+                //                    // Clear any references from CompilationOptions. 
+                //                    // We get the references from Project.ProjectReferences/Project.MetadataReferences.
+                //                    projectSite.CompilationOptions
+                //                    |> Array.filter (fun x -> not (x.Contains("-r:")))
+                //                )
+                //        )
 
-                let projectOptions =
-                    {
-                        ProjectFileName = projectSite.ProjectFileName
-                        ProjectId = Some(projectId.ToFSharpProjectIdString())
-                        SourceFiles = projectSite.CompilationSourceFiles
-                        OtherOptions = otherOptions
-                        ReferencedProjects = referencedProjects.ToArray()
-                        IsIncompleteTypeCheckEnvironment = projectSite.IsIncompleteTypeCheckEnvironment
-                        UseScriptResolutionRules = SourceFile.MustBeSingleFileProject (Path.GetFileName(project.FilePath))
-                        LoadTime = projectSite.LoadTime
-                        UnresolvedReferences = None
-                        OriginalLoadReferences = []
-                        ExtraProjectInfo= None
-                        Stamp = Some(int64 (project.Version.GetHashCode()))
-                    }
+                //let projectOptions =
+                    //{
+                    //    ProjectFileName = projectSite.ProjectFileName
+                    //    ProjectId = Some(projectId.ToFSharpProjectIdString())
+                    //    SourceFiles = projectSite.CompilationSourceFiles
+                    //    OtherOptions = otherOptions
+                    //    ReferencedProjects = referencedProjects.ToArray()
+                    //    IsIncompleteTypeCheckEnvironment = projectSite.IsIncompleteTypeCheckEnvironment
+                    //    UseScriptResolutionRules = SourceFile.MustBeSingleFileProject (Path.GetFileName(project.FilePath))
+                    //    LoadTime = projectSite.LoadTime
+                    //    UnresolvedReferences = None
+                    //    OriginalLoadReferences = []
+                    //    ExtraProjectInfo= None
+                    //    Stamp = Some(int64 (project.Version.GetHashCode()))
+                    //}
 
+
+                let projectOptions = projectOpts.Value
+                let sourceFiles = projectOptions.OtherOptions.Where(fun o -> o.StartsWith("/"))
+                let projectOptions = { projectOptions with SourceFiles = sourceFiles.ToArray() }
                 // This can happen if we didn't receive the callback from HandleCommandLineChanges yet.
                 if Array.isEmpty projectOptions.SourceFiles then
                     return None
@@ -307,24 +313,24 @@ type internal FSharpProjectOptionsManager
     [<ImportingConstructor>]
     (
         checkerProvider: FSharpCheckerProvider,
-        [<Import(typeof<VisualStudioWorkspace>)>] workspace: VisualStudioWorkspace,
-        [<Import(typeof<SVsServiceProvider>)>] serviceProvider: System.IServiceProvider,
+        //[<Import(typeof<VisualStudioWorkspace>)>] workspace:  VisualStudioWorkspace,
+        //[<Import(typeof<SVsServiceProvider>)>] serviceProvider: System.IServiceProvider,
         settings: EditorOptions
     ) =
 
-    let projectDisplayNameOf projectFileName =
-        if String.IsNullOrWhiteSpace projectFileName then projectFileName
-        else Path.GetFileNameWithoutExtension projectFileName
+    //let projectDisplayNameOf projectFileName =
+        //if String.IsNullOrWhiteSpace projectFileName then projectFileName
+        //else Path.GetFileNameWithoutExtension projectFileName
 
-    let reactor = new FSharpProjectOptionsReactor(workspace, settings, serviceProvider, checkerProvider)
+    let reactor = new FSharpProjectOptionsReactor(settings, (*serviceProvider,*) checkerProvider)
 
-    do
-        // We need to listen to this event for lifecycle purposes.
-        workspace.WorkspaceChanged.Add(fun args ->
-            match args.Kind with
-            | WorkspaceChangeKind.ProjectRemoved -> reactor.ClearOptionsByProjectId(args.ProjectId)
-            | _ -> ()
-        )
+    //do
+        //// We need to listen to this event for lifecycle purposes.
+        //workspace.WorkspaceChanged.Add(fun args ->
+        //    match args.Kind with
+        //    | WorkspaceChangeKind.ProjectRemoved -> reactor.ClearOptionsByProjectId(args.ProjectId)
+        //    | _ -> ()
+        //)
 
     member __.SetLegacyProjectSite (projectId, projectSite) =
         reactor.SetLegacyProjectSite (projectId, projectSite)
@@ -367,27 +373,27 @@ type internal FSharpProjectOptionsManager
             return result |> Option.map(fun (parsingOptions, _, projectOptions) -> parsingOptions, projectOptions)
         }
 
-    [<Export>]
-    /// This handles commandline change notifications from the Dotnet Project-system
-    /// Prior to VS 15.7 path contained path to project file, post 15.7 contains target binpath
-    /// binpath is more accurate because a project file can have multiple in memory projects based on configuration
-    member __.HandleCommandLineChanges(path:string, sources:ImmutableArray<CommandLineSourceFile>, _references:ImmutableArray<CommandLineReference>, options:ImmutableArray<string>) =
-        use _logBlock = Logger.LogBlock(LogEditorFunctionId.LanguageService_HandleCommandLineArgs)
+    //[<Export>]
+    ///// This handles commandline change notifications from the Dotnet Project-system
+    ///// Prior to VS 15.7 path contained path to project file, post 15.7 contains target binpath
+    ///// binpath is more accurate because a project file can have multiple in memory projects based on configuration
+    //member __.HandleCommandLineChanges(path:string, sources:ImmutableArray<CommandLineSourceFile>, _references:ImmutableArray<CommandLineReference>, options:ImmutableArray<string>) =
+        //use _logBlock = Logger.LogBlock(LogEditorFunctionId.LanguageService_HandleCommandLineArgs)
 
-        let projectId =
-            match Microsoft.CodeAnalysis.ExternalAccess.FSharp.LanguageServices.FSharpVisualStudioWorkspaceExtensions.TryGetProjectIdByBinPath(workspace, path) with
-            | true, projectId -> projectId
-            | false, _ -> Microsoft.CodeAnalysis.ExternalAccess.FSharp.LanguageServices.FSharpVisualStudioWorkspaceExtensions.GetOrCreateProjectIdForPath(workspace, path, projectDisplayNameOf path)
-        let path = Microsoft.CodeAnalysis.ExternalAccess.FSharp.LanguageServices.FSharpVisualStudioWorkspaceExtensions.GetProjectFilePath(workspace, projectId)
+        //let projectId =
+        //    match Microsoft.CodeAnalysis.ExternalAccess.FSharp.LanguageServices.FSharpVisualStudioWorkspaceExtensions.TryGetProjectIdByBinPath(workspace, path) with
+        //    | true, projectId -> projectId
+        //    | false, _ -> Microsoft.CodeAnalysis.ExternalAccess.FSharp.LanguageServices.FSharpVisualStudioWorkspaceExtensions.GetOrCreateProjectIdForPath(workspace, path, projectDisplayNameOf path)
+        //let path = Microsoft.CodeAnalysis.ExternalAccess.FSharp.LanguageServices.FSharpVisualStudioWorkspaceExtensions.GetProjectFilePath(workspace, projectId)
 
-        let getFullPath p =
-            let p' =
-                if Path.IsPathRooted(p) || path = null then p
-                else Path.Combine(Path.GetDirectoryName(path), p)
-            Path.GetFullPathSafe(p')
+        //let getFullPath p =
+        //    let p' =
+        //        if Path.IsPathRooted(p) || path = null then p
+        //        else Path.Combine(Path.GetDirectoryName(path), p)
+        //    Path.GetFullPathSafe(p')
 
-        let sourcePaths = sources |> Seq.map(fun s -> getFullPath s.Path) |> Seq.toArray
+        //let sourcePaths = sources |> Seq.map(fun s -> getFullPath s.Path) |> Seq.toArray
 
-        reactor.SetCpsCommandLineOptions(projectId, sourcePaths, options.ToArray())
+        //reactor.SetCpsCommandLineOptions(projectId, sourcePaths, options.ToArray())
 
     member __.Checker = checkerProvider.Checker

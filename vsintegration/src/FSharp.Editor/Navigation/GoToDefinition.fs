@@ -107,13 +107,13 @@ module private ExternalSymbol =
         | _ -> []
 
 // TODO: Uncomment code when VS has a fix for updating the status bar.
-type internal StatusBar(statusBar: IVsStatusbar) =
+type internal StatusBar((*statusBar: IVsStatusbar*)) =
     let mutable _searchIcon = int16 Microsoft.VisualStudio.Shell.Interop.Constants.SBAI_Find :> obj
 
-    let _clear() =
+    let _clear() = ()
         // unfreeze the statusbar
-        statusBar.FreezeOutput 0 |> ignore  
-        statusBar.Clear() |> ignore
+        //statusBar.FreezeOutput 0 |> ignore  
+        //statusBar.Clear() |> ignore
         
     member __.Message(_msg: string) =
         ()

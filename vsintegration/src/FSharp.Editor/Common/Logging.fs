@@ -28,21 +28,23 @@ module Config =
 open Config
 
 type [<Export>] Logger [<ImportingConstructor>]
-    ([<Import(typeof<SVsServiceProvider>)>] serviceProvider: IServiceProvider) =
-    let outputWindow = serviceProvider.GetService<SVsOutputWindow,IVsOutputWindow>() |> Option.ofObj
+    //([<Import(typeof<SVsServiceProvider>)>] serviceProvider: IServiceProvider) =
+    () =
+    //let outputWindow = serviceProvider.GetService<SVsOutputWindow,IVsOutputWindow>() |> Option.ofObj
 
-    let createPane () =
-        outputWindow |> Option.iter (fun x -> 
-            x.CreatePane(ref fsharpOutputGuid,"F# Language Service", Convert.ToInt32 true, Convert.ToInt32 false) |> ignore)
+    let createPane () = ()
+        //outputWindow |> Option.iter (fun x -> 
+            //x.CreatePane(ref fsharpOutputGuid,"F# Language Service", Convert.ToInt32 true, Convert.ToInt32 false) |> ignore)
     
     do createPane ()
 
     let getPane () =
-        match outputWindow |> Option.map (fun x -> x.GetPane (ref fsharpOutputGuid)) with
-        | Some (0, pane) -> 
-            pane.Activate() |> ignore
-            Some pane
-        | _ -> None
+        //match outputWindow |> Option.map (fun x -> x.GetPane (ref fsharpOutputGuid)) with
+        //| Some (0, pane) -> 
+        //    pane.Activate() |> ignore
+        //    Some pane
+        //| _ -> None
+        None
 
     static let mutable globalServiceProvider: IServiceProvider option = None
 
@@ -62,18 +64,21 @@ type [<Export>] Logger [<ImportingConstructor>]
     member self.Log (msgType:LogType,msg:string) =
         let time = DateTime.Now.ToString("hh:mm:ss tt")
         match self.FSharpLoggingPane, msgType with
-        | None, _ -> ()
-        | Some pane, LogType.Message -> String.Format("[F#][{0}{1}] {2}{3}", ""      , time, msg, Environment.NewLine) |> pane.OutputString |> ignore
-        | Some pane, LogType.Info    -> String.Format("[F#][{0}{1}] {2}{3}", "INFO " , time, msg, Environment.NewLine) |> pane.OutputString |> ignore
-        | Some pane, LogType.Warn    -> String.Format("[F#][{0}{1}] {2}{3}", "WARN " , time, msg, Environment.NewLine) |> pane.OutputString |> ignore
-        | Some pane, LogType.Error   -> String.Format("[F#][{0}{1}] {2}{3}", "ERROR ", time, msg, Environment.NewLine) |> pane.OutputString |> ignore
-
+        | None, _ -> MonoDevelop.Core.LoggingService.LogDebug msg
+        //| Some pane, LogType.Message -> String.Format("[F#][{0}{1}] {2}{3}", ""      , time, msg, Environment.NewLine) |> pane.OutputString |> ignore
+        //| Some pane, LogType.Info    -> String.Format("[F#][{0}{1}] {2}{3}", "INFO " , time, msg, Environment.NewLine) |> pane.OutputString |> ignore
+        //| Some pane, LogType.Warn    -> String.Format("[F#][{0}{1}] {2}{3}", "WARN " , time, msg, Environment.NewLine) |> pane.OutputString |> ignore
+        //| Some pane, LogType.Error   -> String.Format("[F#][{0}{1}] {2}{3}", "ERROR ", time, msg, Environment.NewLine) |> pane.OutputString |> ignore
+        | Some _pane, LogType.Message -> String.Format("[F#][{0}{1}] {2}{3}", ""      , time, msg, Environment.NewLine) |> printf "%s"
+        | Some _pane, LogType.Info    -> String.Format("[F#][{0}{1}] {2}{3}", "INFO " , time, msg, Environment.NewLine) |> printf "%s"
+        | Some _pane, LogType.Warn    -> String.Format("[F#][{0}{1}] {2}{3}", "WARN " , time, msg, Environment.NewLine) |> printf "%s"
+        | Some _pane, LogType.Error   -> String.Format("[F#][{0}{1}] {2}{3}", "ERROR ", time, msg, Environment.NewLine) |> printf "%s"
 [<AutoOpen>]
 module Logging =
 
     let inline debug msg = Printf.kprintf Debug.WriteLine msg
 
-    let private logger = lazy Logger(Logger.GlobalServiceProvider)
+    let private logger = lazy Logger((*Logger.GlobalServiceProvider*))
     let private log logType msg = logger.Value.Log(logType,msg)
 
     let logMsg      msg = log LogType.Message   msg

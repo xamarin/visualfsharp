@@ -16,7 +16,7 @@ open Microsoft.VisualStudio.Shell
 type internal FSharpCompletionService
     (
         workspace: Workspace,
-        serviceProvider: SVsServiceProvider,
+        //serviceProvider: SVsServiceProvider,
         checkerProvider: FSharpCheckerProvider,
         projectInfoManager: FSharpProjectOptionsManager,
         assemblyContentProvider: AssemblyContentProvider,
@@ -26,7 +26,7 @@ type internal FSharpCompletionService
 
     let builtInProviders = 
         ImmutableArray.Create<CompletionProvider>(
-            FSharpCompletionProvider(workspace, serviceProvider, checkerProvider, projectInfoManager, assemblyContentProvider),
+            FSharpCompletionProvider(workspace, (*serviceProvider,*) checkerProvider, projectInfoManager, assemblyContentProvider),
             FSharpCommonCompletionProvider.Create(
                 HashDirectiveCompletionProvider(workspace, projectInfoManager,
                     [ Completion.Create("""\s*#load\s+(@?"*(?<literal>"[^"]*"?))""", [".fs"; ".fsx"], useIncludeDirectives = true)
@@ -47,19 +47,40 @@ type internal FSharpCompletionService
             .WithDismissIfLastCharacterDeleted(true)
             .WithDefaultEnterKeyRule(enterKeyRule)
 
+
+//[<Shared>]
+//[<ExportLanguageServiceFactory(typeof<CompletionService>, FSharpConstants.FSharpLanguageName)>]
+//type internal FSharpCompletionServiceFactory 
+    //[<ImportingConstructor>] 
+    //(
+    //    //serviceProvider: SVsServiceProvider,
+    //    checkerProvider: FSharpCheckerProvider
+
+    //)
+
+    //member x.TR = 1
+    //interface ILanguageServiceFactory with
+        //member this.CreateLanguageService(hostLanguageServices: HostLanguageServices) : ILanguageService =
+            //upcast new FSharpCompletionService(hostLanguageServices.WorkspaceServices.Workspace, (*serviceProvider,*) checkerProvider, projectInfoManager, assemblyContentProvider, settings)
+            ////upcast new FSharpCompletionService(hostLanguageServices.WorkspaceServices.Workspace, (*serviceProvider,*) checkerProvider, new FSharpProjectOptionsManager(, assemblyContentProvider, settings)
+
+
 [<Shared>]
 [<ExportLanguageServiceFactory(typeof<CompletionService>, FSharpConstants.FSharpLanguageName)>]
 type internal FSharpCompletionServiceFactory 
     [<ImportingConstructor>] 
     (
-        serviceProvider: SVsServiceProvider,
-        checkerProvider: FSharpCheckerProvider,
-        projectInfoManager: FSharpProjectOptionsManager,
-        assemblyContentProvider: AssemblyContentProvider,
-        settings: EditorOptions
+        //serviceProvider: SVsServiceProvider,
+        _checkerProvider: FSharpCheckerProvider
+
+        //projectInfoManager: FSharpProjectOptionsManager,
+        //assemblyContentProvider: AssemblyContentProvider,
+        //settings: EditorOptions
     ) =
-    interface ILanguageServiceFactory with
-        member this.CreateLanguageService(hostLanguageServices: HostLanguageServices) : ILanguageService =
-            upcast new FSharpCompletionService(hostLanguageServices.WorkspaceServices.Workspace, serviceProvider, checkerProvider, projectInfoManager, assemblyContentProvider, settings)
+    member x.X = 1
+    //interface ILanguageServiceFactory with
+        //member this.CreateLanguageService(hostLanguageServices: HostLanguageServices) : ILanguageService =
+            //upcast new FSharpCompletionService(hostLanguageServices.WorkspaceServices.Workspace, (*serviceProvider,*) checkerProvider, projectInfoManager, assemblyContentProvider, settings)
+            ////upcast new FSharpCompletionService(hostLanguageServices.WorkspaceServices.Workspace, (*serviceProvider,*) checkerProvider, new FSharpProjectOptionsManager(, assemblyContentProvider, settings)
 
 

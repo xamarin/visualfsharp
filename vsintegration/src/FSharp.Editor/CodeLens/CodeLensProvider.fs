@@ -6,14 +6,16 @@ open System
 open Microsoft.VisualStudio.Text
 open Microsoft.VisualStudio.Text.Editor
 open System.ComponentModel.Composition
-//open Microsoft.VisualStudio.Utilities
-open Microsoft.VisualStudio.Shell
+open Microsoft.VisualStudio.Utilities
+//open Microsoft.VisualStudio.Shell
 open Microsoft.VisualStudio
 open Microsoft.VisualStudio.LanguageServices
 open Microsoft.VisualStudio.Text.Tagging
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Editor.Shared.Utilities
+open MonoDevelop.Ide
+open MonoDevelop.Ide.TypeSystem
 
-[<Export(typeof<IWpfTextViewCreationListener>)>]
+[<Export(typeof<ICocoaTextViewCreationListener>)>]
 [<Export(typeof<IViewTaggerProvider>)>]
 [<TagType(typeof<CodeLensGeneralTag>)>]
 [<ContentType(FSharpConstants.FSharpContentTypeName)>]
@@ -21,7 +23,7 @@ open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Editor.Shared.Utilities
 type internal CodeLensProvider  
     [<ImportingConstructor>]
     (
-        [<Import(typeof<SVsServiceProvider>)>] serviceProvider: IServiceProvider,
+        //[<Import(typeof<SVsServiceProvider>)>] serviceProvider: IServiceProvider,
         textDocumentFactory: ITextDocumentFactoryService,
         checkerProvider: FSharpCheckerProvider,
         projectInfoManager: FSharpProjectOptionsManager,
@@ -31,8 +33,9 @@ type internal CodeLensProvider
 
     let lineLensProvider = ResizeArray()
     let taggers = ResizeArray()
-    let componentModel = Package.GetGlobalService(typeof<ComponentModelHost.SComponentModel>) :?> ComponentModelHost.IComponentModel
-    let workspace = componentModel.GetService<VisualStudioWorkspace>()
+    //let componentModel = Package.GetGlobalService(typeof<ComponentModelHost.SComponentModel>) :?> ComponentModelHost.IComponentModel
+    //let workspace = componentModel.GetService<VisualStudioWorkspace>()
+    let workspace = IdeApp.TypeSystemService.Workspace :?> MonoDevelopWorkspace
 
     /// Returns an provider for the textView if already one has been created. Else create one.
     let addCodeLensProviderOnce wpfView buffer =
@@ -90,14 +93,14 @@ type internal CodeLensProvider
             if settings.CodeLens.Enabled && not settings.CodeLens.ReplaceWithLineLens then
                 let wpfView =
                     match view with
-                    | :? IWpfTextView as view -> view
+                    | :? ICocoaTextView as view -> view
                     | _ -> failwith "error"
             
                 box(addCodeLensProviderOnce wpfView buffer) :?> _
             else
                 null
 
-    interface IWpfTextViewCreationListener with
+    interface ICocoaTextViewCreationListener with
         override __.TextViewCreated view =
             if settings.CodeLens.Enabled && settings.CodeLens.ReplaceWithLineLens then
                 addLineLensProviderOnce view (view.TextBuffer) |> ignore

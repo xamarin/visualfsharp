@@ -20,11 +20,11 @@ type SettingsStore((*serviceProvider: IServiceProvider*)) =
     //let settingsManager = serviceProvider.GetService(typeof<SVsSettingsPersistenceManager>) :?> ISettingsManager
 
     //let storageKeyVersions (typ: Type) =
-        //// "TextEditor" prefix seems to be required for settings changes to be synced between IDE instances
-        //[ "TextEditor.FSharp." + typ.Namespace + "." + typ.Name
-          //// we keep this old storage key to upgrade without reverting user changes
-          //typ.Namespace + "." + typ.Name ]
-        
+    //    // "TextEditor" prefix seems to be required for settings changes to be synced between IDE instances
+    //    [ "TextEditor.FSharp." + typ.Namespace + "." + typ.Name
+    //      // we keep this old storage key to upgrade without reverting user changes
+    //      typ.Namespace + "." + typ.Name ]
+
     //let storageKey (typ: Type) = storageKeyVersions typ |> List.head
 
     // Each group of settings is a value of some named type, for example 'IntelliSenseOptions', 'QuickInfoOptions'
@@ -39,7 +39,7 @@ type SettingsStore((*serviceProvider: IServiceProvider*)) =
         | true, (:? 't as value) -> value
         | _ -> failwithf "Settings %s are not registered." typeof<'t>.Name
 
-    //let keepInCache settings = cache.[settings.GetType()] <- settings
+    let keepInCache settings = cache.[settings.GetType()] <- settings
 
     // The settings record, even though immutable, is being effectively mutated in two instances:
     //   when it is passed to the UI (provided it is marked with CLIMutable attribute);
@@ -75,8 +75,9 @@ type SettingsStore((*serviceProvider: IServiceProvider*)) =
         ()
 
     // This is the point we retrieve the initial value and subscribe to watch for changes
-    member __.Register (_defaultSettings : 'options) =
+    member __.Register (defaultSettings : 'options) =
         //defaultSettings |> updateFromStore |> keepInCache
+        defaultSettings |> keepInCache
         //let subset = defaultSettings.GetType() |> storageKey |> settingsManager.GetSubset
         //// this event is also raised when a setting change occurs in another VS instance, so we can keep everything in sync
         //PropertyChangedAsyncEventHandler ( fun _ _ ->
