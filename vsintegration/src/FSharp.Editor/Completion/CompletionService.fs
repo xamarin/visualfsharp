@@ -66,7 +66,7 @@ type internal FSharpCompletionService
 
 
 [<Shared>]
-[<ExportLanguageServiceFactory(typeof<CompletionService>, FSharpConstants.FSharpLanguageName)>]
+[<ExportLanguageServiceFactory(typeof<CompletionService>, FSharpConstants.FSharpContentTypeName)>]
 type internal FSharpCompletionServiceFactory 
     [<ImportingConstructor>] 
     (

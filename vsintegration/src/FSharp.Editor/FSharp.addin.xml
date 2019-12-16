@@ -6,7 +6,7 @@
 	<Extension path="/MonoDevelop/Ide/Composition">
 		<Assembly file="FSharp.Editor.dll"/>
 		<Assembly file="Microsoft.CodeAnalysis.ExternalAccess.FSharp.dll"/>
-		<Assembly file="Microsoft.VisualStudio.LanguageServices"/>
+<!--		<Assembly file="Microsoft.VisualStudio.LanguageServices.dll"/>-->
 	</Extension>
 	
 	

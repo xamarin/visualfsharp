@@ -16,7 +16,7 @@ open Microsoft.CodeAnalysis.Text
 open Microsoft.CodeAnalysis.Navigation
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Navigation
 
-open Microsoft.VisualStudio.Shell.Interop
+//open Microsoft.VisualStudio.Shell.Interop
 
 open FSharp.Compiler.Range
 open FSharp.Compiler.SourceCodeServices
@@ -108,15 +108,16 @@ module private ExternalSymbol =
 
 // TODO: Uncomment code when VS has a fix for updating the status bar.
 type internal StatusBar((*statusBar: IVsStatusbar*)) =
-    let mutable _searchIcon = int16 Microsoft.VisualStudio.Shell.Interop.Constants.SBAI_Find :> obj
+    //let mutable _searchIcon = int16 Microsoft.VisualStudio.Shell.Interop.Constants.SBAI_Find :> obj
 
-    let _clear() = ()
+    let clear() =
+        MonoDevelop.Ide.IdeApp.Workbench.StatusBar.ShowReady()
         // unfreeze the statusbar
         //statusBar.FreezeOutput 0 |> ignore  
         //statusBar.Clear() |> ignore
-        
-    member __.Message(_msg: string) =
-        ()
+
+    member __.Message(msg: string) =
+        MonoDevelop.Ide.IdeApp.Workbench.StatusBar.ShowMessage(msg)
         //let _, frozen = statusBar.IsFrozen()
         //// unfreeze the status bar
         //if frozen <> 0 then statusBar.FreezeOutput 0 |> ignore
@@ -124,8 +125,8 @@ type internal StatusBar((*statusBar: IVsStatusbar*)) =
         //// freeze the status bar
         //statusBar.FreezeOutput 1 |> ignore
 
-    member this.TempMessage(_msg: string) =
-        ()
+    member this.TempMessage(msg: string) =
+        this.Message(msg)
         //this.Message msg
         //async {
         //    do! Async.Sleep 4000
@@ -133,8 +134,8 @@ type internal StatusBar((*statusBar: IVsStatusbar*)) =
         //    | 0, currentText when currentText <> msg -> ()
         //    | _ -> clear()
         //}|> Async.Start
-    
-    member __.Clear() = () //clear()
+
+    member __.Clear() = clear()
 
     /// Animated magnifying glass that displays on the status bar while a symbol search is in progress.
     member __.Animate() : IDisposable = 

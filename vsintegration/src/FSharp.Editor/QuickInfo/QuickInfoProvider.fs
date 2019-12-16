@@ -22,6 +22,7 @@ open FSharp.Compiler.Range
 open FSharp.Compiler
 
 open Internal.Utilities.StructuredFormat
+open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Completion
 
 type internal QuickInfo =
     { StructuredText: FSharpStructuredToolTipText

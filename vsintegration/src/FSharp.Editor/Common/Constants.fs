@@ -29,7 +29,7 @@ module internal FSharpConstants =
     
     [<Literal>]
     /// "F#"
-    let FSharpContentTypeName = "code++.F#"
+    let FSharpContentTypeName = "F#"
 
     [<Literal>]
     /// ".fs"
