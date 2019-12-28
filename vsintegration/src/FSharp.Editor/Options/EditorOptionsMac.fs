@@ -65,7 +65,7 @@ type LanguageServicePerformanceOptions =
       TimeUntilStaleCompletion: int
       ProjectCheckCacheSize: int }
     static member Default =
-      { EnableInMemoryCrossProjectReferences = true
+      { EnableInMemoryCrossProjectReferences = false
         AllowStaleCompletionResults = true
         TimeUntilStaleCompletion = 2000 // In ms, so this is 2 seconds
         ProjectCheckCacheSize = 200 }

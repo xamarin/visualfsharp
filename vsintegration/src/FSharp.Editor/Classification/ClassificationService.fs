@@ -63,7 +63,8 @@ type internal FSharpClassificationService
                             match classificationType with
                             | SemanticClassificationType.Printf -> span
                             | _ -> Tokenizer.fixupSpan(sourceText, span)
-                        result.Add(ClassifiedSpan(span, FSharpClassificationTypes.getClassificationTypeName(classificationType)))
+                        //result.Add(ClassifiedSpan(span, FSharpClassificationTypes.getClassificationTypeName(classificationType)))
+                        result.Add(ClassifiedSpan(span, classificationType.ToString()))
             } 
             |> Async.Ignore |> RoslynHelpers.StartAsyncUnitAsTask cancellationToken
 

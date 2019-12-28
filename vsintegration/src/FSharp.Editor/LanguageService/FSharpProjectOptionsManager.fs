@@ -15,9 +15,9 @@ open Microsoft.VisualStudio
 open Microsoft.VisualStudio.FSharp.Editor
 open Microsoft.VisualStudio.LanguageServices
 open Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
-open Microsoft.VisualStudio.Shell
+//open Microsoft.VisualStudio.Shell
 open System.Threading
-open Microsoft.VisualStudio.Shell.Interop
+//open Microsoft.VisualStudio.Shell.Interop
 open Microsoft.VisualStudio.LanguageServices.Implementation.TaskList
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp.LanguageServices
 
@@ -152,16 +152,16 @@ type private FSharpProjectOptionsReactor ((*_workspace: VisualStudioWorkspace,*)
                 // Because this code can be kicked off before the hack, HandleCommandLineChanges, occurs,
                 //     the command line options will not be available and we should bail if one of the project references does not give us anything.
                 let mutable canBail = false
-            
-                let referencedProjects = ResizeArray()
 
-                if settings.LanguageServicePerformance.EnableInMemoryCrossProjectReferences then
-                    for projectReference in project.ProjectReferences do
-                        let referencedProject = project.Solution.GetProject(projectReference.ProjectId)
-                        if referencedProject.Language = FSharpConstants.FSharpLanguageName then
-                            match! tryComputeOptions referencedProject with
-                            | None -> canBail <- true
-                            | Some(_, projectOptions) -> referencedProjects.Add(referencedProject.OutputFilePath, projectOptions)
+                //let referencedProjects = ResizeArray()
+
+                //if settings.LanguageServicePerformance.EnableInMemoryCrossProjectReferences then
+                    //for projectReference in project.ProjectReferences do
+                        //let referencedProject = project.Solution.GetProject(projectReference.ProjectId)
+                        //if referencedProject.Language = FSharpConstants.FSharpLanguageName then
+                            //match! tryComputeOptions referencedProject with
+                            //| None -> canBail <- true
+                            //| Some(_, projectOptions) -> referencedProjects.Add(referencedProject.OutputFilePath, projectOptions)
 
                 if canBail then
                     return None
@@ -237,7 +237,7 @@ type private FSharpProjectOptionsReactor ((*_workspace: VisualStudioWorkspace,*)
                     if ct.IsCancellationRequested then
                         reply.Reply None
                     else
-                        try
+                        //try
                             // For now, disallow miscellaneous workspace since we are using the hacky F# miscellaneous files project.
                             if document.Project.Solution.Workspace.Kind = WorkspaceKind.MiscellaneousFiles then
                                 reply.Reply None
@@ -247,23 +247,23 @@ type private FSharpProjectOptionsReactor ((*_workspace: VisualStudioWorkspace,*)
                             else
                                 let! options = tryComputeOptions document.Project
                                 reply.Reply options
-                        with
-                        | _ ->
-                            reply.Reply None
+                        //with
+                        //| _ ->
+                            //reply.Reply None
 
                 | FSharpProjectOptionsMessage.TryGetOptionsByProject(project, reply, ct) ->
                     if ct.IsCancellationRequested then
                         reply.Reply None
                     else
-                        try
+                        //try
                             if project.Solution.Workspace.Kind = WorkspaceKind.MiscellaneousFiles || project.Name = FSharpConstants.FSharpMiscellaneousFilesName then
                                 reply.Reply None
                             else
                                 let! options = tryComputeOptions project
                                 reply.Reply options
-                        with
-                        | _ ->
-                            reply.Reply None
+                        //with
+                        //| _ ->
+                            //reply.Reply None
 
                 | FSharpProjectOptionsMessage.ClearOptions(projectId) ->
                     cache.Remove(projectId) |> ignore

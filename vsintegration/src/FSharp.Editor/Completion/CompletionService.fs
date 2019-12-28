@@ -66,21 +66,23 @@ type internal FSharpCompletionService
 
 
 [<Shared>]
-[<ExportLanguageServiceFactory(typeof<CompletionService>, FSharpConstants.FSharpContentTypeName)>]
+//[<ExportLanguageServiceFactory(typeof<CompletionService>, FSharpConstants.FSharpContentTypeName)>]
+[<ExportLanguageServiceFactory(typeof<CompletionService>, "code++.F#")>]
+
 type internal FSharpCompletionServiceFactory 
     [<ImportingConstructor>] 
     (
         //serviceProvider: SVsServiceProvider,
-        _checkerProvider: FSharpCheckerProvider
+        checkerProvider: FSharpCheckerProvider,
 
-        //projectInfoManager: FSharpProjectOptionsManager,
-        //assemblyContentProvider: AssemblyContentProvider,
-        //settings: EditorOptions
+        projectInfoManager: FSharpProjectOptionsManager,
+        assemblyContentProvider: AssemblyContentProvider,
+        settings: EditorOptions
     ) =
-    member x.X = 1
-    //interface ILanguageServiceFactory with
-        //member this.CreateLanguageService(hostLanguageServices: HostLanguageServices) : ILanguageService =
-            //upcast new FSharpCompletionService(hostLanguageServices.WorkspaceServices.Workspace, (*serviceProvider,*) checkerProvider, projectInfoManager, assemblyContentProvider, settings)
-            ////upcast new FSharpCompletionService(hostLanguageServices.WorkspaceServices.Workspace, (*serviceProvider,*) checkerProvider, new FSharpProjectOptionsManager(, assemblyContentProvider, settings)
+
+    interface ILanguageServiceFactory with
+        member this.CreateLanguageService(hostLanguageServices: HostLanguageServices) : ILanguageService =
+            upcast new FSharpCompletionService(hostLanguageServices.WorkspaceServices.Workspace, (*serviceProvider,*) checkerProvider, projectInfoManager, assemblyContentProvider, settings)
+            //upcast new FSharpCompletionService(hostLanguageServices.WorkspaceServices.Workspace, (*serviceProvider,*) checkerProvider, new FSharpProjectOptionsManager(, assemblyContentProvider, settings)
 
 

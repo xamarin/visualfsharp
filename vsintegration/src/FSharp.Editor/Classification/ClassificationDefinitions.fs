@@ -9,9 +9,9 @@ open System.Windows.Media
 open Microsoft.VisualStudio
 open Microsoft.VisualStudio.Editor
 //open Microsoft.VisualStudio.PlatformUI
-open Microsoft.VisualStudio.Shell
-open Microsoft.VisualStudio.Shell.Interop
-open Microsoft.Internal.VisualStudio.Shell.Interop
+//open Microsoft.VisualStudio.Shell
+//open Microsoft.VisualStudio.Shell.Interop
+//open Microsoft.Internal.VisualStudio.Shell.Interop
 open Microsoft.VisualStudio.Language.StandardClassification
 open Microsoft.VisualStudio.Text.Classification
 //open Microsoft.VisualStudio.Utilities
