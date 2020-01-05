@@ -20,7 +20,7 @@ open FSharp.Compiler
 open FSharp.Compiler.Range
 open FSharp.Compiler.SourceCodeServices
 open Microsoft.VisualStudio.Text.Adornments
-
+open Microsoft.CodeAnalysis.Editor.Shared.Extensions
 module Logger = Microsoft.VisualStudio.FSharp.Editor.Logger
 
 type internal FSharpCompletionProvider
@@ -137,6 +137,7 @@ type internal FSharpCompletionProvider
 
             declarationItems |> Array.iteri (fun number declarationItem ->
                 let glyph = Tokenizer.FSharpGlyphToRoslynGlyph (declarationItem.Glyph, declarationItem.Accessibility)
+                let image = GlyphHelper.getImageId glyph |> ImageElement
                 let name =
                     match declarationItem.NamespaceToOpen with
                     | Some namespaceToOpen -> sprintf "%s (open %s)" declarationItem.Name namespaceToOpen
@@ -151,7 +152,7 @@ type internal FSharpCompletionProvider
                     | _, idents -> Array.last idents
 
                 let completionItem =
-                    new Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion.Data.CompletionItem(name, completionSource)
+                    new Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion.Data.CompletionItem(name, completionSource, icon = image)
                     //FSharpCommonCompletionItem.Create(name, null, rules = getRules intellisenseOptions.ShowAfterCharIsTyped, glyph = Nullable glyph, filterText = filterText)
                                         //.AddProperty(FullNamePropName, declarationItem.FullName)
                         
@@ -190,17 +191,27 @@ type internal FSharpCompletionProvider
                     |> Option.bind (fun parseTree ->
                          UntypedParseImpl.TryGetCompletionContext(Pos.fromZ caretLinePos.Line caretLinePos.Character, parseTree, lineStr))
 
-                let keywordGlyph = ExternalAccess.FSharp.FSharpGlyph.Keyword
+                //let keywordGlyph = ExternalAccess.FSharp.FSharpGlyph.Keyword
+                //let k = Glyph.Keyword
+                //let roslynGlyph = Microsoft.CodeAnalysis.ExternalAccess.FSharp.Internal.FSharpGlyphHelpers.ConvertTo(k)
+                //let i = ImageElement(roslynGlyph |> Gl GetImageId)
+                let image = GlyphHelper.getImageId Glyph.Keyword |> ImageElement
+                //let c =
+                    //FSharpCommonCompletionItem.Create(keyword, null, CompletionItemRules.Default, Nullable Glyph.Keyword )
+                       //.AddProperty("description", description)
+                       //.AddProperty(IsKeywordPropName, "")
                 match completionContext with
                 | None ->
                     let keywordItemsWithSource =
                         keywordCompletionItems
-                        |> List.mapi (fun n (keyword, description) ->
+                        |> Seq.mapi (fun n (keyword, description) ->
+                                //FSharpCommonCompletionItem.Create(keyword, null, CompletionItemRules.Default, Nullable Glyph.Keyword )
+                                   //.AddProperty("description", description)
+                                   //.AddProperty(IsKeywordPropName, ""))
+                                let imageId = [ ]
                                 new Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion.Data.CompletionItem
-                                        (keyword, completionSource, null, ImmutableArray<Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion.Data.CompletionFilter>.Empty, "", keyword, sprintf "%06d" (1000000 + n), keyword, keyword, ImmutableArray<ImageElement>.Empty ))
-                             //FSharpCommonCompletionItem.Create(keyword, null, CompletionItemRules.Default, Nullable Glyph.Keyword, ))
-                                //.AddProperty("description", description)
-                                //.AddProperty(IsKeywordPropName, ""))
+                                        (keyword, completionSource, image, ImmutableArray<Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion.Data.CompletionFilter>.Empty, "", keyword, sprintf "%06d" (1000000 + n), keyword, keyword, ImmutableArray<ImageElement>.Empty ))
+
                     results.AddRange(keywordItemsWithSource)
                 | _ -> ()
 
