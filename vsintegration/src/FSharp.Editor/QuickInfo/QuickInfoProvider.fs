@@ -280,9 +280,9 @@ type internal FSharpAsyncQuickInfoSourceProvider
     ) =
 
     interface IAsyncQuickInfoSourceProvider with
-        override __.TryCreateQuickInfoSource(textBuffer:ITextBuffer) : IAsyncQuickInfoSource =
+        override __.TryCreateQuickInfoSource(textBuffer) =
             // GetService calls must be made on the UI thread
             // It is safe to do it here (see #4713)
             let statusBar = StatusBar((*serviceProvider.GetService<SVsStatusbar,IVsStatusbar>()*))
             //let xmlMemberIndexService = serviceProvider.XMLMemberIndexService
-            new FSharpAsyncQuickInfoSource(statusBar, (* xmlMemberIndexService,*) checkerProvider, projectInfoManager, textBuffer, settings) :> IAsyncQuickInfoSource
+            new FSharpAsyncQuickInfoSource(statusBar, (* xmlMemberIndexService,*) checkerProvider, projectInfoManager, textBuffer, settings) :> _

@@ -14,7 +14,7 @@ type FSharp_Editor() =
         [<DefaultValue(false)>]
         static val mutable private resourceCulture:System.Globalization.CultureInfo
         [<System.ComponentModel.EditorBrowsableAttribute(System.ComponentModel.EditorBrowsableState.Advanced)>]
-        static member ResourceManager
+        member this.ResourceManager
             with get() : System.Resources.ResourceManager =
                 if System.Object.Equals((Unchecked.defaultof<_>), FSharp_Editor.resourceMan) then
                     let mutable (temp:System.Resources.ResourceManager) = new System.Resources.ResourceManager("FSharp.Editor.resx", (typeof<FSharp_Editor>).Assembly)

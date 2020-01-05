@@ -135,7 +135,6 @@ type EditorOptions
 
 [<AutoOpen>]
 module internal WorkspaceSettingFromDocumentExtension =
-    let options = EditorOptions()
     type Microsoft.CodeAnalysis.Document with
-        member this.FSharpOptions = options
-            //this.Project.Solution.Workspace.Services.GetService() : EditorOptions
+        member this.FSharpOptions =
+            this.Project.Solution.Workspace.Services.GetService() : EditorOptions
