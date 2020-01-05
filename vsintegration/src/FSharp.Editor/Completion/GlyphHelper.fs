@@ -6,8 +6,8 @@ open Microsoft.CodeAnalysis.Tags;
 open Microsoft.VisualStudio.Core.Imaging;
 open Microsoft.VisualStudio.Imaging;
 module GlyphHelper =
-    // hardcode imageCatalogGuid locally rather than calling KnownImageIds.imageCatalogGuid
-    // So it doesnot have dependency for Microsoft.VisualStudio.ImageCatalog.dll
+    // hardcode imageCatalogGuid locally rather than calling KnownImageIds.ImageCatalogGuid
+    // So it does not have dependency on Microsoft.VisualStudio.ImageCatalog.dll
     // https://github.com/dotnet/roslyn/issues/26642
     let imageCatalogGuid = Guid.Parse("ae27a6b0-e345-4288-96df-5eaf394ee369");
 

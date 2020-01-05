@@ -114,7 +114,7 @@ type internal FSharpSettingsFactory
 ////[<ProvideLanguageEditorOptionPage(typeof<OptionsUI.FormattingOptionPage>, "F#", null, "Formatting", "6014")>]
 ////[<ProvideFSharpVersionRegistration(FSharpConstants.projectPackageGuidString, "Microsoft Visual F#")>]
 ////// 64 represents a hex number. It needs to be greater than 37 so the TextMate editor will not be chosen as higher priority.
-////[<ProvideEditorExtension(typeof<FSharpEditorFactory>, ".fs", 64)>]
+//[<ProvideEditorExtension(typeof<FSharpEditorFactory>, ".fs", 64)>]
 ////[<ProvideEditorExtension(typeof<FSharpEditorFactory>, ".fsi", 64)>]
 ////[<ProvideEditorExtension(typeof<FSharpEditorFactory>, ".fsscript", 64)>]
 ////[<ProvideEditorExtension(typeof<FSharpEditorFactory>, ".fsx", 64)>]

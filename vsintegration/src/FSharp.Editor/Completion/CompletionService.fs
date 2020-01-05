@@ -33,6 +33,7 @@ open System.Linq;
 open System.Runtime.CompilerServices;
 open System.Threading;
 open System.Threading.Tasks;
+open Microsoft.CodeAnalysis.Classification
 open Microsoft.CodeAnalysis.Completion;
 open Microsoft.CodeAnalysis.Completion.Providers;
 open Microsoft.CodeAnalysis.Editor.Host;
@@ -53,6 +54,29 @@ open Microsoft.VisualStudio.Text.Adornments;
 open FSharp.Compiler
 open FSharp.Compiler.Range
 open FSharp.Compiler.SourceCodeServices
+
+open System.Collections.Generic;
+open System.Collections.Immutable;
+open System.Linq;
+open System.Runtime.CompilerServices;
+open System.Threading;
+open System.Threading.Tasks;
+open Microsoft.CodeAnalysis.Completion;
+open Microsoft.CodeAnalysis.Completion.Providers;
+open Microsoft.CodeAnalysis.Editor.Implementation.IntelliSense.Completion;
+open Microsoft.CodeAnalysis.Editor.Shared.Extensions;
+open Microsoft.CodeAnalysis.Editor.Shared.Utilities;
+open Microsoft.CodeAnalysis.Experiments;
+open Microsoft.CodeAnalysis.LanguageServices;
+open Microsoft.CodeAnalysis.PooledObjects;
+open Microsoft.CodeAnalysis.Shared.Extensions;
+open Microsoft.CodeAnalysis.Text;
+open Microsoft.CodeAnalysis.Text.Shared.Extensions;
+open Microsoft.VisualStudio.Core.Imaging;
+open Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion;
+open Microsoft.VisualStudio.Text;
+open Microsoft.VisualStudio.Text.Adornments;
+open Microsoft.VisualStudio.Text.Editor;
 //open Microsoft.VisualStudio.Text.Editor;
 //open AsyncCompletionData = Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion.Data;
 //open RoslynCompletionItem = Microsoft.CodeAnalysis.Completion.CompletionItem;
@@ -135,6 +159,143 @@ type internal FSharpCompletionSource
 
     let settings: EditorOptions = textView.TextBuffer.GetWorkspace().Services.GetService()
 
+    let createParagraphFromLines(lines: List<ClassifiedTextElement>) =
+        if lines.Count = 1 then
+            // The paragraph contains only one line, so it doesn't need to be added to a container. Avoiding the
+            // wrapping container here also avoids a wrapping element in the WPF elements used for rendering,
+            // improving efficiency.
+            lines.[0] :> obj
+        else
+            // The lines of a multi-line paragraph are stacked to produce the full paragraph.
+            ContainerElement(ContainerElementStyle.Stacked, lines) :> obj
+
+    let toClassificationTypeName = function
+        | TextTags.Keyword ->
+            ClassificationTypeNames.Keyword
+
+        | TextTags.Class ->
+            ClassificationTypeNames.ClassName
+
+        | TextTags.Delegate ->
+            ClassificationTypeNames.DelegateName
+
+        | TextTags.Enum ->
+            ClassificationTypeNames.EnumName
+
+        | TextTags.Interface ->
+            ClassificationTypeNames.InterfaceName
+
+        | TextTags.Module ->
+            ClassificationTypeNames.ModuleName
+
+        | TextTags.Struct ->
+            ClassificationTypeNames.StructName
+
+        | TextTags.TypeParameter ->
+            ClassificationTypeNames.TypeParameterName
+
+        | TextTags.Field ->
+            ClassificationTypeNames.FieldName
+
+        | TextTags.Event ->
+            ClassificationTypeNames.EventName
+
+        | TextTags.Label ->
+            ClassificationTypeNames.LabelName
+
+        | TextTags.Local ->
+            ClassificationTypeNames.LocalName
+
+        | TextTags.Method ->
+            ClassificationTypeNames.MethodName
+
+        | TextTags.Namespace ->
+            ClassificationTypeNames.NamespaceName
+
+        | TextTags.Parameter ->
+            ClassificationTypeNames.ParameterName
+
+        | TextTags.Property ->
+            ClassificationTypeNames.PropertyName
+
+        | TextTags.ExtensionMethod ->
+            ClassificationTypeNames.ExtensionMethodName
+
+        | TextTags.EnumMember ->
+            ClassificationTypeNames.EnumMemberName
+
+        | TextTags.Constant ->
+            ClassificationTypeNames.ConstantName
+
+        | TextTags.Alias
+        | TextTags.Assembly
+        | TextTags.ErrorType
+        | TextTags.RangeVariable ->
+            ClassificationTypeNames.Identifier
+
+        | TextTags.NumericLiteral ->
+            ClassificationTypeNames.NumericLiteral
+
+        | TextTags.StringLiteral ->
+            ClassificationTypeNames.StringLiteral
+
+        | TextTags.Space
+        | TextTags.LineBreak ->
+            ClassificationTypeNames.WhiteSpace
+
+        | TextTags.Operator ->
+            ClassificationTypeNames.Operator
+
+        | TextTags.Punctuation ->
+            ClassificationTypeNames.Punctuation
+
+        | TextTags.AnonymousTypeIndicator
+        | TextTags.Text
+        | _ ->
+            ClassificationTypeNames.Text
+
+
+    let buildClassifiedTextElements (taggedTexts:ImmutableArray<TaggedText>) =
+        // This method produces a sequence of zero or more paragraphs
+        let paragraphs = new List<obj>()
+
+        // Each paragraph is constructed from one or more lines
+        let currentParagraph = new List<ClassifiedTextElement>()
+
+        // Each line is constructed from one or more inline elements
+        let currentRuns = new List<ClassifiedTextRun>()
+
+        for part in taggedTexts do
+            if part.Tag = TextTags.LineBreak then
+                if currentRuns.Count > 0 then
+                    // This line break means the end of a line within a paragraph.
+                    currentParagraph.Add(new ClassifiedTextElement(currentRuns));
+                    currentRuns.Clear();
+                else
+                    // This line break means the end of a paragraph. Empty paragraphs are ignored, but could appear
+                    // in the input to this method:
+                    //
+                    // * Empty <para> elements
+                    // * Explicit line breaks at the start of a comment
+                    // * Multiple line breaks between paragraphs
+                    if currentParagraph.Count > 0 then
+                        // The current paragraph is not empty, so add it to the result collection
+                        paragraphs.Add(createParagraphFromLines(currentParagraph))
+                        currentParagraph.Clear();
+
+            else
+                // This is tagged text getting added to the current line we are building.
+                currentRuns.Add(new ClassifiedTextRun(part.Tag |> toClassificationTypeName, part.Text))
+
+        if currentRuns.Count > 0 then
+            // Add the final line to the final paragraph.
+            currentParagraph.Add(new ClassifiedTextElement(currentRuns))
+
+        if currentParagraph.Count > 0 then
+            // Add the final paragraph to the result.
+            paragraphs.Add(createParagraphFromLines(currentParagraph))
+
+        paragraphs
     /// <summary>
     /// Called when user interacts with expander buttons,
     /// requesting the completion source to provide additional completion items pertinent to the expander button.
@@ -220,8 +381,14 @@ type internal FSharpCompletionSource
     /// <returns>An object that will be passed to <see cref="IViewElementFactoryService"/>. See its documentation for supported types.</returns>
     //Task<object> GetDescriptionAsync(IAsyncCompletionSession session, CompletionItem item, CancellationToken token);
         member __.GetDescriptionAsync(session, item, token) =
-            System.Diagnostics.Trace.WriteLine("descriptions")
-            Task.FromResult ("Description" :> _)
+            async {
+                let document = session.TextView.TextSnapshot.GetOpenDocumentInCurrentContextWithChanges()
+                let! sourceText = document.GetTextAsync() |> Async.AwaitTask
+                let provider = FSharpCompletionProvider(document.Project.Solution.Workspace, checkerProvider, projectInfoManager, assemblyContentProvider)
+                let! description = provider.GetDescriptionAsync2(session.TextView, item, token) |> Async.AwaitTask
+                let elements = description.TaggedParts |> buildClassifiedTextElements
+                return ContainerElement(ContainerElementStyle.Stacked ||| ContainerElementStyle.VerticalPadding, elements) :> obj
+            } |> RoslynHelpers.StartAsyncAsTask token
 
     /// <summary>
     /// Provides the span applicable to the prospective session.

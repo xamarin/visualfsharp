@@ -20,6 +20,8 @@ open FSharp.Compiler
 open FSharp.Compiler.Range
 open FSharp.Compiler.SourceCodeServices
 open Microsoft.VisualStudio.Text.Adornments
+open Microsoft.VisualStudio.Text
+open Microsoft.VisualStudio.Text.Editor
 open Microsoft.CodeAnalysis.Editor.Shared.Extensions
 module Logger = Microsoft.VisualStudio.FSharp.Editor.Logger
 
@@ -56,7 +58,7 @@ type internal FSharpCompletionProvider
     let settings: EditorOptions = workspace.Services.GetService()
 
     //let documentationBuilder = XmlDocumentation.CreateDocumentationBuilder(serviceProvider.XMLMemberIndexService)
-        
+    let documentationBuilder = XmlDocumentation.Provider()   
     static let noCommitOnSpaceRules = 
         // These are important.  They make sure we don't _commit_ autocompletion when people don't expect them to.  Some examples:
         //
@@ -152,10 +154,12 @@ type internal FSharpCompletionProvider
                     | _, idents -> Array.last idents
 
                 let completionItem =
-                    new Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion.Data.CompletionItem(name, completionSource, icon = image)
+                    let item = new Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion.Data.CompletionItem(name, completionSource, icon = image)
                     //FSharpCommonCompletionItem.Create(name, null, rules = getRules intellisenseOptions.ShowAfterCharIsTyped, glyph = Nullable glyph, filterText = filterText)
                                         //.AddProperty(FullNamePropName, declarationItem.FullName)
-                        
+                    item.Properties.AddProperty(IndexPropName, declarationItem)
+                    item
+
                 let completionItem =
                     match declarationItem.Kind with
                     | CompletionItemKind.Method (isExtension = true) ->
@@ -257,12 +261,12 @@ type internal FSharpCompletionProvider
             | true, completionItemIndexStr ->
                 let completionItemIndex = int completionItemIndexStr
                 if completionItemIndex < declarationItems.Length then
-                    //let declarationItem = declarationItems.[completionItemIndex]
-                    //let! description = declarationItem.StructuredDescriptionTextAsync
+                    let declarationItem = declarationItems.[completionItemIndex]
+                    let! description = declarationItem.StructuredDescriptionTextAsync
                     let documentation = List()
-                    //let collector = RoslynHelpers.CollectTaggedText documentation
+                    let collector = RoslynHelpers.CollectTaggedText documentation
                     // mix main description and xmldoc by using one collector
-                    //XmlDocumentation.BuildDataTipText(documentationBuilder, collector, collector, collector, collector, collector, description) 
+                    XmlDocumentation.BuildDataTipText(documentationBuilder, collector, collector, collector, collector, collector, description) 
                     return CompletionDescription.Create(documentation.ToImmutableArray())
                 else 
                     return CompletionDescription.Empty
@@ -270,6 +274,25 @@ type internal FSharpCompletionProvider
                 return CompletionDescription.Empty
         } |> RoslynHelpers.StartAsyncAsTask cancellationToken
 
+    member this.GetDescriptionAsync2(textView:  ITextView, completionItem: Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion.Data.CompletionItem, cancellationToken: CancellationToken): Task<CompletionDescription> =
+        async {
+            //use _logBlock = Logger.LogBlockMessage "DocumentName" ViewportWidthLogEditorFunctionId.Completion_GetDescriptionAsync
+            match completionItem.Properties.TryGetProperty IndexPropName with
+            | true, (declarationItem: FSharpDeclarationListItem) ->
+                //let completionItemIndex = int completionItemIndexStr
+                //if completionItemIndex < declarationItems.Length then
+                    //let declarationItem = declarationItems.[completionItemIndex]
+                    let! description = declarationItem.StructuredDescriptionTextAsync
+                    let documentation = List()
+                    let collector = RoslynHelpers.CollectTaggedText documentation
+                    // mix main description and xmldoc by using one collector
+                    XmlDocumentation.BuildDataTipText(documentationBuilder, collector, collector, collector, collector, collector, description) 
+                    return CompletionDescription.Create(documentation.ToImmutableArray())
+                //else 
+                    //return CompletionDescription.Empty
+            | _ -> 
+                return CompletionDescription.Empty
+        } |> RoslynHelpers.StartAsyncAsTask cancellationToken
     override this.GetChangeAsync(document, item, _, cancellationToken) : Task<CompletionChange> =
         async {
             use _logBlock = Logger.LogBlockMessage document.Name LogEditorFunctionId.Completion_GetChangeAsync
