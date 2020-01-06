@@ -162,12 +162,12 @@ type internal FSharpCompletionSource
     let createParagraphFromLines(lines: List<ClassifiedTextElement>) =
         if lines.Count = 1 then
             // The paragraph contains only one line, so it doesn't need to be added to a container. Avoiding the
-            // wrapping container here also avoids a wrapping element in the WPF elements used for rendering,
+            // wrapping container here also avoids a wrapping element in the Cocoa elements used for rendering,
             // improving efficiency.
             lines.[0] :> obj
         else
             // The lines of a multi-line paragraph are stacked to produce the full paragraph.
-            ContainerElement(ContainerElementStyle.Stacked, lines) :> obj
+            ContainerElement(ContainerElementStyle.Stacked, lines |> Seq.map box) :> obj
 
     let toClassificationTypeName = function
         | TextTags.Keyword ->
@@ -326,7 +326,8 @@ type internal FSharpCompletionSource
             async {
                 System.Diagnostics.Trace.WriteLine("GetCompletionContextAsync")
                 let document = session.TextView.TextSnapshot.GetOpenDocumentInCurrentContextWithChanges()
-                let! sourceText = document.GetTextAsync() |> Async.AwaitTask
+
+                let sourceText = session.TextView.TextSnapshot.AsText()
                 let provider = FSharpCompletionProvider(document.Project.Solution.Workspace, checkerProvider, projectInfoManager, assemblyContentProvider)
                 //let! completions = provider.ProvideCompletionsAsync(session.)		  |> Async.AwaitTask
                 let! options = projectInfoManager.TryGetOptionsForEditingDocumentOrProject(document, token)
@@ -386,8 +387,9 @@ type internal FSharpCompletionSource
                 let! sourceText = document.GetTextAsync() |> Async.AwaitTask
                 let provider = FSharpCompletionProvider(document.Project.Solution.Workspace, checkerProvider, projectInfoManager, assemblyContentProvider)
                 let! description = provider.GetDescriptionAsync2(session.TextView, item, token) |> Async.AwaitTask
-                let elements = description.TaggedParts |> buildClassifiedTextElements
-                return ContainerElement(ContainerElementStyle.Stacked ||| ContainerElementStyle.VerticalPadding, elements) :> obj
+                let elements = description.TaggedParts |>  buildClassifiedTextElements
+                return ContainerElement(ContainerElementStyle.Stacked ||| ContainerElementStyle.VerticalPadding, elements |> Seq.map box) :> obj
+                //return elements :> obj
             } |> RoslynHelpers.StartAsyncAsTask token
 
     /// <summary>
@@ -417,18 +419,17 @@ type internal FSharpCompletionSource
 
             let document = triggerLocation.Snapshot.GetOpenDocumentInCurrentContextWithChanges();
             if document = null then
-
-                Data.CompletionStartData.DoesNotParticipateInCompletion;
+                Data.CompletionStartData.DoesNotParticipateInCompletion
             else
-                let sourceText = document.GetTextAsync(token).Result // GetTextSynchronously(token);
-
-                Data.CompletionStartData(
-                    participation = Data.CompletionParticipation.ProvidesItems,
-                    applicableToSpan = new SnapshotSpan(
-                        triggerLocation.Snapshot,
-                        CompletionUtils.getCompletionItemSpan sourceText triggerLocation.Position))
-
-
+                match document.TryGetText() with
+                | true, sourceText ->
+                    Data.CompletionStartData(
+                        participation = Data.CompletionParticipation.ProvidesItems,
+                        applicableToSpan = new SnapshotSpan(
+                            triggerLocation.Snapshot,
+                            CompletionUtils.getCompletionItemSpan sourceText triggerLocation.Position))
+                | false, _ ->
+                    Data.CompletionStartData.DoesNotParticipateInCompletion
 
 
 [<Export(typeof<IAsyncCompletionSourceProvider>)>]
