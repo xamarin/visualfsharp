@@ -23,7 +23,7 @@ open FSharp.Compiler
 
 open Internal.Utilities.StructuredFormat
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Completion
-
+open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Editor
 type internal QuickInfo =
     { StructuredText: FSharpStructuredToolTipText
       Span: TextSpan
@@ -268,7 +268,7 @@ type internal FSharpAsyncQuickInfoSource
 
 [<Export(typeof<IAsyncQuickInfoSourceProvider>)>]
 [<Name("F# Quick Info Provider")>]
-[<ContentType("code++.F#")>]
+[<ContentType(FSharpContentTypeNames.FSharpContentType)>]
 [<Order>]
 type internal FSharpAsyncQuickInfoSourceProvider
     [<ImportingConstructor>]

@@ -21,6 +21,38 @@ open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Classification
 #nowarn "44"
 
 open FSharp.Compiler.SourceCodeServices
+[<RequireQualifiedAccess>]
+module internal FSharpClassificationTypes =
+    let [<Literal>] Function = ClassificationTypeNames.MethodName// "Function"// "FSharp.Function"
+    let [<Literal>] MutableVar = ClassificationTypeNames.LocalName// "FSharp.MutableVar"
+    let [<Literal>] Printf = ClassificationTypeNames.MethodName//"FSharp.Printf"
+    let [<Literal>] ReferenceType = ClassificationTypeNames.ClassName
+    let [<Literal>] Module = ClassificationTypeNames.ClassName //ModuleName
+    let [<Literal>] ValueType = ClassificationTypeNames.StructName
+    let [<Literal>] Keyword = ClassificationTypeNames.Keyword
+    let [<Literal>] Enum = ClassificationTypeNames.EnumName
+    let [<Literal>] Property = ClassificationTypeNames.PropertyName//"Property"// "FSharp.Property"
+    let [<Literal>] Interface = ClassificationTypeNames.InterfaceName
+    let [<Literal>] TypeArgument = ClassificationTypeNames.TypeParameterName
+    let [<Literal>] Operator = ClassificationTypeNames.Operator
+    let [<Literal>] Disposable = ClassificationTypeNames.ClassName// "FSharp.Disposable"
+
+    let getClassificationTypeName = function
+        | SemanticClassificationType.ReferenceType -> ReferenceType
+        | SemanticClassificationType.Module -> Module
+        | SemanticClassificationType.ValueType -> ValueType
+        | SemanticClassificationType.Function -> Function
+        | SemanticClassificationType.MutableVar -> MutableVar
+        | SemanticClassificationType.Printf -> Printf
+        | SemanticClassificationType.ComputationExpression
+        | SemanticClassificationType.IntrinsicFunction -> Keyword
+        | SemanticClassificationType.UnionCase
+        | SemanticClassificationType.Enumeration -> Enum
+        | SemanticClassificationType.Property -> Property
+        | SemanticClassificationType.Interface -> Interface
+        | SemanticClassificationType.TypeArgument -> TypeArgument
+        | SemanticClassificationType.Operator -> Operator 
+        | SemanticClassificationType.Disposable -> Disposable
 
 [<Export(typeof<IFSharpClassificationService>)>]
 type internal FSharpClassificationService
@@ -32,8 +64,9 @@ type internal FSharpClassificationService
     static let userOpName = "SemanticColorization"
 
     interface IFSharpClassificationService with
-        // Do not perform classification if we don't have project options (#defines matter)
-        member __.AddLexicalClassifications(_: SourceText, _: TextSpan, _: List<ClassifiedSpan>, _: CancellationToken) = ()
+       
+        member __.AddLexicalClassifications(sourceText: SourceText, textSpan: TextSpan, result: List<ClassifiedSpan>, cancellationToken: CancellationToken) =
+            result.AddRange(Tokenizer.getClassifiedSpans(DocumentId.CreateNewId(ProjectId.CreateNewId()), sourceText, textSpan, Some("fake.fs"), [], cancellationToken))
         
         member __.AddSyntacticClassificationsAsync(document: Document, textSpan: TextSpan, result: List<ClassifiedSpan>, cancellationToken: CancellationToken) =
             async {
@@ -63,8 +96,8 @@ type internal FSharpClassificationService
                             match classificationType with
                             | SemanticClassificationType.Printf -> span
                             | _ -> Tokenizer.fixupSpan(sourceText, span)
-                        //result.Add(ClassifiedSpan(span, FSharpClassificationTypes.getClassificationTypeName(classificationType)))
-                        result.Add(ClassifiedSpan(span, classificationType.ToString()))
+                        result.Add(ClassifiedSpan(span, FSharpClassificationTypes.getClassificationTypeName(classificationType)))
+                        //result.Add(ClassifiedSpan(span, classificationType.ToString()))
             } 
             |> Async.Ignore |> RoslynHelpers.StartAsyncUnitAsTask cancellationToken
 

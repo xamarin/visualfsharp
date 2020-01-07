@@ -9,11 +9,11 @@ open Microsoft.CodeAnalysis
 open Microsoft.CodeAnalysis.Completion
 open Microsoft.CodeAnalysis.Host
 open Microsoft.CodeAnalysis.Host.Mef
+open Microsoft.CodeAnalysis.ExternalAccess.FSharp
+open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Editor
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Completion
 
 open Microsoft.VisualStudio.Shell
-
-
 
 open System
 open System.ComponentModel.Composition
@@ -135,7 +135,7 @@ type internal FSharpCompletionService
 
 [<Shared>]
 //[<ExportLanguageServiceFactory(typeof<CompletionService>, FSharpConstants.FSharpContentTypeName)>]
-[<ExportLanguageServiceFactory(typeof<CompletionService>, "code++.F#")>]
+[<ExportLanguageServiceFactory(typeof<CompletionService>, FSharpConstants.FSharpContentTypeName)>]
 
 type internal FSharpCompletionServiceFactory 
     [<ImportingConstructor>] 
@@ -435,7 +435,7 @@ type internal FSharpCompletionSource
 [<Export(typeof<IAsyncCompletionSourceProvider>)>]
 [<Export(typeof<IAsyncCompletionCommitManagerProvider>)>]
 [<Name("FSharp Completion Source Provider")>]
-[<ContentType("code++.F#")>]
+[<ContentType(FSharpContentTypeNames.FSharpContentType)>]
 type internal CompletionSourceProvider
     [<ImportingConstructor>] 
     (
@@ -461,7 +461,7 @@ open Microsoft.VisualStudio.FSharp.Editor
 open Microsoft.VisualStudio.Text.Editor
 [<Export(typeof<IAsyncCompletionCommitManagerProvider>)>]
 [<Name("FSharp Async Completion Commit Manager Provider")>]
-[<ContentType("code++.F#")>]
+[<ContentType(FSharpContentTypeNames.FSharpContentType)>]
 //[<TextViewRole(PredefinedTextViewRoles.Editable)>]
 //[<Order>]
 type internal FSharpAsyncCompletionCommitManagerProvider

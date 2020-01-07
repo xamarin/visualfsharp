@@ -121,7 +121,7 @@ type internal FSharpSettingsFactory
 ////[<ProvideEditorExtension(typeof<FSharpEditorFactory>, ".ml", 64)>]
 ////[<ProvideEditorExtension(typeof<FSharpEditorFactory>, ".mli", 64)>]
 ////[<ProvideEditorFactory(typeof<FSharpEditorFactory>, 101s, CommonPhysicalViewAttributes = Constants.FSharpEditorFactoryPhysicalViewAttributes)>]
-//[<ProvideLanguageExtension(typeof<  FSharpLanguageService>, ".fs")>]
+//[<ProvideLanguageExtension(typeof<FSharpLanguageService>, ".fs")>]
 //[<ProvideLanguageExtension(typeof<FSharpLanguageService>, ".fsi")>]
 //[<ProvideLanguageExtension(typeof<FSharpLanguageService>, ".fsx")>]
 //[<ProvideLanguageExtension(typeof<FSharpLanguageService>, ".fsscript")>]
@@ -146,7 +146,7 @@ type internal FSharpSettingsFactory
 //                            CodeSenseDelay = 100,
 //                            ShowDropDownOptions = true)>]
 //type internal FSharpPackage() as this =
-//    inherit AbstractPackage<FSharpPackage, FSharpLanguageService>()
+    //inherit AbstractPackage<FSharpPackage, FSharpLanguageService>()
 
 //    //let mutable vfsiToolWindow = Unchecked.defaultof<Microsoft.VisualStudio.FSharp.Interactive.FsiToolWindow>
 //    //let GetToolWindowAsITestVFSI() =

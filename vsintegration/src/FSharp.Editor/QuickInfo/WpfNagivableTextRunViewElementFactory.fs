@@ -12,7 +12,7 @@ open Microsoft.VisualStudio.Text.Editor
 open Microsoft.VisualStudio.Utilities
 type UIElement = Xwt.Widget
 
-[<Export(typeof<IViewElementFactory>)>]
+//[<Export(typeof<IViewElementFactory>)>]
 [<Name("NavigableTextRun to UIElement")>]
 [<TypeConversion(typeof<NavigableTextRun>, typeof<UIElement>)>]
 [<Order>]

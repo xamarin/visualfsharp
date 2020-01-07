@@ -4,15 +4,22 @@
 open System.ComponentModel.Composition
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Editor
 open Microsoft.VisualStudio.Utilities
-
+open Microsoft.VisualStudio.Editor
 type FSharpContentTypeDefinitions() =
-    let _x = 1
-    [<Export>]
-    [<Name(FSharpContentTypeNames.FSharpContentType)>]
-    [<BaseDefinition(FSharpContentTypeNames.RoslynContentType)>]
-    member val FSharpContentTypeDefinition: ContentTypeDefinition = null with get, set
+    //let _x = 1
+    //[<Export>]
+    ////[<Name(FSharpContentTypeNames.FSharpContentType)>]
+    //[<Name("FSharp")>]
+    //[<BaseDefinition(FSharpContentTypeNames.RoslynContentType)>]
+    ////[<BaseDefinition(CommonEditorConstants.ContentTypeName)>]
+    //member val FSharpContentTypeDefinition: ContentTypeDefinition = null with get, set
 
     [<Export>]
     [<Name(FSharpContentTypeNames.FSharpSignatureHelpContentType)>]
     [<BaseDefinition("sighelp")>]
     member val FSharpSignatureHelpContentTypeDefinition: ContentTypeDefinition = null with get, set
+
+    [<Export>]
+    [<FileExtension(".fs;.fsx;.fsi")>]
+    [<ContentType(FSharpContentTypeNames.FSharpContentType)>]
+    member val FSharpFileExtension: FileExtensionToContentTypeDefinition = null with get, set

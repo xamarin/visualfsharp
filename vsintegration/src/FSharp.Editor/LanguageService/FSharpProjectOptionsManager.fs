@@ -207,19 +207,19 @@ type private FSharpProjectOptionsReactor ((*_workspace: VisualStudioWorkspace,*)
 
 
                 let projectOptions = projectOpts.Value
-                let sourceFiles = projectOptions.OtherOptions.Where(fun o -> o.StartsWith("/"))
-                let projectOptions = { projectOptions with SourceFiles = sourceFiles.ToArray() }
+                //let sourceFiles = projectOptions.OtherOptions.Where(fun o -> o.StartsWith("/"))
+                //let projectOptions = { projectOptions with SourceFiles = sourceFiles.ToArray() }
                 // This can happen if we didn't receive the callback from HandleCommandLineChanges yet.
-                if Array.isEmpty projectOptions.SourceFiles then
-                    return None
-                else
-                    checkerProvider.Checker.InvalidateConfiguration(projectOptions, startBackgroundCompileIfAlreadySeen = false, userOpName = "computeOptions")
+                //if Array.isEmpty projectOptions.SourceFiles then
+                //    return None
+                //else
+                checkerProvider.Checker.InvalidateConfiguration(projectOptions, startBackgroundCompileIfAlreadySeen = false, userOpName = "computeOptions")
 
-                    let parsingOptions, _ = checkerProvider.Checker.GetParsingOptionsFromProjectOptions(projectOptions)
+                let parsingOptions, _ = checkerProvider.Checker.GetParsingOptionsFromProjectOptions(projectOptions)
 
-                    cache.[projectId] <- (project, parsingOptions, projectOptions)
+                cache.[projectId] <- (project, parsingOptions, projectOptions)
 
-                    return Some(parsingOptions, projectOptions)
+                return Some(parsingOptions, projectOptions)
   
             | true, (oldProject, parsingOptions, projectOptions) ->
                 if isProjectInvalidated oldProject project settings then

@@ -45,7 +45,7 @@ type internal FSharpNavigableSymbolSource(checkerProvider: FSharpCheckerProvider
                     let document = snapshot.GetOpenDocumentInCurrentContextWithChanges()
                     let! sourceText = document.GetTextAsync() |> liftTaskAsync
 
-                    statusBar.Message("SR.LocatingSymbol()")
+                    statusBar.Message(SR.LocatingSymbol())
                     use _ = statusBar.Animate()
 
                     let gtdTask = gtd.FindDefinitionTask(document, position, cancellationToken)
@@ -66,12 +66,12 @@ type internal FSharpNavigableSymbolSource(checkerProvider: FSharpCheckerProvider
 
                             return FSharpNavigableSymbol(navigableItem, symbolSpan, gtd, statusBar) :> INavigableSymbol
                         else 
-                            statusBar.TempMessage("SR.CannotDetermineSymbol()")
+                            statusBar.TempMessage(SR.CannotDetermineSymbol())
 
                             // The NavigableSymbols API accepts 'null' when there's nothing to navigate to.
                             return null
                     with exc ->
-                        statusBar.TempMessage(String.Format("SR.NavigateToFailed()", Exception.flattenMessage exc))
+                        statusBar.TempMessage(String.Format(SR.NavigateToFailed(), Exception.flattenMessage exc))
 
                         // The NavigableSymbols API accepts 'null' when there's nothing to navigate to.
                         return null
