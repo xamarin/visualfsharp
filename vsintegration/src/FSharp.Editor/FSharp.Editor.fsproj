@@ -197,7 +197,7 @@
     <None Include="$(FSharpSourcesRoot)\fsharp\FSharp.Compiler.LanguageServer\LspExternalAccess.fs">
       <Link>Common\LspExternalAccess.fs</Link>
     </None>
-    <PackageReference Include="FSharp.Compiler.Service" Version="33.0.0" />
+    <PackageReference Include="FSharp.Compiler.Service" Version="33.0.1" />
     <PackageReference Include="FSharp.Core" Version="4.7.0" />
     <PackageReference Include="System.Design" Version="$(SystemDesignVersion)" />
     <PackageReference Include="MonoDevelop.Addins" Version="0.4.7" />
