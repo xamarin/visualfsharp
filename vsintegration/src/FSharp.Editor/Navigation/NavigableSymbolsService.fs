@@ -17,6 +17,28 @@ open Microsoft.VisualStudio.Text.Editor
 open Microsoft.VisualStudio.Shell.Interop
 //open Microsoft.VisualStudio.Utilities
 open Microsoft.VisualStudio.Shell
+open System.Composition
+open System.Threading
+open System.Threading.Tasks
+
+open Microsoft.CodeAnalysis
+open Microsoft.CodeAnalysis.Editor
+open Microsoft.CodeAnalysis.Host.Mef
+open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Editor
+
+open Microsoft.VisualStudio.Shell
+open Microsoft.VisualStudio.Shell.Interop
+open System
+open System;
+open System.ComponentModel.Composition;
+open Microsoft.CodeAnalysis.Editor.Shared.Extensions;
+open Microsoft.CodeAnalysis.Notification;
+open Microsoft.CodeAnalysis.Shared.Extensions;
+open Microsoft.CodeAnalysis.Text;
+open Microsoft.VisualStudio.Commanding;
+open Microsoft.VisualStudio.Text;
+open Microsoft.VisualStudio.Text.Editor.Commanding.Commands;
+open Microsoft.VisualStudio.Utilities;
 
 [<AllowNullLiteral>]
 type internal FSharpNavigableSymbol(item: FSharpNavigableItem, span: SnapshotSpan, gtd: GoToDefinition, statusBar: StatusBar) =
@@ -45,8 +67,8 @@ type internal FSharpNavigableSymbolSource(checkerProvider: FSharpCheckerProvider
                     let document = snapshot.GetOpenDocumentInCurrentContextWithChanges()
                     let! sourceText = document.GetTextAsync() |> liftTaskAsync
 
-                    statusBar.Message(SR.LocatingSymbol())
-                    use _ = statusBar.Animate()
+                    //statusBar.Message(SR.LocatingSymbol())
+                    //use _ = statusBar.Animate()
 
                     let gtdTask = gtd.FindDefinitionTask(document, position, cancellationToken)
 
@@ -55,7 +77,7 @@ type internal FSharpNavigableSymbolSource(checkerProvider: FSharpCheckerProvider
                     try
                         // This call to Wait() is fine because we want to be able to provide the error message in the status bar.
                         gtdTask.Wait()
-                        statusBar.Clear()
+                        //statusBar.Clear()
 
                         if gtdTask.Status = TaskStatus.RanToCompletion && gtdTask.Result.IsSome then
                             let navigableItem, range = gtdTask.Result.Value
@@ -66,12 +88,12 @@ type internal FSharpNavigableSymbolSource(checkerProvider: FSharpCheckerProvider
 
                             return FSharpNavigableSymbol(navigableItem, symbolSpan, gtd, statusBar) :> INavigableSymbol
                         else 
-                            statusBar.TempMessage(SR.CannotDetermineSymbol())
+                            //statusBar.TempMessage(SR.CannotDetermineSymbol())
 
                             // The NavigableSymbols API accepts 'null' when there's nothing to navigate to.
                             return null
                     with exc ->
-                        statusBar.TempMessage(String.Format(SR.NavigateToFailed(), Exception.flattenMessage exc))
+                        //statusBar.TempMessage(String.Format(SR.NavigateToFailed(), Exception.flattenMessage exc))
 
                         // The NavigableSymbols API accepts 'null' when there's nothing to navigate to.
                         return null
@@ -83,9 +105,9 @@ type internal FSharpNavigableSymbolSource(checkerProvider: FSharpCheckerProvider
             disposed <- true
 
 [<Export(typeof<INavigableSymbolSourceProvider>)>]
-//[<Name("F# Navigable Symbol Service")>]
-//[<ContentType(Constants.FSharpContentType)>]
-//[<Order>]
+[<Name("F# Navigable Symbol Service")>]
+[<ContentType(FSharpContentTypeNames.FSharpContentType)>]
+[<Order>]
 type internal FSharpNavigableSymbolService
     [<ImportingConstructor>]
     (
