@@ -18,13 +18,13 @@ module Commands =
             else Path.Combine(workDir, path)
         rooted |> Path.GetFullPath
 
-    let fileExists workDir path =
+    let fileExists workDir path = 
         if path |> getfullpath workDir |> File.Exists then Some path else None
 
-    let directoryExists workDir path =
+    let directoryExists workDir path = 
         if path |> getfullpath workDir |> Directory.Exists then Some path else None
 
-    let copy_y workDir source dest =
+    let copy_y workDir source dest = 
         log "copy /y %s %s" source dest
         File.Copy( source |> getfullpath workDir, dest |> getfullpath workDir, true)
         CmdResult.Success
@@ -35,7 +35,7 @@ module Commands =
 
     let rm dir path =
         let p = path |> getfullpath dir
-        if File.Exists(p) then
+        if File.Exists(p) then 
             (log "rm %s" p) |> ignore
             File.Delete(p)
         else
@@ -43,16 +43,16 @@ module Commands =
 
     let rmdir dir path =
         let p = path |> getfullpath dir
-        if Directory.Exists(p) then
+        if Directory.Exists(p) then 
             (log "rmdir /sy %s" p) |> ignore
             Directory.Delete(p, true)
         else
             (log "not found: %s p") |> ignore
 
-    let pathAddBackslash (p: FilePath) =
+    let pathAddBackslash (p: FilePath) = 
         if String.IsNullOrWhiteSpace (p) then p
         else
-            p.TrimEnd ([| Path.DirectorySeparatorChar; Path.AltDirectorySeparatorChar |])
+            p.TrimEnd ([| Path.DirectorySeparatorChar; Path.AltDirectorySeparatorChar |]) 
             + Path.DirectorySeparatorChar.ToString()
 
     let echoAppendToFile workDir text p =
@@ -78,11 +78,11 @@ module Commands =
 
         match exitCode with
         | 0 -> CmdResult.Success
-        | err ->
-            let msg = sprintf "Error running command '%s' with args '%s' in directory '%s'" fscExe args workDir
+        | err -> 
+            let msg = sprintf "Error running command '%s' with args '%s' in directory '%s'" fscExe args workDir 
             CmdResult.ErrorLevel (msg, err)
 #else
-        ignore workDir
+        ignore workDir 
 #if NETCOREAPP
         exec dotNetExe (fscExe + " " + args)
 #else
@@ -95,6 +95,9 @@ module Commands =
 
     let csc exec cscExe flags srcFiles =
         exec cscExe (sprintf "%s %s"  flags (srcFiles |> Seq.ofList |> String.concat " "))
+
+    let vbc exec vbcExe flags srcFiles =
+        exec vbcExe (sprintf "%s %s"  flags (srcFiles |> Seq.ofList |> String.concat " "))
 
     let fsi exec fsiExe flags sources =
         exec fsiExe (sprintf "%s %s"  flags (sources |> Seq.ofList |> String.concat " "))
@@ -119,10 +122,12 @@ module Commands =
         path
 
 
-type TestConfig =
+type TestConfig = 
     { EnvironmentVariables : Map<string, string>
       CSC : string
       csc_flags : string
+      VBC : string
+      vbc_flags : string
       BUILD_CONFIG : string
       FSC : string
       fsc_flags : string
@@ -138,61 +143,32 @@ type TestConfig =
       ILDASM : string
       ILASM : string
       PEVERIFY : string
-      Directory: string
+      Directory: string 
       DotNetExe: string
       DefaultPlatform: string}
 
-#if NETCOREAPP
-open System.Runtime.InteropServices
-#endif
 
-let getOperatingSystem () =
-#if NETCOREAPP
-    let isPlatform p = RuntimeInformation.IsOSPlatform(p)
-    if   isPlatform OSPlatform.Windows then "win"
-    elif isPlatform OSPlatform.Linux   then "linux"
-    elif isPlatform OSPlatform.OSX     then "osx"
-    else                                    "unknown"
-#else
-    "win"
-#endif
-
-module DotnetPlatform =
+module WindowsPlatform = 
     let Is64BitOperatingSystem envVars =
-        match getOperatingSystem () with
-        | "win" ->
-            // On Windows PROCESSOR_ARCHITECTURE has the value AMD64 on 64 bit Intel Machines
-            let value =
-                let find s = envVars |> Map.tryFind s
-                [| "PROCESSOR_ARCHITECTURE" |] |> Seq.tryPick (fun s -> find s) |> function None -> "" | Some x -> x
-            value = "AMD64"
-        | _ -> System.Environment.Is64BitOperatingSystem // As an alternative for netstandard1.4+: System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture
+        // On Windows PROCESSOR_ARCHITECTURE has the value AMD64 on 64 bit Intel Machines
+        let value =
+            let find s = envVars |> Map.tryFind s
+            [| "PROCESSOR_ARCHITECTURE" |] |> Seq.tryPick (fun s -> find s) |> function None -> "" | Some x -> x
+        value = "AMD64"
 
-type FSLibPaths =
+type FSLibPaths = 
     { FSCOREDLLPATH : string }
 
-let getPackagesDir () =
+let requireFile nm = 
+    if Commands.fileExists __SOURCE_DIRECTORY__ nm |> Option.isSome then nm else failwith (sprintf "couldn't find %s. Running 'build test' once might solve this issue" nm)
+
+let packagesDir = 
     match Environment.GetEnvironmentVariable("NUGET_PACKAGES") with
-    | null ->
-        let path = match  Environment.GetEnvironmentVariable("USERPROFILE") with
-                   | null -> Environment.GetEnvironmentVariable("HOME")
-                   | p -> p
-        path ++ ".nuget" ++ "packages"
+    | null -> Environment.GetEnvironmentVariable("USERPROFILE") ++ ".nuget" ++ "packages"
     | path -> path
 
-let requireFile dir path =
-    // Linux filesystems are (in most cases) case-sensitive.
-    // However when nuget packages are installed to $HOME/.nuget/packages, it seems they are lowercased
-    let fullPath = (dir ++ path)
-    match Commands.fileExists __SOURCE_DIRECTORY__ fullPath with
-    | Some _ -> fullPath
-    | None ->
-        let fullPathLower = (dir ++ path.ToLower())
-        match Commands.fileExists __SOURCE_DIRECTORY__ fullPathLower with
-        | Some _ -> fullPathLower
-        | None -> failwith (sprintf "Couldn't find \"%s\" on the following paths: \"%s\", \"%s\". Running 'build test' once might solve this issue" path fullPath fullPathLower)
-
 let config configurationName envVars =
+
     let SCRIPT_ROOT = __SOURCE_DIRECTORY__
 #if NET472
     let fscArchitecture = "net472"
@@ -200,62 +176,50 @@ let config configurationName envVars =
     let fsharpCoreArchitecture = "net45"
     let fsharpBuildArchitecture = "net472"
     let fsharpCompilerInteractiveSettingsArchitecture = "net472"
-    let peverifyArchitecture = "net472"
 #else
-    let fscArchitecture = "netcoreapp3.1"
-    let fsiArchitecture = "netcoreapp3.1"
+    let fscArchitecture = "netcoreapp3.0"
+    let fsiArchitecture = "netcoreapp3.0"
     let fsharpCoreArchitecture = "netstandard2.0"
-    let fsharpBuildArchitecture = "netcoreapp3.1"
+    let fsharpBuildArchitecture = "netcoreapp3.0"
     let fsharpCompilerInteractiveSettingsArchitecture = "netstandard2.0"
-    let peverifyArchitecture = "netcoreapp3.0"
 #endif
     let repoRoot = SCRIPT_ROOT ++ ".." ++ ".."
     let artifactsPath = repoRoot ++ "artifacts"
     let artifactsBinPath = artifactsPath ++ "bin"
     let coreClrRuntimePackageVersion = "3.0.0-preview-27318-01"
-    let csc_flags = "/nologo"
+    let csc_flags = "/nologo" 
+    let vbc_flags = "/nologo" 
     let fsc_flags = "-r:System.Core.dll --nowarn:20 --define:COMPILED"
     let fsi_flags = "-r:System.Core.dll --nowarn:20 --define:INTERACTIVE --maxerrors:1 --abortonerror"
-    let operatingSystem = getOperatingSystem ()
-    let Is64BitOperatingSystem = DotnetPlatform.Is64BitOperatingSystem envVars
+    let Is64BitOperatingSystem = WindowsPlatform.Is64BitOperatingSystem envVars
     let architectureMoniker = if Is64BitOperatingSystem then "x64" else "x86"
-    let packagesDir = getPackagesDir ()
-    let requirePackage = requireFile packagesDir
-    let requireArtifact = requireFile artifactsBinPath
-    let CSC = requirePackage ("Microsoft.Net.Compilers" ++ "2.7.0" ++ "tools" ++ "csc.exe")
-    let ILDASM_EXE = if operatingSystem = "win" then "ildasm.exe" else "ildasm"
-    let ILDASM = requirePackage (("runtime." + operatingSystem + "-" + architectureMoniker + ".Microsoft.NETCore.ILDAsm") ++ coreClrRuntimePackageVersion ++ "runtimes" ++ (operatingSystem + "-" + architectureMoniker) ++ "native" ++ ILDASM_EXE)
-    let ILASM_EXE = if operatingSystem = "win" then "ilasm.exe" else "ilasm"
-    let ILASM = requirePackage (("runtime." + operatingSystem + "-" + architectureMoniker + ".Microsoft.NETCore.ILAsm") ++ coreClrRuntimePackageVersion ++ "runtimes" ++ (operatingSystem + "-" + architectureMoniker) ++ "native" ++ ILASM_EXE)
-    let CORECLR_DLL = if operatingSystem = "win" then "coreclr.dll" elif operatingSystem = "osx" then "libcoreclr.dylib" else "libcoreclr.so"
-    let coreclrdll = requirePackage (("runtime." + operatingSystem + "-" + architectureMoniker + ".Microsoft.NETCore.Runtime.CoreCLR") ++ coreClrRuntimePackageVersion ++ "runtimes" ++ (operatingSystem + "-" + architectureMoniker) ++ "native" ++ CORECLR_DLL)
-    let PEVERIFY_EXE = if operatingSystem = "win" then "PEVerify.exe" else "PEVerify"
-    let PEVERIFY = requireArtifact ("PEVerify" ++ configurationName ++ peverifyArchitecture ++ PEVERIFY_EXE)
-    let FSharpBuild = requireArtifact ("FSharp.Build" ++ configurationName ++ fsharpBuildArchitecture ++ "FSharp.Build.dll")
-    let FSharpCompilerInteractiveSettings = requireArtifact ("FSharp.Compiler.Interactive.Settings" ++ configurationName ++ fsharpCompilerInteractiveSettingsArchitecture ++ "FSharp.Compiler.Interactive.Settings.dll")
-
+    let CSC = requireFile (packagesDir ++ "Microsoft.Net.Compilers" ++ "2.7.0" ++ "tools" ++ "csc.exe")
+    let VBC = requireFile (packagesDir ++ "Microsoft.Net.Compilers" ++ "2.7.0" ++ "tools" ++ "vbc.exe")
+    let ILDASM = requireFile (packagesDir ++ ("runtime.win-" + architectureMoniker + ".Microsoft.NETCore.ILDAsm") ++ coreClrRuntimePackageVersion ++ "runtimes" ++ ("win-" + architectureMoniker) ++ "native" ++ "ildasm.exe")
+    let ILASM = requireFile (packagesDir ++ ("runtime.win-" + architectureMoniker + ".Microsoft.NETCore.ILAsm") ++ coreClrRuntimePackageVersion ++ "runtimes" ++ ("win-" + architectureMoniker) ++ "native" ++ "ilasm.exe")
+    let coreclrdll = requireFile (packagesDir ++ ("runtime.win-" + architectureMoniker + ".Microsoft.NETCore.Runtime.CoreCLR") ++ coreClrRuntimePackageVersion ++ "runtimes" ++ ("win-" + architectureMoniker) ++ "native" ++ "coreclr.dll")
+    let PEVERIFY = requireFile (artifactsBinPath ++ "PEVerify" ++ configurationName ++ "net472" ++ "PEVerify.exe")
+    let FSI_FOR_SCRIPTS = artifactsBinPath ++ "fsi" ++ configurationName ++ fsiArchitecture ++ "fsi.exe"
+    let FSharpBuild = requireFile (artifactsBinPath ++ "FSharp.Build" ++ configurationName ++ fsharpBuildArchitecture ++ "FSharp.Build.dll")
+    let FSharpCompilerInteractiveSettings = requireFile (artifactsBinPath ++ "FSharp.Compiler.Interactive.Settings" ++ configurationName ++ fsharpCompilerInteractiveSettingsArchitecture ++ "FSharp.Compiler.Interactive.Settings.dll")
     let dotNetExe =
         // first look for {repoRoot}\.dotnet\dotnet.exe, otherwise fallback to %PATH%
-        let DOTNET_EXE = if operatingSystem = "win" then "dotnet.exe" else "dotnet"
-        let repoLocalDotnetPath = repoRoot ++ ".dotnet" ++ DOTNET_EXE
+        let repoLocalDotnetPath = repoRoot ++ ".dotnet" ++ "dotnet.exe"
         if File.Exists(repoLocalDotnetPath) then repoLocalDotnetPath
-        else DOTNET_EXE
-
+        else "dotnet.exe"
     // ildasm + ilasm requires coreclr.dll to run which has already been restored to the packages directory
-    File.Copy(coreclrdll, Path.GetDirectoryName(ILDASM) ++ CORECLR_DLL, overwrite=true)
-    File.Copy(coreclrdll, Path.GetDirectoryName(ILASM) ++ CORECLR_DLL, overwrite=true)
+    File.Copy(coreclrdll, Path.GetDirectoryName(ILDASM) ++ "coreclr.dll", overwrite=true)
+    File.Copy(coreclrdll, Path.GetDirectoryName(ILASM) ++ "coreclr.dll", overwrite=true)
 
-    let FSI_PATH = ("fsi" ++ configurationName ++ fsiArchitecture ++ "fsi.exe")
-    let FSI_FOR_SCRIPTS = requireArtifact FSI_PATH
-    let FSI = requireArtifact FSI_PATH
+    let FSI = requireFile (FSI_FOR_SCRIPTS)
 #if !NETCOREAPP
-    let FSIANYCPU = requireArtifact ("fsiAnyCpu" ++ configurationName ++ "net472" ++ "fsiAnyCpu.exe")
+    let FSIANYCPU = requireFile (artifactsBinPath ++ "fsiAnyCpu" ++ configurationName ++ "net472" ++ "fsiAnyCpu.exe")
 #endif
-    let FSC = requireArtifact ("fsc" ++ configurationName ++ fscArchitecture ++ "fsc.exe")
-    let FSCOREDLLPATH = requireArtifact ("FSharp.Core" ++ configurationName ++ fsharpCoreArchitecture ++ "FSharp.Core.dll")
+    let FSC = requireFile (artifactsBinPath ++ "fsc" ++ configurationName ++ fscArchitecture ++ "fsc.exe")
+    let FSCOREDLLPATH = requireFile (artifactsBinPath ++ "FSharp.Core" ++ configurationName ++ fsharpCoreArchitecture ++ "FSharp.Core.dll")
 
-    let defaultPlatform =
-        match Is64BitOperatingSystem with
+    let defaultPlatform = 
+        match Is64BitOperatingSystem with 
 //        | PlatformID.MacOSX, true -> "osx.10.10-x64"
 //        | PlatformID.Unix,true -> "ubuntu.14.04-x64"
         | true -> "win7-x64"
@@ -266,7 +230,8 @@ let config configurationName envVars =
       ILDASM = ILDASM
       ILASM = ILASM
       PEVERIFY = PEVERIFY
-      CSC = CSC
+      VBC = VBC
+      CSC = CSC 
       BUILD_CONFIG = configurationName
       FSC = FSC
       FSI = FSI
@@ -277,9 +242,10 @@ let config configurationName envVars =
       FSharpBuild = FSharpBuild
       FSharpCompilerInteractiveSettings = FSharpCompilerInteractiveSettings
       csc_flags = csc_flags
-      fsc_flags = fsc_flags
+      fsc_flags = fsc_flags 
       fsi_flags = fsi_flags
-      Directory=""
+      vbc_flags = vbc_flags
+      Directory="" 
       DotNetExe = dotNetExe
       DefaultPlatform = defaultPlatform }
 
@@ -297,25 +263,24 @@ let logConfig (cfg: TestConfig) =
 #if !NETCOREAPP
     log "FSIANYCPU           =%s" cfg.FSIANYCPU
 #endif
-    log "FSI_FOR_SCRIPTS     =%s" cfg.FSI_FOR_SCRIPTS
     log "fsi_flags           =%s" cfg.fsi_flags
     log "ILDASM              =%s" cfg.ILDASM
     log "PEVERIFY            =%s" cfg.PEVERIFY
     log "---------------------------------------------------------------"
 
 
-let checkResult result =
+let checkResult result = 
     match result with
     | CmdResult.ErrorLevel (msg1, err) -> Assert.Fail (sprintf "%s. ERRORLEVEL %d" msg1 err)
     | CmdResult.Success -> ()
 
-let checkErrorLevel1 result =
+let checkErrorLevel1 result = 
     match result with
     | CmdResult.ErrorLevel (_,1) -> ()
     | CmdResult.Success | CmdResult.ErrorLevel _ -> Assert.Fail (sprintf "Command passed unexpectedly")
 
-let envVars () =
-    System.Environment.GetEnvironmentVariables ()
+let envVars () = 
+    System.Environment.GetEnvironmentVariables () 
     |> Seq.cast<System.Collections.DictionaryEntry>
     |> Seq.map (fun d -> d.Key :?> string, d.Value :?> string)
     |> Map.ofSeq
@@ -323,15 +288,15 @@ let envVars () =
 let initializeSuite () =
 
 #if DEBUG
-    let configurationName = "Debug"
+    let configurationName = "debug"
 #else
-    let configurationName = "Release"
+    let configurationName = "release"
 #endif
     let env = envVars ()
 
     let cfg =
         let c = config configurationName env
-        let usedEnvVars = c.EnvironmentVariables  |> Map.add "FSC" c.FSC
+        let usedEnvVars = c.EnvironmentVariables  |> Map.add "FSC" c.FSC             
         { c with EnvironmentVariables = usedEnvVars }
 
     logConfig cfg
@@ -347,7 +312,7 @@ type public InitializeSuiteAttribute () =
 
     override x.BeforeTest details =
         try
-            if details.IsSuite
+            if details.IsSuite 
             then suiteHelpers.Force() |> ignore
         with
         | e -> raise (Exception("failed test suite initialization, debug code in InitializeSuiteAttribute", e))
@@ -378,28 +343,28 @@ type FileGuard(path: string) =
     member x.Path = path
     member x.Exists = x.Path |> File.Exists
     member x.CheckExists() =
-        if not x.Exists then
+        if not x.Exists then 
              failwith (sprintf "exit code 0 but %s file doesn't exists" (x.Path |> Path.GetFileName))
 
     interface IDisposable with
         member x.Dispose () = remove path
+        
 
-
-type RedirectToType =
+type RedirectToType = 
     | Overwrite of FilePath
     | Append of FilePath
 
-type RedirectTo =
+type RedirectTo = 
     | Inherit
     | Output of RedirectToType
     | OutputAndError of RedirectToType * RedirectToType
-    | OutputAndErrorToSameFile of RedirectToType
+    | OutputAndErrorToSameFile of RedirectToType 
     | Error of RedirectToType
 
-type RedirectFrom =
+type RedirectFrom = 
     | RedirectInput of FilePath
 
-type RedirectInfo =
+type RedirectInfo = 
     { Output : RedirectTo
       Input : RedirectFrom option }
 
@@ -417,7 +382,7 @@ module Command =
             | Inherit -> ""
             | Output r-> sprintf " 1%s" (redirectType r)
             | OutputAndError (r1, r2) -> sprintf " 1%s 2%s" (redirectType r1)  (redirectType r2)
-            | OutputAndErrorToSameFile r -> sprintf " 1%s 2>1" (redirectType r)
+            | OutputAndErrorToSameFile r -> sprintf " 1%s 2>1" (redirectType r)  
             | Error r -> sprintf " 2%s" (redirectType r)
         sprintf "%s%s%s%s" path (match args with "" -> "" | x -> " " + x) (inF redirect.Input) (outF redirect.Output)
 
@@ -446,13 +411,13 @@ module Command =
 
         let openWrite rt =
             let fullpath = Commands.getfullpath dir
-            match rt with
+            match rt with 
             | Append p -> File.AppendText( p |> fullpath)
             | Overwrite p -> new StreamWriter(new FileStream(p |> fullpath, FileMode.Create))
 
         let outF fCont cmdArgs =
             match redirect.Output with
-            | RedirectTo.Inherit ->
+            | RedirectTo.Inherit ->  
                 use toLog = redirectToLog ()
                 fCont { cmdArgs with RedirectOutput = Some (toLog.Post); RedirectError = Some (toLog.Post) }
             | Output r ->
@@ -475,7 +440,7 @@ module Command =
                 use outFile = redirectTo writer
                 use toLog = redirectToLog ()
                 fCont { cmdArgs with RedirectOutput = Some (toLog.Post); RedirectError = Some (outFile.Post) }
-
+            
         let exec cmdArgs =
             log "%s" (logExec dir path args redirect)
             Process.exec cmdArgs dir envVars path args
@@ -506,6 +471,7 @@ let fscBothToOut cfg out arg = Printf.ksprintf (Commands.fsc cfg.Directory (exec
 let fscBothToOutExpectFail cfg out arg = Printf.ksprintf (Commands.fsc cfg.Directory (execBothToOutExpectFail cfg cfg.Directory out) cfg.DotNetExe  cfg.FSC) arg
 let fscAppendErrExpectFail cfg errPath arg = Printf.ksprintf (Commands.fsc cfg.Directory (execAppendErrExpectFail cfg errPath) cfg.DotNetExe  cfg.FSC) arg
 let csc cfg arg = Printf.ksprintf (Commands.csc (exec cfg) cfg.CSC) arg
+let vbc cfg arg = Printf.ksprintf (Commands.vbc (exec cfg) cfg.VBC) arg
 let ildasm cfg arg = Printf.ksprintf (Commands.ildasm (exec cfg) cfg.ILDASM) arg
 let ilasm cfg arg = Printf.ksprintf (Commands.ilasm (exec cfg) cfg.ILASM) arg
 let peverify cfg = Commands.peverify (exec cfg) cfg.PEVERIFY "/nologo"
@@ -535,7 +501,7 @@ let diff normalize path1 path2 =
 
     if not <| File.Exists(path1) then
         // creating empty baseline file as this is likely someone initializing a new test
-        File.WriteAllText(path1, String.Empty)
+        File.WriteAllText(path1, String.Empty) 
     if not <| File.Exists(path2) then failwithf "Invalid path %s" path2
 
     let lines1 = File.ReadAllLines(path1)
@@ -567,7 +533,7 @@ let diff normalize path1 path2 =
 
     result.ToString()
 
-let fsdiff cfg a b =
+let fsdiff cfg a b = 
     let actualFile = System.IO.Path.Combine(cfg.Directory, a)
     let expectedFile = System.IO.Path.Combine(cfg.Directory, b)
     let errorText = System.IO.File.ReadAllText (System.IO.Path.Combine(cfg.Directory, a))
@@ -579,8 +545,8 @@ let fsdiff cfg a b =
         log "%s" errorText
 
     result
-
-let requireENCulture () =
+        
+let requireENCulture () = 
     match System.Globalization.CultureInfo.CurrentCulture.TwoLetterISOLanguageName with
     | "en" -> true
     | _ -> false
