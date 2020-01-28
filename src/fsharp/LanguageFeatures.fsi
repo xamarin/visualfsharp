@@ -6,20 +6,17 @@ module internal FSharp.Compiler.Features
 /// LanguageFeature enumeration
 [<RequireQualifiedAccess>]
 type LanguageFeature =
-    | PreviewVersion = 0
-    | SingleUnderscorePattern = 3
-    | WildCardInForLoop = 4
-    | RelaxWhitespace = 5
-    | NameOf = 6
-    | ImplicitYield = 7
-    | OpenStaticClasses = 8
-    | PackageManagement = 9
-    | FromEndSlicing = 11
-    | FixedIndexSlice3d4d = 12
-    | LanguageVersion46 = 0x10046
-    | LanguageVersion47 = 0x10047
-    | LanguageVersion50 = 0x10050
-
+    | SingleUnderscorePattern
+    | WildCardInForLoop
+    | RelaxWhitespace
+    | NameOf
+    | ImplicitYield
+    | OpenStaticClasses
+    | DotlessFloat32Literal
+    | PackageManagement
+    | FromEndSlicing
+    | FixedIndexSlice3d4d
+    | AndBang
 
 /// LanguageVersion management
 type LanguageVersion =
@@ -43,4 +40,4 @@ type LanguageVersion =
     member ValidOptions: string array
 
     /// Get the specified LanguageVersion
-    member SpecifiedVerson: decimal
+    member SpecifiedVersion: decimal
