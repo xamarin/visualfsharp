@@ -29,17 +29,17 @@
       </trans-unit>
       <trans-unit id="FSharpInteractivePreview">
         <source>FSI Preview</source>
-        <target state="translated">FSI (wersja zapoznawcza)</target>
+        <target state="new">FSI Preview</target>
         <note />
       </trans-unit>
       <trans-unit id="FSharpInteractivePreviewMode">
         <source>Enable preview language features</source>
-        <target state="translated">Włącz funkcje języka w wersji zapoznawczej</target>
+        <target state="new">Enable preview language features</target>
         <note />
       </trans-unit>
       <trans-unit id="FSharpInteractivePreviewModeDescr">
         <source>Enable preview of in-development language features in F# Interactive</source>
-        <target state="translated">Włącz wersje zapoznawcze funkcji języka w trakcie opracowywania w oknie F# Interactive</target>
+        <target state="new">Enable preview of in-development language features in F# Interactive</target>
         <note />
       </trans-unit>
       <trans-unit id="FSharpInteractiveShadowCopy">
