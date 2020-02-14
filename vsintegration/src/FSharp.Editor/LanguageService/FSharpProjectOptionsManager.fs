@@ -21,56 +21,56 @@ open System.Threading
 open Microsoft.VisualStudio.LanguageServices.Implementation.TaskList
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp.LanguageServices
 
-[<AutoOpen>]
-module private FSharpProjectOptionsHelpers =
+//[<AutoOpen>]
+//module private FSharpProjectOptionsHelpers =
 
-    let mapCpsProjectToSite(project:Project, cpsCommandLineOptions: IDictionary<ProjectId, string[] * string[]>) =
-        let sourcePaths, referencePaths, options =
-            match cpsCommandLineOptions.TryGetValue(project.Id) with
-            | true, (sourcePaths, options) -> sourcePaths, [||], options
-            | false, _ -> [||], [||], [||]
-        let mutable errorReporter = Unchecked.defaultof<_>
-        {
-            new IProjectSite with
-                member __.Description = project.Name
-                member __.CompilationSourceFiles = sourcePaths
-                member __.CompilationOptions =
-                    Array.concat [options; referencePaths |> Array.map(fun r -> "-r:" + r)]
-                member __.CompilationReferences = referencePaths
-                member site.CompilationBinOutputPath = site.CompilationOptions |> Array.tryPick (fun s -> if s.StartsWith("-o:") then Some s.[3..] else None)
-                member __.ProjectFileName = project.FilePath
-                member __.AdviseProjectSiteChanges(_,_) = ()
-                member __.AdviseProjectSiteCleaned(_,_) = ()
-                member __.AdviseProjectSiteClosed(_,_) = ()
-                member __.IsIncompleteTypeCheckEnvironment = false
-                member __.TargetFrameworkMoniker = ""
-                member __.ProjectGuid =  project.Id.Id.ToString()
-                member __.LoadTime = System.DateTime.Now
-                member __.ProjectProvider = None
-                member __.BuildErrorReporter with get () = errorReporter and set (v) = errorReporter <- v
-        }
+    //let mapCpsProjectToSite(project:Project, cpsCommandLineOptions: IDictionary<ProjectId, string[] * string[]>) =
+    //    let sourcePaths, referencePaths, options =
+    //        match cpsCommandLineOptions.TryGetValue(project.Id) with
+    //        | true, (sourcePaths, options) -> sourcePaths, [||], options
+    //        | false, _ -> [||], [||], [||]
+    //    let mutable errorReporter = Unchecked.defaultof<_>
+    //    {
+    //        new IProjectSite with
+    //            member __.Description = project.Name
+    //            member __.CompilationSourceFiles = sourcePaths
+    //            member __.CompilationOptions =
+    //                Array.concat [options; referencePaths |> Array.map(fun r -> "-r:" + r)]
+    //            member __.CompilationReferences = referencePaths
+    //            member site.CompilationBinOutputPath = site.CompilationOptions |> Array.tryPick (fun s -> if s.StartsWith("-o:") then Some s.[3..] else None)
+    //            member __.ProjectFileName = project.FilePath
+    //            member __.AdviseProjectSiteChanges(_,_) = ()
+    //            member __.AdviseProjectSiteCleaned(_,_) = ()
+    //            member __.AdviseProjectSiteClosed(_,_) = ()
+    //            member __.IsIncompleteTypeCheckEnvironment = false
+    //            member __.TargetFrameworkMoniker = ""
+    //            member __.ProjectGuid =  project.Id.Id.ToString()
+    //            member __.LoadTime = System.DateTime.Now
+    //            member __.ProjectProvider = None
+    //            //member __.BuildErrorReporter with get () = errorReporter and set (v) = errorReporter <- v
+    //    }
 
-    let hasProjectVersionChanged (oldProject: Project) (newProject: Project) =
-        oldProject.Version <> newProject.Version
+    //let hasProjectVersionChanged (oldProject: Project) (newProject: Project) =
+    //    oldProject.Version <> newProject.Version
 
-    let hasDependentVersionChanged (oldProject: Project) (newProject: Project) =
-        let oldProjectRefs = oldProject.ProjectReferences
-        let newProjectRefs = newProject.ProjectReferences
-        oldProjectRefs.Count() <> newProjectRefs.Count() ||
-        (oldProjectRefs, newProjectRefs)
-        ||> Seq.exists2 (fun p1 p2 ->
-            let doesProjectIdDiffer = p1.ProjectId <> p2.ProjectId
-            let p1 = oldProject.Solution.GetProject(p1.ProjectId)
-            let p2 = newProject.Solution.GetProject(p2.ProjectId)
-            doesProjectIdDiffer || p1.Version <> p2.Version
-        )
+    //let hasDependentVersionChanged (oldProject: Project) (newProject: Project) =
+    //    let oldProjectRefs = oldProject.ProjectReferences
+    //    let newProjectRefs = newProject.ProjectReferences
+    //    oldProjectRefs.Count() <> newProjectRefs.Count() ||
+    //    (oldProjectRefs, newProjectRefs)
+    //    ||> Seq.exists2 (fun p1 p2 ->
+    //        let doesProjectIdDiffer = p1.ProjectId <> p2.ProjectId
+    //        let p1 = oldProject.Solution.GetProject(p1.ProjectId)
+    //        let p2 = newProject.Solution.GetProject(p2.ProjectId)
+    //        doesProjectIdDiffer || p1.Version <> p2.Version
+    //    )
 
-    let isProjectInvalidated (oldProject: Project) (newProject: Project) (settings: EditorOptions) =
-        let hasProjectVersionChanged = hasProjectVersionChanged oldProject newProject
-        if settings.LanguageServicePerformance.EnableInMemoryCrossProjectReferences then
-            hasProjectVersionChanged || hasDependentVersionChanged oldProject newProject
-        else
-            hasProjectVersionChanged
+    //let isProjectInvalidated (oldProject: Project) (newProject: Project) (settings: EditorOptions) =
+        //let hasProjectVersionChanged = hasProjectVersionChanged oldProject newProject
+        //if settings.LanguageServicePerformance.EnableInMemoryCrossProjectReferences then
+        //    hasProjectVersionChanged || hasDependentVersionChanged oldProject newProject
+        //else
+            //hasProjectVersionChanged
 
 [<RequireQualifiedAccess>]
 type private FSharpProjectOptionsMessage =
@@ -86,7 +86,7 @@ type private FSharpProjectOptionsReactor ((*_workspace: VisualStudioWorkspace,*)
     // Hack to store command line options from HandleCommandLineChanges
     let cpsCommandLineOptions = ConcurrentDictionary<ProjectId, string[] * string[]>()
 
-    let legacyProjectSites = ConcurrentDictionary<ProjectId, IProjectSite>()
+    //let legacyProjectSites = ConcurrentDictionary<ProjectId, IProjectSite>()
 
     let cache = Dictionary<ProjectId, Project * FSharpParsingOptions * FSharpProjectOptions>()
     let singleFileCache = Dictionary<DocumentId, VersionStamp * FSharpParsingOptions * FSharpProjectOptions>()
@@ -163,16 +163,19 @@ type private FSharpProjectOptionsReactor ((*_workspace: VisualStudioWorkspace,*)
                             //| None -> canBail <- true
                             //| Some(_, projectOptions) -> referencedProjects.Add(referencedProject.OutputFilePath, projectOptions)
 
-                if canBail then
-                    return None
-                else
+
 
                 //match tryGetProjectSite project with
                 //| None -> return None
                 //| Some projectSite ->             
-
+                let fsharpProject = MonoDevelop.Ide.IdeApp.TypeSystemService.GetMonoProject(project) :?> MonoDevelop.FSharp.FSharpProject
+                let! refs = fsharpProject.GetReferences(MonoDevelop.FSharp.CompilerArguments.getConfig()) |> Async.AwaitTask
+                canBail <- refs.Count = 0
+                if canBail then
+                    return None
+                else
                 MonoDevelop.FSharp.MDLanguageService.DisableVirtualFileSystem()
-                let projectOpts = MonoDevelop.FSharp.MDLanguageService.Instance.GetProjectCheckerOptions(project.FilePath)
+                let projectOpts = MonoDevelop.FSharp.MDLanguageService.Instance.GetProjectCheckerOptions(project.FilePath, [], refs)
                 //let otherOptions =
                 //    project.ProjectReferences
                 //    |> Seq.map (fun x -> "-r:" + project.Solution.GetProject(x.ProjectId).OutputFilePath)
@@ -222,10 +225,10 @@ type private FSharpProjectOptionsReactor ((*_workspace: VisualStudioWorkspace,*)
                 return Some(parsingOptions, projectOptions)
   
             | true, (oldProject, parsingOptions, projectOptions) ->
-                if isProjectInvalidated oldProject project settings then
-                    cache.Remove(projectId) |> ignore
-                    return! tryComputeOptions project
-                else
+                //if isProjectInvalidated oldProject project settings then
+                //    cache.Remove(projectId) |> ignore
+                //    return! tryComputeOptions project
+                //else
                     return Some(parsingOptions, projectOptions)
         }
 
@@ -267,7 +270,7 @@ type private FSharpProjectOptionsReactor ((*_workspace: VisualStudioWorkspace,*)
 
                 | FSharpProjectOptionsMessage.ClearOptions(projectId) ->
                     cache.Remove(projectId) |> ignore
-                    legacyProjectSites.TryRemove(projectId) |> ignore
+                    //legacyProjectSites.TryRemove(projectId) |> ignore
                 | FSharpProjectOptionsMessage.ClearSingleFileOptionsCache(documentId) ->
                     singleFileCache.Remove(documentId) |> ignore
         }
@@ -289,8 +292,8 @@ type private FSharpProjectOptionsReactor ((*_workspace: VisualStudioWorkspace,*)
     member __.SetCpsCommandLineOptions(projectId, sourcePaths, options) =
         cpsCommandLineOptions.[projectId] <- (sourcePaths, options)
 
-    member __.SetLegacyProjectSite (projectId, projectSite) =
-        legacyProjectSites.[projectId] <- projectSite
+    member __.SetLegacyProjectSite (projectId, projectSite) = ()
+        //legacyProjectSites.[projectId] <- projectSite
 
     member __.TryGetCachedOptionsByProjectId(projectId) =
         match cache.TryGetValue(projectId) with

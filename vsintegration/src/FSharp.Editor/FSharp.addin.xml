@@ -1,11 +1,12 @@
 ﻿<?xml version="1.0" encoding="UTF-8" ?>
 <ExtensionModel>
     <Runtime>
-	    <Import assembly="FSharp.Editor.dll" />
+		<Import assembly="FSharp.Editor.dll" />
 	</Runtime>
 	<Extension path="/MonoDevelop/Ide/Composition">
 		<Assembly file="FSharp.Editor.dll"/>
 		<Assembly file="Microsoft.CodeAnalysis.ExternalAccess.FSharp.dll"/>
+		<Assembly file="Microsoft.VisualStudio.LanguageServices.dll"/>
 <!--		<Assembly file="Microsoft.VisualStudio.LanguageServices.dll"/>-->
 	</Extension>
 	

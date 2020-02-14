@@ -110,20 +110,20 @@ type internal FSharpDocumentDiagnosticAnalyzer [<ImportingConstructor>] () =
     interface IFSharpDocumentDiagnosticAnalyzer with
 
         member this.AnalyzeSyntaxAsync(document: Document, cancellationToken: CancellationToken): Task<ImmutableArray<Diagnostic>> =
-            Task.FromResult ImmutableArray<Diagnostic>.Empty
+            //Task.FromResult ImmutableArray<Diagnostic>.Empty
             // None of the analyzers appear to do syntax checking, only semantic checking
             // and this function is causing a StackOverflow on Mono
-            //let projectInfoManager = getProjectInfoManager document
-            //asyncMaybe {
-            //    let! parsingOptions, projectOptions = projectInfoManager.TryGetOptionsForEditingDocumentOrProject(document, cancellationToken)
-            //    let! sourceText = document.GetTextAsync(cancellationToken)
-            //    let! textVersion = document.GetTextVersionAsync(cancellationToken)
-            //    return! 
-            //        FSharpDocumentDiagnosticAnalyzer.GetDiagnostics(getChecker document, document.FilePath, sourceText, textVersion.GetHashCode(), parsingOptions, projectOptions, DiagnosticsType.Syntax)
-            //        |> liftAsync
-            //} 
-            //|> Async.map (Option.defaultValue ImmutableArray<Diagnostic>.Empty)
-            //|> RoslynHelpers.StartAsyncAsTask cancellationToken
+            let projectInfoManager = getProjectInfoManager document
+            asyncMaybe {
+                let! parsingOptions, projectOptions = projectInfoManager.TryGetOptionsForEditingDocumentOrProject(document, cancellationToken)
+                let! sourceText = document.GetTextAsync(cancellationToken)
+                let! textVersion = document.GetTextVersionAsync(cancellationToken)
+                return! 
+                    FSharpDocumentDiagnosticAnalyzer.GetDiagnostics(getChecker document, document.FilePath, sourceText, textVersion.GetHashCode(), parsingOptions, projectOptions, DiagnosticsType.Syntax)
+                    |> liftAsync
+            } 
+            |> Async.map (Option.defaultValue ImmutableArray<Diagnostic>.Empty)
+            |> RoslynHelpers.StartAsyncAsTask cancellationToken
 
         member this.AnalyzeSemanticsAsync(document: Document, cancellationToken: CancellationToken): Task<ImmutableArray<Diagnostic>> =
             let projectInfoManager = getProjectInfoManager document

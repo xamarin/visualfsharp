@@ -43,7 +43,7 @@ and internal IProjectSite =
     abstract Description : string
 
     /// The error list task reporter
-    abstract BuildErrorReporter : Microsoft.VisualStudio.Shell.Interop.IVsLanguageServiceBuildErrorReporter2 option with get, set
+    //abstract BuildErrorReporter : Microsoft.VisualStudio.Shell.Interop.IVsLanguageServiceBuildErrorReporter2 option with get, set
 
     /// False type resolution errors are invalid. This occurs with orphaned source files. The prior 
     /// type checking state is unknown. In this case we don't want to squiggle the type checking files.

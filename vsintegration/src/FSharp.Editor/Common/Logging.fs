@@ -6,7 +6,6 @@ open System.ComponentModel.Composition
 open Microsoft.VisualStudio.Shell
 open Microsoft.VisualStudio.Shell.Interop
 open Microsoft.VisualStudio.FSharp.Editor
-
 [<RequireQualifiedAccess>]
 type LogType =
     | Info
@@ -46,11 +45,11 @@ type [<Export>] Logger [<ImportingConstructor>]
         //| _ -> None
         None
 
-    static let mutable globalServiceProvider: IServiceProvider option = None
+    //static let mutable globalServiceProvider: IServiceProvider option = None
 
-    static member GlobalServiceProvider
-        with get () = globalServiceProvider |> Option.defaultValue (ServiceProvider.GlobalProvider :> IServiceProvider)
-        and  set v = globalServiceProvider <- Some v
+    //static member GlobalServiceProvider
+        //with get () = globalServiceProvider |> Option.defaultValue (ServiceProvider.GlobalProvider :> IServiceProvider)
+        //and  set v = globalServiceProvider <- Some v
 
     member __.FSharpLoggingPane
         with get () = 

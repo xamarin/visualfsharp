@@ -107,9 +107,11 @@ type EditorOptions
       //[<Import(typeof<SVsServiceProvider>)>] serviceProvider: IServiceProvider
     ) =
 
+    static let instance = EditorOptions()
+
     //let c = MonoDevelop.Ide.Composition.CompositionManager.
     let store = SettingsStore((*serviceProvider*))
-        
+    
     do
         store.Register QuickInfoOptions.Default
         store.Register CodeFixesOptions.Default
@@ -127,6 +129,8 @@ type EditorOptions
     member __.CodeLens: CodeLensOptions = store.Get()
     member __.Formatting : FormattingOptions = store.Get()
 
+
+    static member Instance = instance 
     interface Microsoft.CodeAnalysis.Host.IWorkspaceService
 
     interface IPersistSettings with
@@ -136,5 +140,5 @@ type EditorOptions
 [<AutoOpen>]
 module internal WorkspaceSettingFromDocumentExtension =
     type Microsoft.CodeAnalysis.Document with
-        member this.FSharpOptions =
-            this.Project.Solution.Workspace.Services.GetService() : EditorOptions
+        member this.FSharpOptions = EditorOptions.Instance
+            //this.Project.Solution.Workspace.Services.GetService<Microsoft.CodeAnalysis.Host.IWorkspaceService>() : EditorOptions

@@ -57,6 +57,7 @@
   <ItemGroup>
     <None Include="..\..\..\src\fsharp\FSharp.Compiler.LanguageServer\LspExternalAccess.fs" />
     <Compile Include="..\..\..\src\fsharp\FSharp.Compiler.LanguageServer\JsonOptionConverter.fs" />
+    <None Include="..\..\..\..\..\..\..\fsharp\FSharp.Compiler.LanguageServer\LspExternalAccess.fs" />
     <Compile Include="Common\AssemblyInfo.fs" />
     <Compile Include="Common\Logger.fsi" />
     <Compile Include="Common\Logger.fs" />
@@ -83,7 +84,7 @@
     <Compile Include="LanguageService\FSharpCheckerProvider.fs" />
     <Compile Include="LanguageService\FSharpProjectOptionsManager.fs" />
     <None Include="LanguageService\SingleFileWorkspaceMap.fs" />
-    <Compile Include="LanguageService\LegacyProjectWorkspaceMap.fs" />
+    <None Include="LanguageService\LegacyProjectWorkspaceMap.fs" />
     <Compile Include="LanguageService\ProvideBraceCompletionAttribute.fs" />
     <Compile Include="LanguageService\LanguageService.fs" />
     <None Include="LanguageService\FSharpLanguageClient.fs" Condition="'$(IncludeVsLanguageServer)' == 'true'" />
@@ -143,9 +144,9 @@
     <Compile Include="QuickInfo\Views.fs" />
     <Compile Include="QuickInfo\QuickInfoProvider.fs" />
     <Compile Include="Structure\BlockStructureService.fs" />
-    <Compile Include="Commands\HelpContextService.fs" />
+    <None Include="Commands\HelpContextService.fs" />
     <None Include="Commands\FsiCommandService.fs" />
-    <Compile Include="Commands\XmlDocCommandService.fs" />
+    <None Include="Commands\XmlDocCommandService.fs" />
     <Compile Include="Build\SetGlobalPropertiesForSdkProjects.fs" />
     <Compile Include="AutomaticCompletion\BraceCompletionSessionProvider.fsi" />
     <Compile Include="AutomaticCompletion\BraceCompletionSessionProvider.fs" />
@@ -172,43 +173,47 @@
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>FSharp.Editor.Designer.fs</LastGenOutput>
     </EmbeddedResource>
-    <PackageReference Include="Microsoft.VisualStudio.Language.Intellisense" Version="$(MicrosoftVisualStudioLanguageIntellisenseVersion)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
     <ProjectReference Include="..\..\..\..\monodevelop\main\external\mono-addins\Mono.Addins\Mono.Addins.csproj" />
     <PackageReference Include="Microsoft.VisualStudio.Threading" Version="$(MicrosoftVisualStudioThreadingVersion)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
     <PackageReference Include="Microsoft.VisualStudio.ProjectAggregator" Version="$(MicrosoftVisualStudioProjectAggregatorVersion)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
     <PackageReference Include="Microsoft.CodeAnalysis.EditorFeatures" Version="$(MicrosoftCodeAnalysisEditorFeaturesVersion)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
     <AddinReference Include="MonoDevelop.FSharpBinding" />
-    <InternalsVisibleTo Include="VisualFSharp.Salsa" />
+    <PackageReference Include="Microsoft.VisualStudio.LanguageServices" Version="$(MicrosoftVisualStudioLanguageServicesVersion)" />
     <PackageReference Include="Microsoft.VisualStudio.LanguageServer.Client" Version="$(MicrosoftVisualStudioLanguageServerClientVersion)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
     <PackageReference Include="System.ValueTuple" Version="$(SystemValueTupleVersion)" />
-    <PackageReference Include="Microsoft.CodeAnalysis.ExternalAccess.FSharp" Version="3.2.0-beta4-19312-15" />
     <PackageReference Include="Microsoft.VisualStudio.Package.LanguageService.15.0" Version="$(MicrosoftVisualStudioPackageLanguageService150Version)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Features" Version="3.2.0-beta4-19312-15" />
     <PackageReference Include="Microsoft.VisualStudio.ComponentModelHost" Version="$(MicrosoftVisualStudioComponentModelHostVersion)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
     <PackageReference Include="Microsoft.VisualStudio.TextManager.Interop" Version="$(MicrosoftVisualStudioTextManagerInteropVersion)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
     <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" Version="$(MicrosoftCodeAnalysisWorkspacesCommonVersion)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
     <PackageReference Include="Microsoft.VisualStudio.Language.StandardClassification" Version="$(MicrosoftVisualStudioLanguageStandardClassificationVersion)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
+    <PackageReference Include="Microsoft.CodeAnalysis.ExternalAccess.FSharp" Version="3.2.0-beta4-19312-15" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Common" Version="3.2.0-beta4-19312-15" />
+    <AddinReference Include="MonoDevelop.TextEditor.Cocoa" />
     <InternalsVisibleTo Include="VisualFSharp.UnitTests" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="3.2.0-beta4-19312-15" />
+    <InternalsVisibleTo Include="FSharp.ProjectSystem.FSharp" />
+    <PackageReference Include="Microsoft.VisualStudio.Text.UI" Version="$(MicrosoftVisualStudioTextUIVersion)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
     <PackageReference Include="Microsoft.VisualStudio.TextManager.Interop.12.0" Version="$(MicrosoftVisualStudioTextManagerInterop120Version)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
-    <PackageReference Include="Microsoft.VisualStudio.ProjectSystem" Version="$(MicrosoftVisualStudioProjectSystemVersion)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
-    <PackageReference Include="Microsoft.VisualStudio.ProjectSystem.Managed" Version="$(MicrosoftVisualStudioProjectSystemManagedVersion)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
-    <PackageReference Include="StreamJsonRpc" Version="$(StreamJsonRpcVersion)" />
-    <PackageReference Include="Microsoft.CodeAnalysis.EditorFeatures.Text" Version="$(MicrosoftCodeAnalysisEditorFeaturesTextVersion)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
-    <PackageReference Include="VSSDK.VSLangProj" Version="$(VSSDKVSLangProjVersion)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
     <None Include="$(FSharpSourcesRoot)\fsharp\FSharp.Compiler.LanguageServer\LspExternalAccess.fs">
       <Link>Common\LspExternalAccess.fs</Link>
     </None>
     <PackageReference Include="FSharp.Compiler.Service" Version="33.0.1" />
     <PackageReference Include="FSharp.Core" Version="4.7.0" />
-    <PackageReference Include="System.Design" Version="$(SystemDesignVersion)" />
-    <PackageReference Include="MonoDevelop.Addins" Version="0.4.7" />
     <PackageReference Include="Microsoft.CodeAnalysis.EditorFeatures.Wpf" Version="$(MicrosoftCodeAnalysisEditorFeaturesWpfVersion)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
-    <PackageReference Include="Microsoft.Composition" Version="$(MicrosoftCompositionVersion)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
-    <InternalsVisibleTo Include="FSharp.ProjectSystem.FSharp" />
-    <PackageReference Include="Microsoft.VisualStudio.Text.UI" Version="$(MicrosoftVisualStudioTextUIVersion)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
+    <PackageReference Include="System.Design" Version="$(SystemDesignVersion)" />
+    <PackageReference Include="Microsoft.VisualStudio.ImageCatalog" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
+    <PackageReference Include="MonoDevelop.Addins" Version="0.4.7" />
+    <PackageReference Include="Microsoft.VisualStudio.ProjectSystem" Version="$(MicrosoftVisualStudioProjectSystemVersion)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
     <PackageReference Include="Newtonsoft.Json" Version="$(NewtonsoftJsonVersion)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
     <PackageReference Include="Microsoft.VisualStudio.Language" Version="$(MicrosoftVisualStudioLanguageVersion)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
     <PackageReference Include="Microsoft.VisualStudio.Editor" Version="$(MicrosoftVisualStudioEditorVersion)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
-    <AddinReference Include="MonoDevelop.TextEditor.Cocoa" />
-    <PackageReference Include="Microsoft.VisualStudio.LanguageServices" Version="$(MicrosoftVisualStudioLanguageServicesVersion)" />
+    <PackageReference Include="StreamJsonRpc" Version="$(StreamJsonRpcVersion)" />
+    <PackageReference Include="Microsoft.CodeAnalysis.EditorFeatures.Text" Version="$(MicrosoftCodeAnalysisEditorFeaturesTextVersion)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
+    <PackageReference Include="Microsoft.VisualStudio.Language.Intellisense" Version="$(MicrosoftVisualStudioLanguageIntellisenseVersion)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
+    <PackageReference Include="VSSDK.VSLangProj" Version="$(VSSDKVSLangProjVersion)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
+    <PackageReference Include="Microsoft.Composition" Version="$(MicrosoftCompositionVersion)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
+    <PackageReference Include="Microsoft.VisualStudio.ProjectSystem.Managed" Version="$(MicrosoftVisualStudioProjectSystemManagedVersion)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
+    <InternalsVisibleTo Include="VisualFSharp.Salsa" />
   </ItemGroup>
 </Project>

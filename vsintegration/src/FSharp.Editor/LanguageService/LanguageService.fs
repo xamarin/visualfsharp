@@ -15,7 +15,7 @@ open Microsoft.VisualStudio.FSharp.Editor
 open Microsoft.VisualStudio.LanguageServices
 open Microsoft.VisualStudio.LanguageServices.Implementation.LanguageService
 open Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
-open Microsoft.VisualStudio.LanguageServices.ProjectSystem
+//open Microsoft.VisualStudio.LanguageServices.ProjectSystem
 open Microsoft.VisualStudio.Shell
 open Microsoft.VisualStudio.Shell.Interop
 open Microsoft.VisualStudio.Text.Outlining

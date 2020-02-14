@@ -54,7 +54,7 @@ type internal FSharpCompletionProvider
 
     
     let checker = checkerProvider.Checker
-    
+
     let settings: EditorOptions = workspace.Services.GetService()
 
     //let documentationBuilder = XmlDocumentation.CreateDocumentationBuilder(serviceProvider.XMLMemberIndexService)
