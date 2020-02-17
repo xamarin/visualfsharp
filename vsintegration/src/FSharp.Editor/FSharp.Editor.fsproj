@@ -215,6 +215,10 @@
       <Project>{91DD5A2D-9FE3-4C3C-9253-876141874DAD}</Project>
       <Name>Mono.Addins</Name>
     </ProjectReference>
+    <ProjectReference Include="..\..\..\..\fsharpbinding\MonoDevelop.FSharp.Shared\MonoDevelop.FSharp.Shared.fsproj">
+      <Project>{AF5FEAD5-B50E-4F07-A274-32F23D5C504D}</Project>
+      <Name>MonoDevelop.FSharp.Shared</Name>
+    </ProjectReference>
   </ItemGroup>
   <ProjectExtensions>
     <MonoDevelop>
