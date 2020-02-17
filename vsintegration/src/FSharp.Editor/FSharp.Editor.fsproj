@@ -20,9 +20,7 @@
     <TargetFrameworkVersion>$(MDFrameworkVersion)</TargetFrameworkVersion>
     <!-- <TargetFSharpCoreVersion>4.4.3.0</TargetFSharpCoreVersion> -->
     <RuntimeIdentifier>win</RuntimeIdentifier>
-    <SignAssembly>true</SignAssembly>
-    <OtherFlags>--publicsign</OtherFlags>
-    <AssemblyOriginatorKeyFile>..\..\..\..\..\msbuild\MonoDevelop-Public.snk</AssemblyOriginatorKeyFile>
+
     <OtherFlags>--warnon:1182</OtherFlags>
     <StartAction>Program</StartAction>
     <Externalconsole>true</Externalconsole>
@@ -36,6 +34,9 @@
     <DocumentationFile>..\..\..\..\..\build\AddIns\FSharp.Editor\FSharp.Editor.XML</DocumentationFile>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <OtherFlags> --warnon:11111182 --subsystemversion:6.00 --simpleresolution --nocopyfsharpcore</OtherFlags>
+    <SignAssembly>true</SignAssembly>
+    <OtherFlags>--publicsign</OtherFlags>
+    <AssemblyOriginatorKeyFile>..\..\..\src\buildtools\keys\MSFT.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DocumentationFile>..\..\..\..\..\build\AddIns\FSharp.Editor\FSharp.Editor.XML</DocumentationFile>
