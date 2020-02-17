@@ -57,6 +57,15 @@
     <Reference Include="netstandard" />
     <Reference Include="System.ComponentModel.Composition" />
     <Reference Include="System.Runtime.Caching" />
+    <!-- Temp XWT references -->
+    <Reference Include="Xwt">
+      <Private>False</Private>
+      <HintPath>$(RootDirectory)\build\bin\Xwt.dll</HintPath>
+    </Reference>
+    <Reference Include="Xwt.Gtk">
+      <Private>False</Private>
+      <HintPath>$(RootDirectory)\build\bin\Xwt.Gtk.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Properties\" />
