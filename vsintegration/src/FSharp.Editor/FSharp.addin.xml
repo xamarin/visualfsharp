@@ -14,14 +14,15 @@
   <Extension path = "/MonoDevelop/Ide/ProjectTemplatePackageRepositories">
      <PackageRepository path="Packages" />
   </Extension>
-<!--
+
   <Extension path="/MonoDevelop/ProjectModel/MSBuildItemTypes">
     <DotNetProjectType language="F#" extension="fsproj" guid="{F2A71F9B-5D33-465A-A702-920D77279786}" type="MonoDevelop.FSharp.FSharpProject"/>
   </Extension>
--->
+
   <Extension path = "/MonoDevelop/ProjectModel/ProjectModelExtensions">
     <Condition id="MSBuildTargetIsAvailable" target="$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.1\Framework\v4.0\Microsoft.Portable.FSharp.Targets">
       <ProjectFlavor guid="{786c830f-07a1-408b-bd7f-6ee04809d6db}" type="MonoDevelop.FSharp.PortableFSharpProjectFlavor" language="F#" alias="F#PortableLibrary"/>
     </Condition>
   </Extension>
+
 </ExtensionModel>
