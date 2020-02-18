@@ -13,10 +13,10 @@ open MonoDevelop.Projects
 open MonoDevelop.Ide
 open MonoDevelop.Core.Assemblies
 open MonoDevelop.Core
-open ExtCore
-open ExtCore.Control
+//open ExtCore
+//open ExtCore.Control
 open FSharp.Compiler.SourceCodeServices
-
+open Microsoft.VisualStudio.FSharp.Editor.Pervasive
 // --------------------------------------------------------------------------------------
 // Common utilities for working with files & extracting information from
 // MonoDevelop objects (e.g. references, project items etc.)
@@ -334,7 +334,7 @@ module CompilerArguments =
        else yield! ["COMPILED";"EDITING"]
 
        let configuration =
-           match IdeApp.Workspace |> Option.ofNull, project |> Option.ofNull with
+           match IdeApp.Workspace |> Option.ofObj, project |> Option.ofObj with
            | None, Some proj ->
                //as there is no workspace use the default configuration for the project
                Some (proj.GetConfiguration(proj.DefaultConfiguration.Selector))
@@ -355,11 +355,14 @@ module CompilerArguments =
             | _ -> MonoDevelop.Projects.ConfigurationSelector.Default
 
   let getArgumentsFromProject (proj:DotNetProject) (config:ConfigurationSelector) (referencedAssemblies) =
-        maybe {
-            let! projConfig = proj.GetConfiguration(config) |> Option.tryCast<DotNetProjectConfiguration>
-            let! fsconfig = projConfig.CompilationParameters |> Option.tryCast<FSharpCompilerParameters>
-            return generateProjectOptions (proj, referencedAssemblies, fsconfig, None, getTargetFramework projConfig.TargetFramework.Id, config, false)
-        }
+     let projConfig = proj.GetConfiguration(config) :?> DotNetProjectConfiguration
+     let fsconfig = projConfig.CompilationParameters :?> FSharpCompilerParameters
+     generateProjectOptions (proj, referencedAssemblies, fsconfig, None, getTargetFramework projConfig.TargetFramework.Id, config, false)
+     //maybe {
+     //   let! projConfig = proj.GetConfiguration(config) |> Option.tryCast<DotNetProjectConfiguration>
+     //   let! fsconfig = projConfig.CompilationParameters |> Option.tryCast<FSharpCompilerParameters>
+     //   return generateProjectOptions (proj, referencedAssemblies, fsconfig, None, getTargetFramework projConfig.TargetFramework.Id, config, false)
+     //}
 
   let getReferencesFromProject (proj:DotNetProject, config:ConfigurationSelector, referencedAssemblies) =
         let projConfig = proj.GetConfiguration(config) :?> DotNetProjectConfiguration

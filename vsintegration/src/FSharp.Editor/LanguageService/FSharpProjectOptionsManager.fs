@@ -142,7 +142,8 @@ type private FSharpProjectOptionsReactor ((*_workspace: VisualStudioWorkspace,*)
             //match legacyProjectSites.TryGetValue project.Id with
             //| true, site -> Some site
             //| _ -> None
-    
+    let mdLanguageService = new MonoDevelop.FSharp.LanguageService((fun (changedfile, _) -> ()), None)
+
     let rec tryComputeOptions (project: Project) =
         async {
             let projectId = project.Id
@@ -174,8 +175,8 @@ type private FSharpProjectOptionsReactor ((*_workspace: VisualStudioWorkspace,*)
                 if canBail then
                     return None
                 else
-                MonoDevelop.FSharp.MDLanguageService.DisableVirtualFileSystem()
-                let projectOpts = MonoDevelop.FSharp.MDLanguageService.Instance.GetProjectCheckerOptions(project.FilePath, [], refs)
+                //MonoDevelop.FSharp.MDLanguageService.DisableVirtualFileSystem()
+                let projectOpts = mdLanguageService.GetProjectCheckerOptions(project.FilePath, [], refs)
                 //let otherOptions =
                 //    project.ProjectReferences
                 //    |> Seq.map (fun x -> "-r:" + project.Solution.GetProject(x.ProjectId).OutputFilePath)

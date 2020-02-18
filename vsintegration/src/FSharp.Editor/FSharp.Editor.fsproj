@@ -2,12 +2,11 @@
   <Import Project="..\..\..\..\..\MonoDevelop.props" />
   <Import Project="..\..\..\..\..\Directory.Build.props" />
   <!-- <Import Project="..\..\..\..\monodevelop\main\msbuild\ReferencesVSEditor.Mac.props" /> -->
-
-<!--  <PropertyGroup>
+  <!--  <PropertyGroup>
     <ReferencesVSEditorCopyToOutput>true</ReferencesVSEditorCopyToOutput>
   </PropertyGroup>-->
   <Import Project="$(ReferencesVSEditor)" />
- <!-- <Import Project="$(ReferencesGtk)" /> -->
+  <!-- <Import Project="$(ReferencesGtk)" /> -->
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
@@ -20,13 +19,11 @@
     <TargetFrameworkVersion>$(MDFrameworkVersion)</TargetFrameworkVersion>
     <!-- <TargetFSharpCoreVersion>4.4.3.0</TargetFSharpCoreVersion> -->
     <RuntimeIdentifier>win</RuntimeIdentifier>
-
     <OtherFlags>--warnon:1182</OtherFlags>
     <StartAction>Program</StartAction>
     <Externalconsole>true</Externalconsole>
     <StartProgram>$(MSBuildProjectDirectory)\..\..\..\build\bin\MonoDevelop.exe</StartProgram>
     <StartWorkingDirectory>$(MSBuildProjectDirectory)\..\..\..\build\bin</StartWorkingDirectory>
-
     <DebugType>portable</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>..\..\..\..\..\build\AddIns\FSharp.Editor</OutputPath>
@@ -58,18 +55,9 @@
     <Reference Include="System.ComponentModel.Composition" />
     <Reference Include="System.Runtime.Caching" />
     <!-- Temp XWT references -->
-    <Reference Include="Xwt">
-      <Private>False</Private>
-      <HintPath>$(RootDirectory)\build\bin\Xwt.dll</HintPath>
-    </Reference>
-    <Reference Include="Xwt.Gtk">
-      <Private>False</Private>
-      <HintPath>$(RootDirectory)\build\bin\Xwt.Gtk.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Properties\" />
-    <Folder Include="Project\" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\..\..\src\fsharp\FSharp.Compiler.LanguageServer\JsonOptionConverter.fs" />
@@ -85,6 +73,15 @@
     <Compile Include="Common\CodeAnalysisExtensions.fs" />
     <None Include="Common\Vs.fs" />
     <None Include="Common\LspService.fs" />
+    <Compile Include="Common\CompilerLocationUtils.fs" />
+    <Compile Include="Common\OrderAssemblyReferences.fs" />
+    <Compile Include="Common\Parameters.fs" />
+    <Compile Include="Common\FileService.fs" />
+    <Compile Include="Common\CompilerArguments.fs" />
+    <None Include="Common\MDLanguageService.fs" />
+    <Compile Include="Common\CompilerService.fs" />
+    <Compile Include="Common\FSharpProject.fs" />
+    <Compile Include="Common\LanguageService.fs" />
     <Compile Include="Options\SettingsPersistence.fs" />
     <None Include="Options\UIHelpers.fs" />
     <None Include="Options\EditorOptions.fs" />
@@ -182,8 +179,6 @@
     <IncludeCopyLocal Include="Microsoft.VisualStudio.LanguageServices.dll" />
     <IncludeCopyLocal Include="FSharp.Compiler.Service.dll" />
     <IncludeCopyLocal Include="FSharp.Core.dll" />
-    <None Include="Project\CompilerArguments.fs" />
-    <None Include="Project\FSharpProject.fs" />
     <EmbeddedResource Include="FSharp.Editor.resx">
       <GenerateSource>true</GenerateSource>
       <GeneratedModuleName>Microsoft.VisualStudio.FSharp.Editor.SR</GeneratedModuleName>
@@ -191,23 +186,17 @@
       <LastGenOutput>FSharp.Editor.Designer.fs</LastGenOutput>
     </EmbeddedResource>
     <IncludeCopyLocal Include="Newtonsoft.Json.dll" />
-    <ProjectReference Include="..\..\..\..\..\src\addins\MonoDevelop.TextEditor\MonoDevelop.TextEditor\MonoDevelop.TextEditor.csproj">
-      <Project>{3F5B5BDA-69D5-441A-8142-AA25C998A997}</Project>
-      <Name>MonoDevelop.TextEditor</Name>
-    </ProjectReference>
-    <PackageReference Include="Newtonsoft.Json" Version="$(NuGetVersionNewtonsoftJson)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
     <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" Version="$(NuGetVersionRoslyn)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
-    <PackageReference Include="Microsoft.CodeAnalysis" Version="$(NuGetVersionRoslyn)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
     <PackageReference Include="Microsoft.CodeAnalysis.ExternalAccess.FSharp" Version="$(NuGetVersionRoslyn)" />
-    <PackageReference Include="Microsoft.VisualStudio.ImageCatalog" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
     <PackageReference Include="FSharp.Compiler.Service" Version="33.0.1" />
+    <PackageReference Include="Microsoft.CodeAnalysis" Version="$(NuGetVersionRoslyn)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
+    <PackageReference Include="Microsoft.VisualStudio.ImageCatalog" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
     <PackageReference Include="Microsoft.CodeAnalysis.Features" Version="$(NuGetVersionRoslyn)" />
+    <PackageReference Include="Microsoft.VisualStudio.Imaging" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
     <PackageReference Include="Microsoft.CodeAnalysis.EditorFeatures.Text" Version="$(NuGetVersionRoslyn)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
     <PackageReference Include="Microsoft.VisualStudio.LanguageServices" />
-    <PackageReference Include="Microsoft.VisualStudio.Imaging" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
-    <PackageReference Include="Microsoft.CodeAnalysis.EditorFeatures" Version="$(NuGetVersionRoslyn)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
     <PackageReference Include="FSharp.Core" Version="4.7.0" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
-    <PackageReference Include="Microsoft.VisualStudio.Language.Intellisense" />
+    <PackageReference Include="Microsoft.CodeAnalysis.EditorFeatures" Version="$(NuGetVersionRoslyn)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
     <ProjectReference Include="..\..\..\..\..\src\core\MonoDevelop.Core\MonoDevelop.Core.csproj">
       <Project>{7525BB88-6142-4A26-93B9-A30C6983390A}</Project>
       <Name>MonoDevelop.Core</Name>
@@ -216,18 +205,12 @@
       <Project>{27096E7F-C91C-4AC6-B289-6897A701DF21}</Project>
       <Name>MonoDevelop.Ide</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\..\fsharpbinding\MonoDevelop.FSharpBinding\MonoDevelop.FSharp.fsproj">
-      <Project>{4C10F8F9-3816-4647-BA6E-85F5DE39883A}</Project>
-      <Name>MonoDevelop.FSharp</Name>
-    </ProjectReference>
     <ProjectReference Include="..\..\..\..\mono-addins\Mono.Addins\Mono.Addins.csproj">
       <Project>{91DD5A2D-9FE3-4C3C-9253-876141874DAD}</Project>
       <Name>Mono.Addins</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\..\fsharpbinding\MonoDevelop.FSharp.Shared\MonoDevelop.FSharp.Shared.fsproj">
-      <Project>{AF5FEAD5-B50E-4F07-A274-32F23D5C504D}</Project>
-      <Name>MonoDevelop.FSharp.Shared</Name>
-    </ProjectReference>
+    <PackageReference Include="Newtonsoft.Json" Version="$(NuGetVersionNewtonsoftJson)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
+    <PackageReference Include="Microsoft.VisualStudio.Language.Intellisense" />
   </ItemGroup>
   <ProjectExtensions>
     <MonoDevelop>

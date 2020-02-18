@@ -10,7 +10,7 @@ open MonoDevelop.Projects.MSBuild
 open System.Xml
 open MonoDevelop.Core.Assemblies
 //open ExtCore.Control
-
+open Microsoft.VisualStudio.FSharp.Editor.Pervasive
 module Project =
     let FSharp3Import        = "$(MSBuildExtensionsPath32)\\..\\Microsoft SDKs\\F#\\3.0\\Framework\\v4.0\\Microsoft.FSharp.Targets"
     let FSharpImport         = @"$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\FSharp\Microsoft.FSharp.Targets"
@@ -29,6 +29,7 @@ type FSharpProject() as self =
     inherit DotNetProject()
     do
         self.RoslynLanguageName <- Microsoft.CodeAnalysis.LanguageNames.FSharp
+        self.SupportsRoslyn <- true
 
     // Keep the platforms combo of CodeGenerationPanelWidget in sync with this list
     let supportedPlatforms = [| "anycpu"; "x86"; "x64"; "Itanium" |]
@@ -109,7 +110,7 @@ type FSharpProject() as self =
             |> List.map snd
 
         let isParentDirectory folderName fileName =
-            if String.isEmpty folderName then
+            if String.IsNullOrEmpty folderName then
                 true
             else
                 let absoluteFolder = DirectoryInfo (absolutePath folderName)
@@ -223,7 +224,7 @@ type FSharpProject() as self =
 
         maybe {
             //Fix pcl netcore and TargetFSharpCoreVersion
-            let! targetFrameworkProfile = x.TargetFramework.Id.Profile |> Option.ofString
+            let! targetFrameworkProfile = x.TargetFramework.Id.Profile |> Option.ofObj
             let! fsharpcoreversion, netcore = profileMap |> Map.tryFind targetFrameworkProfile
             do globalGroup.SetValue ("TargetFSharpCoreVersion", fsharpcoreversion, "", true)
             let targetProfile = if netcore then "netcore" else "mscorlib"
@@ -274,27 +275,27 @@ type FSharpProject() as self =
 
     override x.OnFileAddedToProject(e) =
         base.OnFileAddedToProject(e)
-        if not self.Loading then MDLanguageService.invalidateFiles e
+        //if not self.Loading then MDLanguageService.invalidateFiles e
 
     override x.OnFileRemovedFromProject(e) =
         base.OnFileRemovedFromProject(e)
-        if not self.Loading then MDLanguageService.invalidateFiles e
+        //if not self.Loading then MDLanguageService.invalidateFiles e
 
     override x.OnFileRenamedInProject(e) =
         base.OnFileRenamedInProject(e)
-        if not self.Loading then MDLanguageService.invalidateFiles e
+        //if not self.Loading then MDLanguageService.invalidateFiles e
 
     override x.OnFilePropertyChangedInProject(e) =
         base.OnFilePropertyChangedInProject(e)
-        if not self.Loading then MDLanguageService.invalidateFiles e
+        //if not self.Loading then MDLanguageService.invalidateFiles e
 
     override x.OnReferenceAddedToProject(e) =
         base.OnReferenceAddedToProject(e)
-        if not self.Loading then MDLanguageService.invalidateProjectFile self.FileName
+        //if not self.Loading then MDLanguageService.invalidateProjectFile self.FileName
 
     override x.OnReferenceRemovedFromProject(e) =
         base.OnReferenceRemovedFromProject(e)
-        if not self.Loading then MDLanguageService.invalidateProjectFile self.FileName
+        //if not self.Loading then MDLanguageService.invalidateProjectFile self.FileName
 
     //override x.OnFileRenamedInProject(e)=
     //    base.OnFileRenamedInProject(e)
@@ -302,25 +303,25 @@ type FSharpProject() as self =
 
     override x.OnNameChanged(e)=
         base.OnNameChanged(e)
-        if not self.Loading then MDLanguageService.invalidateProjectFile self.FileName
+        //if not self.Loading then MDLanguageService.invalidateProjectFile self.FileName
 
     override x.OnGetDefaultResourceId(projectFile) =
         projectFile.FilePath.FileName
 
     override x.OnModified(e) =
         base.OnModified(e)
-        if not self.Loading && not self.IsReevaluating then MDLanguageService.invalidateProjectFile self.FileName
+        //if not self.Loading && not self.IsReevaluating then MDLanguageService.invalidateProjectFile self.FileName
 
     member x.GetOrderedReferences(config:ConfigurationSelector) =
         async {
             let orderAssemblyReferences = MonoDevelop.FSharp.OrderAssemblyReferences()
-            let! asms = x.GetReferences config
+            let! asms = x.GetReferences config |> Async.AwaitTask
             let references =
                 CompilerArguments.getReferencesFromProject (x, config, asms)
                 |> Seq.choose (fun ref -> if (ref.Contains "mscorlib.dll" || ref.Contains "FSharp.Core.dll")
                                           then None
                                           else
-                                              let ref = ref |> String.replace "-r:" ""
+                                              let ref = ref.Replace ("-r:", "")
                                               if File.Exists ref then Some ref
                                               else None )
                 |> Seq.distinct
@@ -332,15 +333,15 @@ type FSharpProject() as self =
         let task = base.OnReevaluateProject (e)
 
         async {
-            do! task
-            MDLanguageService.invalidateProjectFile self.FileName
+            do! task |> Async.AwaitTask
+            //MDLanguageService.invalidateProjectFile self.FileName
         }
 
-    override x.OnReevaluateProject(monitor) =
-        x.ReevaluateProject monitor |> StartAsyncAsTask monitor.CancellationToken :> Task
+    //override x.OnReevaluateProject(monitor) =
+        //x.ReevaluateProject monitor |> Async.AwaitTask monitor.CancellationToken :> Task
 
     override x.OnDispose () =
-        languageService.HideStatusIcon (string self.FileName.FullPath)
+        //languageService.HideStatusIcon (string self.FileName.FullPath)
         // FIXME: is it correct to do it every time a project is disposed?
         //Should only be done on solution close
         //langServ.ClearLanguageServiceRootCachesAndCollectAndFinalizeAllTransients()

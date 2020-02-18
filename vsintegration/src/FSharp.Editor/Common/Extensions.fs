@@ -11,10 +11,21 @@ open Microsoft.CodeAnalysis.Host
 open FSharp.Compiler.Text
 open FSharp.Compiler.Ast
 open FSharp.Compiler.SourceCodeServices
+open MonoDevelop.Core
 
 type private FSharpGlyph = FSharp.Compiler.SourceCodeServices.FSharpGlyph
 type private FSharpRoslynGlyph = Microsoft.CodeAnalysis.ExternalAccess.FSharp.FSharpGlyph
 
+module LoggingService =
+    let inline private log f = Printf.kprintf f
+
+    let inline private logWithThread f format =
+        log (log f "[UI - %b] %s" Runtime.IsMainThread) format
+
+    let logDebug format = logWithThread LoggingService.LogDebug format
+    let logError format = logWithThread LoggingService.LogError format
+    let logInfo format = logWithThread LoggingService.LogInfo format
+    let logWarning format = logWithThread LoggingService.LogWarning format
 
 type Path with
     static member GetFullPathSafe path =
