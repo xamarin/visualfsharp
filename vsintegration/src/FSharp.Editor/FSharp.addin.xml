@@ -24,5 +24,27 @@
       <ProjectFlavor guid="{786c830f-07a1-408b-bd7f-6ee04809d6db}" type="MonoDevelop.FSharp.PortableFSharpProjectFlavor" language="F#" alias="F#PortableLibrary"/>
     </Condition>
   </Extension>
-
+  <Extension path="/MonoDevelop/Core/MimeTypes">
+    <MimeType id="text/x-fsharp" _description="F# Source File" icon="md-file-source" isText="true">
+      <File pattern="*.fs" />
+    </MimeType>
+    <MimeType id="text/x-fsharp" _description="F# Script File" icon="md-file-source" isText="true">
+      <File pattern="*.fsx" />
+      <File pattern="*.fsscript" />
+        </MimeType>
+    <MimeType id="text/x-fsharp" _description="F# Signature File" icon="md-file-header" isText="true">
+      <File pattern="*.fsi" />
+        </MimeType>
+    <MimeType id="application/fsproject+xml" _description="F# project file" baseType="application/xml">
+      <File pattern="*.fsproj" />
+    </MimeType>
+  </Extension>
+  <Extension path="/MonoDevelop/ProjectModel/LanguageBindings">
+    <LanguageBinding id="F#"
+                     extensions=".fs,.fsi,.fsx,.fsscript,.sketchfs"
+                     singleLineCommentTag="//"
+                     blockCommentStartTag="(*"
+                     blockCommentEndTag="*)"
+                     codeDomType="FSharp.Compiler.CodeDom.FSharpCleanCodeProvider" />
+  </Extension>
 </ExtensionModel>
