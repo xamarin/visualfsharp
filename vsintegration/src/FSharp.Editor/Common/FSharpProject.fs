@@ -9,6 +9,7 @@ open MonoDevelop.Projects
 open MonoDevelop.Projects.MSBuild
 open System.Xml
 open MonoDevelop.Core.Assemblies
+
 //open ExtCore.Control
 open Microsoft.VisualStudio.FSharp.Editor.Pervasive
 module Project =

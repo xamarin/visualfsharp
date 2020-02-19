@@ -176,7 +176,6 @@
       <XlfOutputItem></XlfOutputItem>
     </EmbeddedResource>
     <IncludeCopyLocal Include="Microsoft.CodeAnalysis.ExternalAccess.FSharp.dll" />
-    <IncludeCopyLocal Include="Microsoft.VisualStudio.LanguageServices.dll" />
     <IncludeCopyLocal Include="FSharp.Compiler.Service.dll" />
     <IncludeCopyLocal Include="FSharp.Core.dll" />
     <EmbeddedResource Include="FSharp.Editor.resx">
@@ -194,7 +193,6 @@
     <PackageReference Include="Microsoft.CodeAnalysis.Features" Version="$(NuGetVersionRoslyn)" />
     <PackageReference Include="Microsoft.VisualStudio.Imaging" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
     <PackageReference Include="Microsoft.CodeAnalysis.EditorFeatures.Text" Version="$(NuGetVersionRoslyn)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
-    <PackageReference Include="Microsoft.VisualStudio.LanguageServices" />
     <PackageReference Include="FSharp.Core" Version="4.7.0" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
     <PackageReference Include="Microsoft.CodeAnalysis.EditorFeatures" Version="$(NuGetVersionRoslyn)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
     <ProjectReference Include="..\..\..\..\..\src\core\MonoDevelop.Core\MonoDevelop.Core.csproj">
@@ -210,7 +208,6 @@
       <Name>Mono.Addins</Name>
     </ProjectReference>
     <PackageReference Include="Newtonsoft.Json" Version="$(NuGetVersionNewtonsoftJson)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
-    <PackageReference Include="Microsoft.VisualStudio.Language.Intellisense" />
   </ItemGroup>
   <ProjectExtensions>
     <MonoDevelop>
