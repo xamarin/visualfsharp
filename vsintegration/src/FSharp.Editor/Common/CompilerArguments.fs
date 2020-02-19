@@ -164,7 +164,7 @@ module CompilerArguments =
       project.Files
       // Shared Asset files need to be referenced first
       |> Seq.sortByDescending (fun f -> sharedAssetFiles.Contains f.FilePath)
-      |> Seq.filter(fun f -> f.FilePath.Extension = ".fs")
+      |> Seq.filter(fun f -> f.FilePath.Extension = ".fs" || f.FilePath.Extension = ".fsi")
       |> Seq.map(fun f -> f.Name)
       |> Seq.distinct
 
