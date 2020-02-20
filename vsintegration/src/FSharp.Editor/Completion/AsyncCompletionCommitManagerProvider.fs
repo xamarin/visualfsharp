@@ -19,5 +19,6 @@ type FSharpAsyncCompletionCommitManagerProvider() =
     let x = 1
     interface IAsyncCompletionCommitManagerProvider with
         member __.GetOrCreate(textView) =
+            System.Diagnostics.Trace.Write("Hello")
             System.Diagnostics.Trace.WriteLine("GetOrCreate FSharpAsyncCompletionCommitManager")
             FSharpAsyncCompletionCommitManager() :> _

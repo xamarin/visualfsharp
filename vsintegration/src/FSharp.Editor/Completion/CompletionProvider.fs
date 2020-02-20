@@ -80,16 +80,16 @@ type internal FSharpCompletionProvider
 
     static let mruItems = Dictionary<(* Item.FullName *) string, (* hints *) int>()
     
-    static member ShouldTriggerCompletionAux(sourceText: SourceText, caretPosition: int, trigger: CompletionTriggerKind, getInfo: (unit -> DocumentId * string * string list), intelliSenseOptions: IntelliSenseOptions) =
+    static member ShouldTriggerCompletionAux(sourceText: SourceText, caretPosition: int, trigger: Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion.Data.CompletionTrigger, getInfo: (unit -> DocumentId * string * string list), intelliSenseOptions: IntelliSenseOptions) =
         if caretPosition = 0 then
             false
         else
             let triggerPosition = caretPosition - 1
-            let triggerChar = sourceText.[triggerPosition]
+            let triggerChar = trigger.Character
 
-            if trigger = CompletionTriggerKind.Deletion && intelliSenseOptions.ShowAfterCharIsDeleted then
-                Char.IsLetterOrDigit(sourceText.[triggerPosition]) || triggerChar = '.'
-            elif not (trigger = CompletionTriggerKind.Insertion) then
+            if trigger.Reason = Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion.Data.CompletionTriggerReason.Deletion && intelliSenseOptions.ShowAfterCharIsDeleted then
+                Char.IsLetterOrDigit(triggerChar) || triggerChar = '.'
+            elif not (trigger.Reason = Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion.Data.CompletionTriggerReason.Insertion) then
                 false
             else
                 // Do not trigger completion if it's not single dot, i.e. range expression
@@ -222,16 +222,16 @@ type internal FSharpCompletionProvider
             return results
         }
 
-    override this.ShouldTriggerCompletion(sourceText: SourceText, caretPosition: int, trigger: CompletionTrigger, _: OptionSet) =
-        use _logBlock = Logger.LogBlock LogEditorFunctionId.Completion_ShouldTrigger
+    //override this.ShouldTriggerCompletion(sourceText: SourceText, caretPosition: int, trigger: CompletionTrigger, _: OptionSet) =
+    //    use _logBlock = Logger.LogBlock LogEditorFunctionId.Completion_ShouldTrigger
 
-        let getInfo() = 
-            let documentId = workspace.GetDocumentIdInCurrentContext(sourceText.Container)
-            let document = workspace.CurrentSolution.GetDocument(documentId)
-            let defines = projectInfoManager.GetCompilationDefinesForEditingDocument(document)
-            (documentId, document.FilePath, defines)
+    //    let getInfo() = 
+    //        let documentId = workspace.GetDocumentIdInCurrentContext(sourceText.Container)
+    //        let document = workspace.CurrentSolution.GetDocument(documentId)
+    //        let defines = projectInfoManager.GetCompilationDefinesForEditingDocument(document)
+    //        (documentId, document.FilePath, defines)
 
-        FSharpCompletionProvider.ShouldTriggerCompletionAux(sourceText, caretPosition, trigger.Kind, getInfo, settings.IntelliSense)
+    //    FSharpCompletionProvider.ShouldTriggerCompletionAux(sourceText, caretPosition, trigger, getInfo, settings.IntelliSense)
 
     override this.ProvideCompletionsAsync(context: Completion.CompletionContext) =
         asyncMaybe {

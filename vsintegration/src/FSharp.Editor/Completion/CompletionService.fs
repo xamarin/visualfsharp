@@ -416,27 +416,32 @@ type internal FSharpCompletionSource
             System.Diagnostics.Trace.WriteLine("initialize")
             //Data.CompletionStartData.DoesNotParticipateInCompletion
             //Data.CompletionStartData.ParticipatesInCompletionIfAny
+            use _logBlock = Logger.LogBlock LogEditorFunctionId.Completion_ShouldTrigger
 
             let document = triggerLocation.Snapshot.GetOpenDocumentInCurrentContextWithChanges()
-            let doesNotParticipate =
-                match trigger.Character with
-                | _ when document = null -> true
-                | '.' -> false
-                | c when Char.IsLetterOrDigit c -> false
-                | _ -> true
 
-            if doesNotParticipate then
-                Data.CompletionStartData.DoesNotParticipateInCompletion
-            else
-                match document.TryGetText() with
-                | true, sourceText ->
+            let getInfo() = 
+                //let documentId = workspace.GetDocumentIdInCurrentContext(sourceText.Container)
+                //let document = workspace.CurrentSolution.GetDocument(documentId)
+                let defines = projectInfoManager.GetCompilationDefinesForEditingDocument(document)
+                (document.Id, document.FilePath, defines)
+            
+            match document.TryGetText() with
+            | true, sourceText ->
+                let shouldTrigger =
+                    FSharpCompletionProvider.ShouldTriggerCompletionAux(sourceText, triggerLocation.Position, trigger, getInfo, settings.IntelliSense)
+
+                match shouldTrigger with
+                | false ->
+                    Data.CompletionStartData.DoesNotParticipateInCompletion
+                | true ->
                     Data.CompletionStartData(
                         participation = Data.CompletionParticipation.ProvidesItems,
                         applicableToSpan = new SnapshotSpan(
                             triggerLocation.Snapshot,
                             CompletionUtils.getCompletionItemSpan sourceText triggerLocation.Position))
-                | false, _ ->
-                    Data.CompletionStartData.DoesNotParticipateInCompletion
+            | false, _ ->
+                Data.CompletionStartData.DoesNotParticipateInCompletion
 
 
 [<Export(typeof<IAsyncCompletionSourceProvider>)>]

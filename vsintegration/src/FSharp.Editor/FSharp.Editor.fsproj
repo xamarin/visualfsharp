@@ -141,7 +141,6 @@
     <Compile Include="Completion\AsyncCompletionCommitManager.fs" />
     <Compile Include="Completion\CompletionService.fs" />
     <Compile Include="Completion\SignatureHelp.fs" />
-    <None Include="Completion\AsyncCompletionCommitManagerProvider.fs" />
     <Compile Include="InlineRename\InlineRenameService.fs" />
     <Compile Include="DocumentHighlights\DocumentHighlightsService.fs" />
     <Compile Include="Navigation\GoToDefinition.fs" />
@@ -208,6 +207,7 @@
       <Name>Mono.Addins</Name>
     </ProjectReference>
     <PackageReference Include="Newtonsoft.Json" Version="$(NuGetVersionNewtonsoftJson)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
+    <None Include="Completion\AsyncCompletionCommitManagerProvider.fs" />
   </ItemGroup>
   <ProjectExtensions>
     <MonoDevelop>
