@@ -384,7 +384,7 @@ type internal FSharpCompletionSource
         member __.GetDescriptionAsync(session, item, token) =
             async {
                 let document = session.TextView.TextSnapshot.GetOpenDocumentInCurrentContextWithChanges()
-                let! sourceText = document.GetTextAsync() |> Async.AwaitTask
+                //let! sourceText = document.GetTextAsync() |> Async.AwaitTask
                 let provider = FSharpCompletionProvider(document.Project.Solution.Workspace, checkerProvider, projectInfoManager, assemblyContentProvider)
                 let! description = provider.GetDescriptionAsync2(session.TextView, item, token) |> Async.AwaitTask
                 let elements = description.TaggedParts |>  buildClassifiedTextElements
@@ -420,10 +420,10 @@ type internal FSharpCompletionSource
             let document = triggerLocation.Snapshot.GetOpenDocumentInCurrentContextWithChanges()
             let doesNotParticipate =
                 match trigger.Character with
-                | '\n' | '<' | '(' -> true
-                | _ when (int trigger.Character) = 0 -> true
                 | _ when document = null -> true
-                | _ -> false
+                | '.' -> false
+                | c when Char.IsLetterOrDigit c -> false
+                | _ -> true
 
             if doesNotParticipate then
                 Data.CompletionStartData.DoesNotParticipateInCompletion
