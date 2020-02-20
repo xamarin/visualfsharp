@@ -417,8 +417,15 @@ type internal FSharpCompletionSource
             //Data.CompletionStartData.DoesNotParticipateInCompletion
             //Data.CompletionStartData.ParticipatesInCompletionIfAny
 
-            let document = triggerLocation.Snapshot.GetOpenDocumentInCurrentContextWithChanges();
-            if document = null then
+            let document = triggerLocation.Snapshot.GetOpenDocumentInCurrentContextWithChanges()
+            let doesNotParticipate =
+                match trigger.Character with
+                | '\n' | '<' | '(' -> true
+                | _ when (int trigger.Character) = 0 -> true
+                | _ when document = null -> true
+                | _ -> false
+
+            if doesNotParticipate then
                 Data.CompletionStartData.DoesNotParticipateInCompletion
             else
                 match document.TryGetText() with
