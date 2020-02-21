@@ -34,15 +34,13 @@
     <SignAssembly>true</SignAssembly>
     <OtherFlags>--publicsign</OtherFlags>
     <AssemblyOriginatorKeyFile>..\..\..\src\buildtools\keys\MSFT.snk</AssemblyOriginatorKeyFile>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DocumentationFile>..\..\..\..\..\build\AddIns\FSharp.Editor\FSharp.Editor.XML</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <Optimize>false</Optimize>
     <DefineConstants>;RELEASE</DefineConstants>
-    <DocumentationFile>..\..\..\..\..\build\AddIns\FSharp.Editor\FSharp.Editor.XML</DocumentationFile>
     <GenerateTailCalls>true</GenerateTailCalls>
+    <TailCalls>true</TailCalls>
   </PropertyGroup>
   <Target Name="Clean">
     <RemoveDir Directories="..\bin\" />
