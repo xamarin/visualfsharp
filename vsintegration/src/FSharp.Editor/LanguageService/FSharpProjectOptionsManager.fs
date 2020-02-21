@@ -142,7 +142,7 @@ type private FSharpProjectOptionsReactor ((*_workspace: VisualStudioWorkspace,*)
             //match legacyProjectSites.TryGetValue project.Id with
             //| true, site -> Some site
             //| _ -> None
-    let mdLanguageService = new MonoDevelop.FSharp.LanguageService((fun (changedfile, _) -> ()), None)
+    let mdLanguageService = new MonoDevelop.FSharp.LanguageService(checkerProvider.Checker, (fun (changedfile, _) -> ()), None)
 
     let rec tryComputeOptions (project: Project) =
         async {

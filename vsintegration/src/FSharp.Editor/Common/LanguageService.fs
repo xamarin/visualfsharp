@@ -196,7 +196,7 @@ type AllowStaleResults =
 open Microsoft.VisualStudio.FSharp.Editor.Pervasive
 
 /// Provides functionality for working with the F# interactive checker running in background
-type LanguageService(dirtyNotify, _extraProjectInfo) as x =
+type LanguageService(checker: FSharpChecker, dirtyNotify, _extraProjectInfo) as x =
 
     /// Load times used to reset type checking properly on script/project load/unload. It just has to be unique for each project load/reload.
     /// Not yet sure if this works for scripts.
@@ -416,6 +416,10 @@ type LanguageService(dirtyNotify, _extraProjectInfo) as x =
             //    Some entry
             //| _, cache ->
         showStatusIcon projFilename
+
+        checker.ProjectChecked.Add (fun (filename, _) -> 
+            hideStatusIcon filename)
+
         let project =
             IdeApp.Workspace.GetAllProjects()
             |> Seq.tryFind (fun p -> p.FileName.FullPath.ToString() = projFilename)
