@@ -25,7 +25,7 @@
     <StartProgram>$(MSBuildProjectDirectory)\..\..\..\build\bin\MonoDevelop.exe</StartProgram>
     <StartWorkingDirectory>$(MSBuildProjectDirectory)\..\..\..\build\bin</StartWorkingDirectory>
     <DebugType>portable</DebugType>
-    <Optimize>false</Optimize>
+    <Optimize>true</Optimize>
     <OutputPath>..\..\..\..\..\build\AddIns\FSharp.Editor</OutputPath>
     <WarningLevel>3</WarningLevel>
     <DocumentationFile>..\..\..\..\..\build\AddIns\FSharp.Editor\FSharp.Editor.XML</DocumentationFile>
@@ -37,6 +37,12 @@
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DocumentationFile>..\..\..\..\..\build\AddIns\FSharp.Editor\FSharp.Editor.XML</DocumentationFile>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <Optimize>false</Optimize>
+    <DefineConstants>;RELEASE</DefineConstants>
+    <DocumentationFile>..\..\..\..\..\build\AddIns\FSharp.Editor\FSharp.Editor.XML</DocumentationFile>
+    <GenerateTailCalls>true</GenerateTailCalls>
   </PropertyGroup>
   <Target Name="Clean">
     <RemoveDir Directories="..\bin\" />
