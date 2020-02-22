@@ -192,8 +192,8 @@ module CompilerArguments =
        yield "--flaterrors"
        for symbol in defines do yield "--define:" + symbol
        yield if fsconfig.HasDefineSymbol "DEBUG" then  "--debug+" else  "--debug-"
-       yield if fsconfig.Optimize then "--optimize+" else "--optimize-"
-       yield if fsconfig.GenerateTailCalls then "--tailcalls+" else "--tailcalls-"
+       yield "--optimize-"
+       yield "--tailcalls+"
        if not (String.IsNullOrWhiteSpace fsconfig.DebugType) then
            yield sprintf "--debug:%s" fsconfig.DebugType
        yield match project.CompileTarget with

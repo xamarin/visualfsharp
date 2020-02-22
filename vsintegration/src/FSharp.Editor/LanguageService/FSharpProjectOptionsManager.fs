@@ -20,7 +20,7 @@ open System.Threading
 //open Microsoft.VisualStudio.Shell.Interop
 open Microsoft.VisualStudio.LanguageServices.Implementation.TaskList
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp.LanguageServices
-
+open MonoDevelop.FSharp
 //[<AutoOpen>]
 //module private FSharpProjectOptionsHelpers =
 
@@ -100,7 +100,22 @@ type private FSharpProjectOptionsReactor ((*_workspace: VisualStudioWorkspace,*)
                 let! scriptProjectOptions, _ = checkerProvider.Checker.GetProjectOptionsFromScript(document.FilePath, sourceText.ToFSharpSourceText())
                 let projectOptions =
                     if isScriptFile document.FilePath then
-                        scriptProjectOptions
+
+                        if scriptProjectOptions.OtherOptions |> Seq.exists (fun s -> s.Contains("FSharp.Core.dll")) then scriptProjectOptions
+                        else
+                          // Add assemblies that may be missing in the standard assembly resolution
+                          LoggingService.logDebug "LanguageService: GetScriptCheckerOptions: Adding missing core assemblies."
+                          let dirs = FSharpEnvironment.getDefaultDirectories (None, FSharpTargetFramework.NET_4_5 )
+                          { scriptProjectOptions with 
+                               OtherOptions =
+                               [| yield! scriptProjectOptions.OtherOptions
+                                  match FSharpEnvironment.resolveAssembly dirs "FSharp.Core" with
+                                  | Some fn -> yield String.Format ("-r:{0}", fn)
+                                  | None ->
+                                        LoggingService.logDebug "LanguageService: Resolution: FSharp.Core assembly resolution failed!"
+                                        match FSharpEnvironment.resolveAssembly dirs "FSharp.Compiler.Interactive.Settings" with
+                                        | Some fn -> yield String.Format ("-r:{0}", fn)
+                                        | None -> LoggingService.logDebug "LanguageService: Resolution: FSharp.Compiler.Interactive.Settings assembly resolution failed!" |]}
                     else
                         {
                             ProjectFileName = document.FilePath
@@ -116,7 +131,7 @@ type private FSharpProjectOptionsReactor ((*_workspace: VisualStudioWorkspace,*)
                             ExtraProjectInfo= None
                             Stamp = Some(int64 (fileStamp.GetHashCode()))
                         }
-
+                        
                 checkerProvider.Checker.CheckProjectInBackground(projectOptions, userOpName="checkOptions")
 
                 let parsingOptions, _ = checkerProvider.Checker.GetParsingOptionsFromProjectOptions(projectOptions)
@@ -242,9 +257,9 @@ type private FSharpProjectOptionsReactor ((*_workspace: VisualStudioWorkspace,*)
                         reply.Reply None
                     else
                         //try
-                            // For now, disallow miscellaneous workspace since we are using the hacky F# miscellaneous files project.
                             if document.Project.Solution.Workspace.Kind = WorkspaceKind.MiscellaneousFiles then
-                                reply.Reply None
+                                let! options = tryComputeOptionsByFile document ct
+                                reply.Reply options
                             elif document.Project.Name = FSharpConstants.FSharpMiscellaneousFilesName then
                                 let! options = tryComputeOptionsByFile document ct
                                 reply.Reply options
