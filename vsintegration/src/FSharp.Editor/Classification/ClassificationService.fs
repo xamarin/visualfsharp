@@ -86,9 +86,9 @@ type internal FSharpClassificationService
                 let! _, _, checkResults = checkerProvider.Checker.ParseAndCheckDocument(document, projectOptions, sourceText = sourceText, allowStaleResults = false, userOpName=userOpName) 
                 // it's crucial to not return duplicated or overlapping `ClassifiedSpan`s because Find Usages service crashes.
                 let targetRange = RoslynHelpers.TextSpanToFSharpRange(document.FilePath, textSpan, sourceText)
-                let classificationData = checkResults.GetSemanticClassification (Some targetRange) |> Array.distinctBy fst
+                let classificationData = checkResults.GetSemanticClassification (Some targetRange)
                 
-                for (range, classificationType) in classificationData do
+                for struct (range, classificationType) in classificationData do
                     match RoslynHelpers.TryFSharpRangeToTextSpan(sourceText, range) with
                     | None -> ()
                     | Some span -> 
@@ -97,7 +97,6 @@ type internal FSharpClassificationService
                             | SemanticClassificationType.Printf -> span
                             | _ -> Tokenizer.fixupSpan(sourceText, span)
                         result.Add(ClassifiedSpan(span, FSharpClassificationTypes.getClassificationTypeName(classificationType)))
-                        //result.Add(ClassifiedSpan(span, classificationType.ToString()))
             } 
             |> Async.Ignore |> RoslynHelpers.StartAsyncUnitAsTask cancellationToken
 
