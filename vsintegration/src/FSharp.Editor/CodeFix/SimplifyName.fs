@@ -25,8 +25,8 @@ type internal FSharpSimplifyNameCodeFixProvider() =
            for diagnostic in context.Diagnostics |> Seq.filter (fun x -> x.Id = fixableDiagnosticId) do
                let title =
                    match diagnostic.Properties.TryGetValue(SimplifyNameDiagnosticAnalyzer.LongIdentPropertyKey) with
-                   | true, longIdent -> sprintf "%s '%s'" ("SR.SimplifyName()") longIdent
-                   | _ -> "SR.SimplifyName()"
+                   | true, longIdent -> sprintf "%s '%s'" (SR.SimplifyName()) longIdent
+                   | _ -> SR.SimplifyName()
 
                let codefix = CodeFixHelpers.createTextChangeCodeFix(title, context, (fun () -> asyncMaybe.Return [| TextChange(context.Span, "") |]))
 

@@ -425,7 +425,7 @@ module internal XmlDocumentation =
         let ProcessGenericParameters (tps: Layout list) =
             if not tps.IsEmpty then
                 AppendHardLine typeParameterMapCollector
-                AppendOnNewLine typeParameterMapCollector ("SR.GenericParametersHeader()")
+                AppendOnNewLine typeParameterMapCollector (SR.GenericParametersHeader())
                 for tp in tps do 
                     AppendHardLine typeParameterMapCollector
                     typeParameterMapCollector.Add(tagSpace "    ")

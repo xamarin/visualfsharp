@@ -7,7 +7,6 @@ open MonoDevelop.Core
 open MonoDevelop.Core.Serialization
 open MonoDevelop.Projects
 open MonoDevelop.Projects.MSBuild
-open System.Xml
 open MonoDevelop.Core.Assemblies
 
 //open ExtCore.Control
