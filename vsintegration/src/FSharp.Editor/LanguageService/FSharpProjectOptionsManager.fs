@@ -21,8 +21,11 @@ open System.Threading
 open Microsoft.VisualStudio.LanguageServices.Implementation.TaskList
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp.LanguageServices
 open MonoDevelop.FSharp
-//[<AutoOpen>]
-//module private FSharpProjectOptionsHelpers =
+open MonoDevelop.Ide
+open MonoDevelop.Ide.TypeSystem
+
+[<AutoOpen>]
+module private FSharpProjectOptionsHelpers =
 
     //let mapCpsProjectToSite(project:Project, cpsCommandLineOptions: IDictionary<ProjectId, string[] * string[]>) =
     //    let sourcePaths, referencePaths, options =
@@ -50,27 +53,27 @@ open MonoDevelop.FSharp
     //            //member __.BuildErrorReporter with get () = errorReporter and set (v) = errorReporter <- v
     //    }
 
-    //let hasProjectVersionChanged (oldProject: Project) (newProject: Project) =
-    //    oldProject.Version <> newProject.Version
+    let hasProjectVersionChanged (oldProject: Project) (newProject: Project) =
+        oldProject.Version <> newProject.Version
 
-    //let hasDependentVersionChanged (oldProject: Project) (newProject: Project) =
-    //    let oldProjectRefs = oldProject.ProjectReferences
-    //    let newProjectRefs = newProject.ProjectReferences
-    //    oldProjectRefs.Count() <> newProjectRefs.Count() ||
-    //    (oldProjectRefs, newProjectRefs)
-    //    ||> Seq.exists2 (fun p1 p2 ->
-    //        let doesProjectIdDiffer = p1.ProjectId <> p2.ProjectId
-    //        let p1 = oldProject.Solution.GetProject(p1.ProjectId)
-    //        let p2 = newProject.Solution.GetProject(p2.ProjectId)
-    //        doesProjectIdDiffer || p1.Version <> p2.Version
-    //    )
+    let hasDependentVersionChanged (oldProject: Project) (newProject: Project) =
+        let oldProjectRefs = oldProject.ProjectReferences
+        let newProjectRefs = newProject.ProjectReferences
+        oldProjectRefs.Count() <> newProjectRefs.Count() ||
+        (oldProjectRefs, newProjectRefs)
+        ||> Seq.exists2 (fun p1 p2 ->
+            let doesProjectIdDiffer = p1.ProjectId <> p2.ProjectId
+            let p1 = oldProject.Solution.GetProject(p1.ProjectId)
+            let p2 = newProject.Solution.GetProject(p2.ProjectId)
+            doesProjectIdDiffer || p1.Version <> p2.Version
+        )
 
-    //let isProjectInvalidated (oldProject: Project) (newProject: Project) (settings: EditorOptions) =
-        //let hasProjectVersionChanged = hasProjectVersionChanged oldProject newProject
-        //if settings.LanguageServicePerformance.EnableInMemoryCrossProjectReferences then
-        //    hasProjectVersionChanged || hasDependentVersionChanged oldProject newProject
-        //else
-            //hasProjectVersionChanged
+    let isProjectInvalidated (oldProject: Project) (newProject: Project) (settings: EditorOptions) =
+        let hasProjectVersionChanged = hasProjectVersionChanged oldProject newProject
+        if settings.LanguageServicePerformance.EnableInMemoryCrossProjectReferences then
+            hasProjectVersionChanged || hasDependentVersionChanged oldProject newProject
+        else
+            hasProjectVersionChanged
 
 [<RequireQualifiedAccess>]
 type private FSharpProjectOptionsMessage =
@@ -241,10 +244,10 @@ type private FSharpProjectOptionsReactor ((*_workspace: VisualStudioWorkspace,*)
                 return Some(parsingOptions, projectOptions)
   
             | true, (oldProject, parsingOptions, projectOptions) ->
-                //if isProjectInvalidated oldProject project settings then
-                //    cache.Remove(projectId) |> ignore
-                //    return! tryComputeOptions project
-                //else
+                if isProjectInvalidated oldProject project settings then
+                    cache.Remove(projectId) |> ignore
+                    return! tryComputeOptions project
+                else
                     return Some(parsingOptions, projectOptions)
         }
 
@@ -343,13 +346,15 @@ type internal FSharpProjectOptionsManager
 
     let reactor = new FSharpProjectOptionsReactor(settings, (*serviceProvider,*) checkerProvider)
 
-    //do
-        //// We need to listen to this event for lifecycle purposes.
-        //workspace.WorkspaceChanged.Add(fun args ->
-        //    match args.Kind with
-        //    | WorkspaceChangeKind.ProjectRemoved -> reactor.ClearOptionsByProjectId(args.ProjectId)
-        //    | _ -> ()
-        //)
+    do
+        let workspace = IdeApp.TypeSystemService.Workspace
+
+        // We need to listen to this event for lifecycle purposes.
+        workspace.WorkspaceChanged.Add(fun args ->
+            match args.Kind with
+            | WorkspaceChangeKind.ProjectRemoved -> reactor.ClearOptionsByProjectId(args.ProjectId)
+            | _ -> ()
+        )
 
     member __.SetLegacyProjectSite (projectId, projectSite) =
         reactor.SetLegacyProjectSite (projectId, projectSite)
