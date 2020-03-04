@@ -28,10 +28,6 @@ type internal FSharpOutlineDocumentExtension(projectInfoManager: FSharpProjectOp
     let textContainer = view.TextBuffer.AsTextContainer()
 
     let registration = Workspace.GetWorkspaceRegistration(textContainer)
-    do
-        subscriptions.Add (registration.WorkspaceChanged.Subscribe(x.UpdateDocumentOutline))
-        subscriptions.Add (view.TextBuffer.PostChanged.Subscribe(x.UpdateDocumentOutline))
-        subscriptions.Add (view.Caret.PositionChanged.Subscribe(x.UpdateDocumentOutline))
 
     let getOpenDocumentInCurrentContextWithChanges(text: SourceText) =
         let workspace = IdeApp.TypeSystemService.Workspace
@@ -69,7 +65,7 @@ type internal FSharpOutlineDocumentExtension(projectInfoManager: FSharpProjectOp
             if treeView.IsRealized then
                 asyncMaybe {
                     let sourceText = view.TextBuffer.CurrentSnapshot.AsText()
-                    let document = getOpenDocumentInCurrentContextWithChanges sourceText
+                    let! document = getOpenDocumentInCurrentContextWithChanges sourceText |> Option.ofObj
                     let fsSourceText = sourceText.ToFSharpSourceText()
                     let! navItems = getNavigationItems(document, fsSourceText)
                     Runtime.RunInMainThread(fun() ->
@@ -98,10 +94,15 @@ type internal FSharpOutlineDocumentExtension(projectInfoManager: FSharpProjectOp
         refreshingOutline <- false
         false
 
-    member private x.UpdateDocumentOutline _ =
+    let updateDocumentOutline _ =
         if not refreshingOutline then
             refreshingOutline <- true
             timerId <- GLib.Timeout.Add (1000u, (fun _ -> refillTree()))
+
+    do
+        subscriptions.Add (registration.WorkspaceChanged.Subscribe(updateDocumentOutline))
+        subscriptions.Add (view.TextBuffer.PostChanged.Subscribe(updateDocumentOutline))
+        updateDocumentOutline None
 
     interface IDisposable with
         override x.Dispose() =
