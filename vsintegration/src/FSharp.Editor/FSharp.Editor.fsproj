@@ -233,6 +233,12 @@
       <Name>MonoDevelop.TextEditor</Name>
       <ReferenceSourceTarget></ReferenceSourceTarget>
     </ProjectReference>
+    <Compile Include="VSMac\FSharpOutlineDocumentExtension.fs" />
+    <Compile Include="VSMac\FSharpOutlineDocumentExtensionProvider.fs" />
+    <ProjectReference Include="..\..\..\..\..\src\addins\MonoDevelop.DesignerSupport\MonoDevelop.DesignerSupport.csproj">
+      <Project>{2C24D515-4A2C-445C-8419-C09231913CFA}</Project>
+      <Name>MonoDevelop.DesignerSupport</Name>
+    </ProjectReference>
   </ItemGroup>
   <ProjectExtensions>
     <MonoDevelop>

@@ -53,7 +53,6 @@ type internal FSharpPathedDocumentExtension(projectInfoManager: FSharpProjectOpt
     let pathChanged = new Event<_,_>()
     let mutable currentPath = [||]
     let mutable subscriptions = ResizeArray<IDisposable>()
-    let mutable caretSubscription = None
     let mutable ownerProjects = ResizeArray<DotNetProject>()
     let mutable lastOwnerProjects = ResizeArray<DotNetProject>()
     let mutable registration: WorkspaceRegistration = null
@@ -142,7 +141,7 @@ type internal FSharpPathedDocumentExtension(projectInfoManager: FSharpProjectOpt
 
     member x.GetNavigationItems(document:Document, fsSourceText) =
         asyncMaybe {
-            let! parsingOptions, _options = projectInfoManager.TryGetOptionsByProject(document.Project, CancellationToken.None) 
+            let! parsingOptions, _options = projectInfoManager.TryGetOptionsByProject(document.Project, Async.DefaultCancellationToken) 
 
             let! parseResults = checker.ParseFile(document.FilePath, fsSourceText, parsingOptions) |> liftAsync
 
@@ -159,7 +158,7 @@ type internal FSharpPathedDocumentExtension(projectInfoManager: FSharpProjectOpt
         let caretLocation = TextSpan(caretOffset, 1)
 
         asyncMaybe {
-            let! sourceText = document.GetTextAsync(CancellationToken.None) |> liftTaskAsync
+            let! sourceText = document.GetTextAsync(Async.DefaultCancellationToken) |> liftTaskAsync
             x.SourceText <- sourceText
             let fsSourceText = sourceText.ToFSharpSourceText()
             let! toplevel = x.GetNavigationItems(document, fsSourceText)
@@ -225,6 +224,7 @@ type internal FSharpPathedDocumentExtension(projectInfoManager: FSharpProjectOpt
 
     interface IPathedDocument with
         member x.CurrentPath = currentPath
+
         member x.CreatePathWidget(index) =
             let path = (x :> IPathedDocument).CurrentPath
             if path = null || index < 0 || index >= path.Length then null else
@@ -265,6 +265,7 @@ and internal FSharpDataProvider(ext:FSharpPathedDocumentExtension, tag, view: IT
             let pos = RoslynHelpers.FSharpRangeToTextSpan(ext.SourceText, node.Range).Start
             let point = new SnapshotPoint(view.TextSnapshot, pos)
             view.Caret.MoveTo(point) |> ignore
+            view.ViewScroller.EnsureSpanVisible(new SnapshotSpan(view.Caret.Position.BufferPosition, 0), EnsureSpanVisibleOptions.AlwaysCenter);
 
         member x.GetMarkup(n) =
             let node = memberList.[n]

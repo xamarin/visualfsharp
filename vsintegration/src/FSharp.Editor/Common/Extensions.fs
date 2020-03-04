@@ -250,6 +250,12 @@ module Option =
         else
             None
 
+    let inline tryCast<'T> (o: obj): 'T option =
+        match o with
+        | null -> None
+        | :? 'T as a -> Some a
+        | _ -> None
+
 [<RequireQualifiedAccess>]
 module Seq =
     open System.Collections.Immutable
