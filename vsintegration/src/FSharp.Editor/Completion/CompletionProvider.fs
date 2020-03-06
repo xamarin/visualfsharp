@@ -14,7 +14,7 @@ open Microsoft.CodeAnalysis.Options
 open Microsoft.CodeAnalysis.Text
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Completion
 
-open Microsoft.VisualStudio.Shell
+//open Microsoft.VisualStudio.Shell
 
 open FSharp.Compiler
 open FSharp.Compiler.Range

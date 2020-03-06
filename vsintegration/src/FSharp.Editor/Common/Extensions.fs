@@ -14,7 +14,7 @@ open FSharp.Compiler.SourceCodeServices
 open MonoDevelop.Core
 
 type private FSharpGlyph = FSharp.Compiler.SourceCodeServices.FSharpGlyph
-type private FSharpRoslynGlyph = Microsoft.CodeAnalysis.ExternalAccess.FSharp.FSharpGlyph
+//type private FSharpRoslynGlyph = Microsoft.CodeAnalysis.ExternalAccess.FSharp.FSharpGlyph
 
 module LoggingService =
     let inline private log f = Printf.kprintf f
@@ -141,10 +141,9 @@ module private SourceText =
         sourceText
 
 type SourceText with
-
     member this.ToFSharpSourceText() =
         SourceText.weakTable.GetValue(this, Runtime.CompilerServices.ConditionalWeakTable<_,_>.CreateValueCallback(SourceText.create))
-
+(*
 type FSharpNavigationDeclarationItem with
     member x.RoslynGlyph : FSharpRoslynGlyph =
         match x.Glyph with
@@ -217,6 +216,7 @@ type FSharpNavigationDeclarationItem with
             | Some SynAccess.Internal -> FSharpRoslynGlyph.ExtensionMethodInternal
             | _ -> FSharpRoslynGlyph.ExtensionMethodPublic
         | FSharpGlyph.Error -> FSharpRoslynGlyph.Error
+*)
 
 [<RequireQualifiedAccess>]
 module String =   

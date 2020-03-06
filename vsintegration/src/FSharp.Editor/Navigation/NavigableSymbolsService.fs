@@ -14,9 +14,9 @@ open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Navigation
 open Microsoft.VisualStudio.Language.Intellisense
 open Microsoft.VisualStudio.Text
 open Microsoft.VisualStudio.Text.Editor
-open Microsoft.VisualStudio.Shell.Interop
+//open Microsoft.VisualStudio.Shell.Interop
 //open Microsoft.VisualStudio.Utilities
-open Microsoft.VisualStudio.Shell
+//open Microsoft.VisualStudio.Shell
 open System.Composition
 open System.Threading
 open System.Threading.Tasks
@@ -26,8 +26,8 @@ open Microsoft.CodeAnalysis.Editor
 open Microsoft.CodeAnalysis.Host.Mef
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Editor
 
-open Microsoft.VisualStudio.Shell
-open Microsoft.VisualStudio.Shell.Interop
+//open Microsoft.VisualStudio.Shell
+////open Microsoft.VisualStudio.Shell.Interop
 open System
 open System;
 open System.ComponentModel.Composition;
@@ -38,7 +38,6 @@ open Microsoft.CodeAnalysis.Text;
 open Microsoft.VisualStudio.Commanding;
 open Microsoft.VisualStudio.Text;
 open Microsoft.VisualStudio.Text.Editor.Commanding.Commands;
-open Microsoft.VisualStudio.Utilities;
 
 [<AllowNullLiteral>]
 type internal FSharpNavigableSymbol(item: FSharpNavigableItem, span: SnapshotSpan, gtd: GoToDefinition, statusBar: StatusBar) =
@@ -105,9 +104,9 @@ type internal FSharpNavigableSymbolSource(checkerProvider: FSharpCheckerProvider
             disposed <- true
 
 [<Export(typeof<INavigableSymbolSourceProvider>)>]
-[<Name("F# Navigable Symbol Service")>]
-[<ContentType(FSharpContentTypeNames.FSharpContentType)>]
-[<Order>]
+[<Microsoft.VisualStudio.Utilities.Name("F# Navigable Symbol Service")>]
+[<Microsoft.VisualStudio.Utilities.ContentType(FSharpContentTypeNames.FSharpContentType)>]
+[<Microsoft.VisualStudio.Utilities.Order>]
 type internal FSharpNavigableSymbolService
     [<ImportingConstructor>]
     (

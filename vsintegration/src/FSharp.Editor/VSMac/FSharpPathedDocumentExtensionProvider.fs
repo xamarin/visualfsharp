@@ -28,16 +28,15 @@
 
 open System.ComponentModel.Composition
 open Microsoft.VisualStudio.Text.Editor
-open Microsoft.VisualStudio.Utilities
 open MonoDevelop.TextEditor
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Editor
 open Microsoft.VisualStudio.FSharp.Editor
 open Microsoft.VisualStudio.Threading
 
 [<Export(typeof<IEditorContentProvider>)>]
-[<ContentType(FSharpContentTypeNames.FSharpContentType)>]
+[<Microsoft.VisualStudio.Utilities.ContentType(FSharpContentTypeNames.FSharpContentType)>]
 [<TextViewRole(PredefinedTextViewRoles.PrimaryDocument)>]
-[<Order(Before = "Default")>]
+[<Microsoft.VisualStudio.Utilities.Order(Before = "Default")>]
 type internal FSharpPathedDocumentExtensionProvider
     [<ImportingConstructor>]
     (

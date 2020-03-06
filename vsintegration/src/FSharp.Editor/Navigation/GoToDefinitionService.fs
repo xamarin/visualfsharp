@@ -11,10 +11,7 @@ open Microsoft.CodeAnalysis.Editor
 open Microsoft.CodeAnalysis.Host.Mef
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Editor
 
-open Microsoft.VisualStudio.Shell
-open Microsoft.VisualStudio.Shell.Interop
 open System
-open System;
 open System.ComponentModel.Composition;
 open Microsoft.CodeAnalysis.Editor.Shared.Extensions;
 open Microsoft.CodeAnalysis.Notification;
@@ -23,11 +20,10 @@ open Microsoft.CodeAnalysis.Text;
 open Microsoft.VisualStudio.Commanding;
 open Microsoft.VisualStudio.Text;
 open Microsoft.VisualStudio.Text.Editor.Commanding.Commands;
-open Microsoft.VisualStudio.Utilities;
 
 [<Export(typeof<ICommandHandler>)>]
-[<Name("F# Go To Definition")>]
-[<ContentType("code++.F#")>]
+[<Microsoft.VisualStudio.Utilities.Name("F# Go To Definition")>]
+[<Microsoft.VisualStudio.Utilities.ContentType("code++.F#")>]
 type internal FSharpGotoDefinitionCommandHandler
     [<ImportingConstructor>]
     (

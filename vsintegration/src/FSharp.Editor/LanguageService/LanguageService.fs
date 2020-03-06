@@ -12,12 +12,12 @@ open FSharp.Compiler.SourceCodeServices
 open FSharp.NativeInterop
 open Microsoft.VisualStudio
 open Microsoft.VisualStudio.FSharp.Editor
-open Microsoft.VisualStudio.LanguageServices
-open Microsoft.VisualStudio.LanguageServices.Implementation.LanguageService
-open Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
+//open Microsoft.VisualStudio.LanguageServices
+//open Microsoft.VisualStudio.LanguageServices.Implementation.LanguageService
+//open Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
 //open Microsoft.VisualStudio.LanguageServices.ProjectSystem
-open Microsoft.VisualStudio.Shell
-open Microsoft.VisualStudio.Shell.Interop
+//open Microsoft.VisualStudio.Shell
+//open Microsoft.VisualStudio.Shell.Interop
 open Microsoft.VisualStudio.Text.Outlining
 open FSharp.NativeInterop
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp

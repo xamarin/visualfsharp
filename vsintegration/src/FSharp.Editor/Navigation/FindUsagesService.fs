@@ -22,8 +22,6 @@ open Microsoft.CodeAnalysis.Editor
 open Microsoft.CodeAnalysis.Host.Mef
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Editor
 
-open Microsoft.VisualStudio.Shell
-open Microsoft.VisualStudio.Shell.Interop
 open System
 open System;
 open System.ComponentModel.Composition;
@@ -34,7 +32,6 @@ open Microsoft.CodeAnalysis.Text;
 open Microsoft.VisualStudio.Commanding;
 open Microsoft.VisualStudio.Text;
 open Microsoft.VisualStudio.Text.Editor.Commanding.Commands;
-open Microsoft.VisualStudio.Utilities;
 
 [<Export(typeof<IFSharpFindUsagesService>)>]
 type internal FSharpFindUsagesService

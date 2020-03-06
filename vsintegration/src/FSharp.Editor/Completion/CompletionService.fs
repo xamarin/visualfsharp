@@ -13,7 +13,7 @@ open Microsoft.CodeAnalysis.ExternalAccess.FSharp
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Editor
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Completion
 
-open Microsoft.VisualStudio.Shell
+//open Microsoft.VisualStudio.Shell
 
 open System
 open System.ComponentModel.Composition
@@ -22,7 +22,7 @@ open Microsoft.CodeAnalysis.Editor.Shared.Utilities
 open Microsoft.CodeAnalysis.Host.Mef
 open Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion
 open Microsoft.VisualStudio.Text.Editor
-open Microsoft.VisualStudio.Utilities
+//open Microsoft.VisualStudio.Utilities
 open System.Threading.Tasks
 
 open System;
@@ -446,8 +446,8 @@ type internal FSharpCompletionSource
 
 [<Export(typeof<IAsyncCompletionSourceProvider>)>]
 [<Export(typeof<IAsyncCompletionCommitManagerProvider>)>]
-[<Name("FSharp Completion Source Provider")>]
-[<ContentType(FSharpContentTypeNames.FSharpContentType)>]
+[<Microsoft.VisualStudio.Utilities.Name("FSharp Completion Source Provider")>]
+[<Microsoft.VisualStudio.Utilities.ContentType(FSharpContentTypeNames.FSharpContentType)>]
 type internal CompletionSourceProvider
     [<ImportingConstructor>] 
     (
@@ -468,12 +468,12 @@ type internal CompletionSourceProvider
 
 open System.Composition
 open Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion
-open Microsoft.VisualStudio.Utilities
+//open Microsoft.VisualStudio.Utilities
 open Microsoft.VisualStudio.FSharp.Editor
 open Microsoft.VisualStudio.Text.Editor
 [<Export(typeof<IAsyncCompletionCommitManagerProvider>)>]
-[<Name("FSharp Async Completion Commit Manager Provider")>]
-[<ContentType(FSharpContentTypeNames.FSharpContentType)>]
+[<Microsoft.VisualStudio.Utilities.Name("FSharp Async Completion Commit Manager Provider")>]
+[<Microsoft.VisualStudio.Utilities.ContentType(FSharpContentTypeNames.FSharpContentType)>]
 //[<TextViewRole(PredefinedTextViewRoles.Editable)>]
 //[<Order>]
 type internal FSharpAsyncCompletionCommitManagerProvider

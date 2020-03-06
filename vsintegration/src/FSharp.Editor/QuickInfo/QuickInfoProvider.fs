@@ -12,10 +12,7 @@ open Microsoft.CodeAnalysis
 open Microsoft.CodeAnalysis.Text
 
 open Microsoft.VisualStudio.Language.Intellisense
-open Microsoft.VisualStudio.Shell
-open Microsoft.VisualStudio.Shell.Interop
 open Microsoft.VisualStudio.Text
-open Microsoft.VisualStudio.Utilities
 
 open FSharp.Compiler.SourceCodeServices
 open FSharp.Compiler.Range
@@ -267,9 +264,9 @@ type internal FSharpAsyncQuickInfoSource
                     |> RoslynHelpers.StartAsyncAsTask cancellationToken
 
 [<Export(typeof<IAsyncQuickInfoSourceProvider>)>]
-[<Name("F# Quick Info Provider")>]
-[<ContentType(FSharpContentTypeNames.FSharpContentType)>]
-[<Order>]
+[<Microsoft.VisualStudio.Utilities.Name("F# Quick Info Provider")>]
+[<Microsoft.VisualStudio.Utilities.ContentType(FSharpContentTypeNames.FSharpContentType)>]
+[<Microsoft.VisualStudio.Utilities.Order>]
 type internal FSharpAsyncQuickInfoSourceProvider
     [<ImportingConstructor>]
     (

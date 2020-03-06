@@ -14,12 +14,12 @@ open FSharp.Compiler.SourceCodeServices
 open Microsoft.VisualStudio
 open Microsoft.VisualStudio.FSharp.Editor
 open Microsoft.VisualStudio.LanguageServices
-open Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
+//open Microsoft.VisualStudio.LanguageServices.Implementation.ProjectSystem
 //open Microsoft.VisualStudio.Shell
 open System.Threading
 //open Microsoft.VisualStudio.Shell.Interop
-open Microsoft.VisualStudio.LanguageServices.Implementation.TaskList
-open Microsoft.CodeAnalysis.ExternalAccess.FSharp.LanguageServices
+//open Microsoft.VisualStudio.LanguageServices.Implementation.TaskList
+//open Microsoft.CodeAnalysis.ExternalAccess.FSharp.LanguageServices
 open MonoDevelop.FSharp
 open MonoDevelop.Ide
 open MonoDevelop.Ide.TypeSystem

@@ -5,8 +5,8 @@ namespace Microsoft.VisualStudio.FSharp.Editor
 open System
 open System.Runtime.CompilerServices
 open System.Text.RegularExpressions
-open Microsoft.VisualStudio.Shell
-open Microsoft.VisualStudio.Shell.Interop
+//open Microsoft.VisualStudio.Shell
+//open Microsoft.VisualStudio.Shell.Interop
 open FSharp.Compiler.SourceCodeServices
 open FSharp.Compiler.Layout
 open FSharp.Compiler.Layout.TaggedTextOps

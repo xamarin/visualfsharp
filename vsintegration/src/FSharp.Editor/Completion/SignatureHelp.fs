@@ -12,8 +12,8 @@ open Microsoft.CodeAnalysis.Text
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp.SignatureHelp
 
 open Microsoft.VisualStudio.Text
-open Microsoft.VisualStudio.Shell
-open Microsoft.VisualStudio.Shell.Interop
+////open Microsoft.VisualStudio.Shell
+//open Microsoft.VisualStudio.Shell.Interop
 
 open FSharp.Compiler.Layout
 open FSharp.Compiler.Range

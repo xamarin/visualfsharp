@@ -73,12 +73,11 @@ type FSharpAsyncCompletionCommitManager() =
 
 open System.Composition
 open Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion
-open Microsoft.VisualStudio.Utilities
 open Microsoft.VisualStudio.FSharp.Editor
 open Microsoft.VisualStudio.Text.Editor
 [<Export(typeof<IAsyncCompletionCommitManagerProvider>)>]
-[<Name("FSharpAsyncCompletionCommitManagerProvider")>]
-[<ContentType("code++.F#")>]
+[<Microsoft.VisualStudio.Utilities.Name("FSharpAsyncCompletionCommitManagerProvider")>]
+[<Microsoft.VisualStudio.Utilities.ContentType("code++.F#")>]
 //[<TextViewRole(PredefinedTextViewRoles.Editable)>]
 //[<Order>]
 type internal FSharpAsyncCompletionCommitManagerProvider3
