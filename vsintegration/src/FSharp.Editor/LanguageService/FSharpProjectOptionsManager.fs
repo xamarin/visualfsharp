@@ -259,7 +259,7 @@ type private FSharpProjectOptionsReactor ((*_workspace: VisualStudioWorkspace,*)
                     if ct.IsCancellationRequested then
                         reply.Reply None
                     else
-                        //try
+                        try
                             if document.Project.Solution.Workspace.Kind = WorkspaceKind.MiscellaneousFiles then
                                 let! options = tryComputeOptionsByFile document ct
                                 reply.Reply options
@@ -269,23 +269,23 @@ type private FSharpProjectOptionsReactor ((*_workspace: VisualStudioWorkspace,*)
                             else
                                 let! options = tryComputeOptions document.Project
                                 reply.Reply options
-                        //with
-                        //| _ ->
-                            //reply.Reply None
+                        with
+                        | _ ->
+                            reply.Reply None
 
                 | FSharpProjectOptionsMessage.TryGetOptionsByProject(project, reply, ct) ->
                     if ct.IsCancellationRequested then
                         reply.Reply None
                     else
-                        //try
+                        try
                             if project.Solution.Workspace.Kind = WorkspaceKind.MiscellaneousFiles || project.Name = FSharpConstants.FSharpMiscellaneousFilesName then
                                 reply.Reply None
                             else
                                 let! options = tryComputeOptions project
                                 reply.Reply options
-                        //with
-                        //| _ ->
-                            //reply.Reply None
+                        with
+                        | _ ->
+                            reply.Reply None
 
                 | FSharpProjectOptionsMessage.ClearOptions(projectId) ->
                     cache.Remove(projectId) |> ignore

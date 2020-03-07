@@ -3,6 +3,7 @@
 namespace Microsoft.VisualStudio.FSharp.Editor
 
 open System
+open System
 open System.Diagnostics.Tracing
 
 type LogEditorFunctionId =

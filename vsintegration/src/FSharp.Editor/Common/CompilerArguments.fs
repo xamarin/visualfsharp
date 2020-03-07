@@ -208,14 +208,13 @@ module CompilerArguments =
        // TODO: This currently ignores escaping using "..."
        for arg in fsconfig.OtherFlags |> splitByChars [|' '|] do
          yield arg
-       yield! dashr
-       yield! (getCompiledFiles project)]
+       yield! dashr ]
 
   let generateProjectOptions (project:DotNetProject, projectAssemblyReferences: AssemblyReference seq, fsconfig:FSharpCompilerParameters, reqLangVersion, targetFramework, configSelector, shouldWrap) =
     let compilerOptions = generateCompilerOptions (project, projectAssemblyReferences, fsconfig, reqLangVersion, targetFramework, configSelector, shouldWrap) |> Array.ofSeq
     let loadedTimeStamp =  DateTime.MaxValue // Not 'now', we don't want to force reloading
     { ProjectFileName = project.FileName.FullPath.ToString()
-      SourceFiles = [| |]
+      SourceFiles = [| yield! (getCompiledFiles project) |]
       Stamp = None
       OtherOptions = compilerOptions
       ReferencedProjects = [| |]
