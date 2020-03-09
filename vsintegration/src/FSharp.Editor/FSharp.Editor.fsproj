@@ -199,7 +199,7 @@
     <Compile Include="VSMac\FSharpOutlineDocumentExtension.fs" />
     <Compile Include="VSMac\FSharpOutlineDocumentExtensionProvider.fs" />
     <PackageReference Include="Microsoft.CodeAnalysis" Version="$(NuGetVersionRoslyn)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
-    <PackageReference Include="FSharp.Compiler.Service" Version="99.0.2" />
+    <PackageReference Include="FSharp.Compiler.Service" Version="34.1.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" Version="$(NuGetVersionRoslyn)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
     <PackageReference Include="Microsoft.CodeAnalysis.EditorFeatures.Text" Version="$(NuGetVersionRoslyn)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
     <ProjectReference Include="..\..\..\..\..\src\core\MonoDevelop.Core\MonoDevelop.Core.csproj">
