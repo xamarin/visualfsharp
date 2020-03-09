@@ -89,7 +89,7 @@ type internal FSharpCompletionProvider
 
             if trigger.Reason = Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion.Data.CompletionTriggerReason.Deletion && intelliSenseOptions.ShowAfterCharIsDeleted then
                 Char.IsLetterOrDigit(triggerChar) || triggerChar = '.'
-            elif not (trigger.Reason = Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion.Data.CompletionTriggerReason.Insertion) then
+            elif not (trigger.Reason = Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion.Data.CompletionTriggerReason.Insertion || trigger.Reason = Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion.Data.CompletionTriggerReason.InvokeAndCommitIfUnique) then
                 false
             else
                 // Do not trigger completion if it's not single dot, i.e. range expression
@@ -98,7 +98,7 @@ type internal FSharpCompletionProvider
                 else
                     let documentId, filePath, defines = getInfo()
                     CompletionUtils.shouldProvideCompletion(documentId, filePath, defines, sourceText, triggerPosition) &&
-                    (triggerChar = '.' || (intelliSenseOptions.ShowAfterCharIsTyped && CompletionUtils.isStartingNewWord(sourceText, triggerPosition)))
+                    (trigger.Reason = Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion.Data.CompletionTriggerReason.InvokeAndCommitIfUnique || triggerChar = '.' || (intelliSenseOptions.ShowAfterCharIsTyped && CompletionUtils.isStartingNewWord(sourceText, triggerPosition)))
                 
 
     static member ProvideCompletionsAsyncAux(completionSource: Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion.IAsyncCompletionSource , checker: FSharpChecker, sourceText: SourceText, caretPosition: int, options: FSharpProjectOptions, filePath: string, 
