@@ -46,13 +46,18 @@ type FSharpCompilerParameters() =
     [<ItemProperty("DebugType", DefaultValue = "portable")>]
     let mutable debugType = "portable"
 
+    let getPlatformTarget() =
+        match platformTarget with
+        | "AnyCPU" -> "anycpu" // AnyCPU isn't a valid platform for the F# compiler
+        | target -> target
+
     member x.Optimize with get () = optimize and set v = optimize <- v
     member x.GenerateTailCalls with get () = generateTailCalls and set v = generateTailCalls <- v
     override x.NoStdLib with get () = noStdLib and set v = noStdLib <- v
     member x.DefineConstants with get () = defineConstants and set v = defineConstants <- v
     member x.OtherFlags with get () = otherFlags and set v = otherFlags <- v
     member x.DocumentationFile with get () = documentationFile and set v = documentationFile <- v
-    member x.PlatformTarget with get () = platformTarget and set v = platformTarget <- v
+    member x.PlatformTarget with get () = getPlatformTarget() and set v = platformTarget <- v
     member x.TreatWarningsAsErrors with get () = warnAsError and set v = warnAsError <- v
     member x.WarningLevel with get () = warningLevel and set v = warningLevel <- v
     member x.NoWarn with get () = nowarn and set v = nowarn <- v

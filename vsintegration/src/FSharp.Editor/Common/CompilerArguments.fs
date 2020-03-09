@@ -9,6 +9,8 @@ open System.IO
 open System.Reflection
 open System.Globalization
 open System.Runtime.Versioning
+open System.Threading
+open System.Threading.Tasks
 open MonoDevelop.Projects
 open MonoDevelop.Ide
 open MonoDevelop.Core.Assemblies
@@ -138,6 +140,17 @@ module CompilerArguments =
             | Some ref -> yield "-r:" + wrapf(ref)
             | None -> LoggingService.LogWarning(resolutionFailedMessage "FSharp.Core")
         | _ -> () // found them both, no action needed
+
+        let needsFacades =
+            projectReferences
+            |> Seq.exists(fun reference -> TaskUtil.WaitAndGetResult(SystemAssemblyService.RequiresFacadeAssembliesAsync(reference), Async.DefaultCancellationToken))
+
+        if needsFacades then
+            LoggingService.LogInfo("Found PCLv2 assembly.");
+            
+            let facades = project.TargetRuntime.FindFacadeAssembliesForPCL(project.TargetFramework)
+            for facade in facades do
+                yield "-r:" + wrapf(facade)
 
         for file in projectReferences do
             yield "-r:" + wrapf(file) ]
