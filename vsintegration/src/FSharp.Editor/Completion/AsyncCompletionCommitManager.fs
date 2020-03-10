@@ -69,24 +69,3 @@ type FSharpAsyncCompletionCommitManager() =
         /// <param name="token">Token used to cancel this operation</param>
         /// <returns>Instruction for the editor how to proceed after invoking this method. Default is <see cref="CommitResult.Unhandled"/></returns>
         override __.TryCommit(session, buffer, item, typedChar, token) = CommitResult.Unhandled
-
-
-open System.Composition
-open Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion
-open Microsoft.VisualStudio.FSharp.Editor
-open Microsoft.VisualStudio.Text.Editor
-[<Export(typeof<IAsyncCompletionCommitManagerProvider>)>]
-[<Microsoft.VisualStudio.Utilities.Name("FSharpAsyncCompletionCommitManagerProvider")>]
-[<Microsoft.VisualStudio.Utilities.ContentType("code++.F#")>]
-//[<TextViewRole(PredefinedTextViewRoles.Editable)>]
-//[<Order>]
-type internal FSharpAsyncCompletionCommitManagerProvider3
-    [<ImportingConstructor>]
-    (
-        checkerProvider: FSharpCheckerProvider
-    ) =
-    let x = 1
-    interface IAsyncCompletionCommitManagerProvider with
-        member __.GetOrCreate(textView) =
-            System.Diagnostics.Trace.WriteLine("GetOrCreate FSharpAsyncCompletionCommitManager")
-            FSharpAsyncCompletionCommitManager() :> _
