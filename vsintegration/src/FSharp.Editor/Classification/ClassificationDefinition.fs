@@ -23,5 +23,4 @@ type internal FSharpMutableVarTypeFormat() as self =
     inherit EditorFormatDefinition()
 
     do self.DisplayName <- SR.FSharpMutableVarsClassificationType()
-       self.ForegroundColor <- Nullable(Color.FromRgb(255uy, 0uy, 0uy))
-
+       self.ForegroundColor <- Nullable(Color.FromRgb(255uy, 210uy, 28uy))
