@@ -205,31 +205,37 @@
       <Project>{7525BB88-6142-4A26-93B9-A30C6983390A}</Project>
       <Name>MonoDevelop.Core</Name>
       <ReferenceSourceTarget></ReferenceSourceTarget>
+      <Private>False</Private>
     </ProjectReference>
     <ProjectReference Include="..\..\..\..\..\src\core\MonoDevelop.Ide\MonoDevelop.Ide.csproj">
       <Project>{27096E7F-C91C-4AC6-B289-6897A701DF21}</Project>
       <Name>MonoDevelop.Ide</Name>
       <ReferenceSourceTarget></ReferenceSourceTarget>
+      <Private>False</Private>
     </ProjectReference>
     <ProjectReference Include="..\..\..\..\xwt\Xwt\Xwt.csproj">
       <Project>{92494904-35FA-4DC9-BDE9-3A3E87AC49D3}</Project>
       <Name>Xwt</Name>
       <ReferenceSourceTarget></ReferenceSourceTarget>
+      <Private>False</Private>
     </ProjectReference>
     <ProjectReference Include="..\..\..\..\..\src\addins\MonoDevelop.TextEditor\MonoDevelop.TextEditor\MonoDevelop.TextEditor.csproj">
       <Project>{3F5B5BDA-69D5-441A-8142-AA25C998A997}</Project>
       <Name>MonoDevelop.TextEditor</Name>
       <ReferenceSourceTarget></ReferenceSourceTarget>
+      <Private>False</Private>
     </ProjectReference>
     <ProjectReference Include="..\..\..\..\mono-addins\Mono.Addins\Mono.Addins.csproj">
       <Project>{91DD5A2D-9FE3-4C3C-9253-876141874DAD}</Project>
       <Name>Mono.Addins</Name>
       <ReferenceSourceTarget></ReferenceSourceTarget>
+      <Private>False</Private>
     </ProjectReference>
     <PackageReference Include="Newtonsoft.Json" Version="$(NuGetVersionNewtonsoftJson)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
     <ProjectReference Include="..\..\..\..\..\src\addins\MonoDevelop.DesignerSupport\MonoDevelop.DesignerSupport.csproj">
       <Project>{2C24D515-4A2C-445C-8419-C09231913CFA}</Project>
       <Name>MonoDevelop.DesignerSupport</Name>
+      <Private>False</Private>
     </ProjectReference>
     <ProjectReference Include="..\..\..\..\fsharpbinding\FSharp\Microsoft.CodeAnalysis.ExternalAccess.FSharp.csproj">
       <Project>{44A1C739-8C32-475E-BE92-F88332CE35AB}</Project>
