@@ -16,6 +16,7 @@ open Microsoft.CodeAnalysis.Text
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Classification
 open Microsoft.VisualStudio.Text.Classification
 open System.Windows.Media
+open MonoDevelop.Core
 
 // IEditorClassificationService is marked as Obsolete, but is still supported. The replacement (IClassificationService)
 // is internal to Microsoft.CodeAnalysis.Workspaces which we don't have internals visible to. Rather than add yet another
@@ -26,26 +27,30 @@ open FSharp.Compiler.SourceCodeServices
 
 [<RequireQualifiedAccess>]
 module internal FSharpClassificationTypes =
-    let [<Literal>] Function = ClassificationTypeNames.MethodName// "Function"// "FSharp.Function"
+    let [<Literal>] Function = ClassificationTypeNames.MethodName
     let [<Literal>] MutableVar = "mutable name"
-    let [<Literal>] Printf = ClassificationTypeNames.MethodName//"FSharp.Printf"
+    let [<Literal>] Printf = ClassificationTypeNames.MethodName
     let [<Literal>] ReferenceType = ClassificationTypeNames.ClassName
-    let [<Literal>] Module = ClassificationTypeNames.ClassName //ModuleName
+    let [<Literal>] Module = ClassificationTypeNames.ClassName
     let [<Literal>] ValueType = ClassificationTypeNames.StructName
     let [<Literal>] Keyword = ClassificationTypeNames.Keyword
     let [<Literal>] Enum = ClassificationTypeNames.EnumName
-    let [<Literal>] Property = ClassificationTypeNames.PropertyName//"Property"// "FSharp.Property"
+    let [<Literal>] Property = ClassificationTypeNames.PropertyName
     let [<Literal>] Interface = ClassificationTypeNames.InterfaceName
     let [<Literal>] TypeArgument = ClassificationTypeNames.TypeParameterName
     let [<Literal>] Operator = ClassificationTypeNames.Operator
-    let [<Literal>] Disposable = ClassificationTypeNames.ClassName// "FSharp.Disposable"
+    let [<Literal>] Disposable = ClassificationTypeNames.ClassName
 
     let getClassificationTypeName = function
         | SemanticClassificationType.ReferenceType -> ReferenceType
         | SemanticClassificationType.Module -> Module
         | SemanticClassificationType.ValueType -> ValueType
         | SemanticClassificationType.Function -> Function
-        | SemanticClassificationType.MutableVar -> MutableVar
+        | SemanticClassificationType.MutableVar ->
+            if PropertyService.Get("FSharpBinding.HighlightMutables", false) then
+                MutableVar
+            else
+                ClassificationTypeNames.LocalName
         | SemanticClassificationType.Printf -> Printf
         | SemanticClassificationType.ComputationExpression
         | SemanticClassificationType.IntrinsicFunction -> Keyword
