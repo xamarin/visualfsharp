@@ -17,7 +17,8 @@
     <Externalconsole>true</Externalconsole>
     <StartProgram>$(MSBuildProjectDirectory)\..\..\..\build\bin\MonoDevelop.exe</StartProgram>
     <StartWorkingDirectory>$(MSBuildProjectDirectory)\..\..\..\build\bin</StartWorkingDirectory>
-
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>portable</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>..\..\..\..\..\build\AddIns\FSharp.Editor</OutputPath>
     <WarningLevel>3</WarningLevel>
@@ -41,8 +42,6 @@
     <UseSGen>false</UseSGen>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
     <EnableCodeSigning>false</EnableCodeSigning>
     <CreatePackage>false</CreatePackage>
     <EnablePackageSigning>false</EnablePackageSigning>
@@ -134,8 +133,9 @@
     <Compile Include="CodeFix\MissingReferenceCodeFixProvider.fs" />
     <Compile Include="CodeFix\FixIndexerAccess.fs" />
     <Compile Include="CodeFix\RenameParamToMatchSignature.fs" />
-    <None Include="Classification\ClassificationDefinitions.fs" />
     <Compile Include="Classification\ClassificationService.fs" />
+    <None Include="Classification\ClassificationDefinitions.fs" />
+    <Compile Include="Classification\ClassificationDefinition.fs" />
     <Compile Include="Formatting\BraceMatchingService.fs" />
     <Compile Include="Formatting\IndentationService.fs" />
     <Compile Include="Formatting\EditorFormattingService.fs" />
@@ -198,7 +198,6 @@
     <Compile Include="VSMac\FSharpPathedDocumentExtensionProvider.fs" />
     <Compile Include="VSMac\FSharpOutlineDocumentExtension.fs" />
     <Compile Include="VSMac\FSharpOutlineDocumentExtensionProvider.fs" />
-    <PackageReference Include="Microsoft.CodeAnalysis" Version="$(NuGetVersionRoslyn)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
     <PackageReference Include="FSharp.Compiler.Service" Version="34.1.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" Version="$(NuGetVersionRoslyn)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
     <PackageReference Include="Microsoft.CodeAnalysis.EditorFeatures.Text" Version="$(NuGetVersionRoslyn)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
@@ -233,7 +232,7 @@
       <Name>MonoDevelop.DesignerSupport</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\..\..\fsharpbinding\FSharp\Microsoft.CodeAnalysis.ExternalAccess.FSharp.csproj">
-      <Project>{653121B5-A28B-4DA1-9D4E-EECA4CA4203B}</Project>
+      <Project>{44A1C739-8C32-475E-BE92-F88332CE35AB}</Project>
       <Name>Microsoft.CodeAnalysis.ExternalAccess.FSharp</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\..\..\vs-editor-core\src\Editor\Core\Def\CoreUtility.csproj">
@@ -243,6 +242,7 @@
     </ProjectReference>
     <PackageReference Include="Microsoft.CodeAnalysis.Features" Version="$(NuGetVersionRoslyn)" />
     <PackageReference Include="FSharp.Core" Version="4.7.0" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
+    <PackageReference Include="Microsoft.CodeAnalysis" Version="$(NuGetVersionRoslyn)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
   </ItemGroup>
   <ProjectExtensions>
     <MonoDevelop>

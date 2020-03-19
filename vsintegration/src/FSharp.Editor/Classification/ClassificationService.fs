@@ -14,6 +14,8 @@ open Microsoft.CodeAnalysis.Editor
 open Microsoft.CodeAnalysis.Host.Mef
 open Microsoft.CodeAnalysis.Text
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Classification
+open Microsoft.VisualStudio.Text.Classification
+open System.Windows.Media
 
 // IEditorClassificationService is marked as Obsolete, but is still supported. The replacement (IClassificationService)
 // is internal to Microsoft.CodeAnalysis.Workspaces which we don't have internals visible to. Rather than add yet another
@@ -21,10 +23,11 @@ open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Classification
 #nowarn "44"
 
 open FSharp.Compiler.SourceCodeServices
+
 [<RequireQualifiedAccess>]
 module internal FSharpClassificationTypes =
     let [<Literal>] Function = ClassificationTypeNames.MethodName// "Function"// "FSharp.Function"
-    let [<Literal>] MutableVar = ClassificationTypeNames.LocalName// "FSharp.MutableVar"
+    let [<Literal>] MutableVar = "mutable name"
     let [<Literal>] Printf = ClassificationTypeNames.MethodName//"FSharp.Printf"
     let [<Literal>] ReferenceType = ClassificationTypeNames.ClassName
     let [<Literal>] Module = ClassificationTypeNames.ClassName //ModuleName
