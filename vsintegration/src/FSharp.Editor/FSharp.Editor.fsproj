@@ -20,7 +20,7 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>portable</DebugType>
     <Optimize>true</Optimize>
-    <OutputPath>..\..\..\..\..\build\AddIns\FSharp.Editor</OutputPath>
+    <OutputPath>..\..\..\..\..\build\AddIns\FSharpBinding</OutputPath>
     <WarningLevel>3</WarningLevel>
     <DocumentationFile>..\..\..\..\..\build\AddIns\FSharp.Editor\FSharp.Editor.XML</DocumentationFile>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
