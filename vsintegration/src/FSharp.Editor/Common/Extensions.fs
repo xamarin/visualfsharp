@@ -5,27 +5,18 @@ module internal Microsoft.VisualStudio.FSharp.Editor.Extensions
 
 open System
 open System.IO
+
 open Microsoft.CodeAnalysis
 open Microsoft.CodeAnalysis.Text
 open Microsoft.CodeAnalysis.Host
+
 open FSharp.Compiler.Text
-open FSharp.Compiler.AbstractSyntax
 open FSharp.Compiler.SourceCodeServices
-open MonoDevelop.Core
+open FSharp.Compiler.SyntaxTree
 
 type private FSharpGlyph = FSharp.Compiler.SourceCodeServices.FSharpGlyph
-//type private FSharpRoslynGlyph = Microsoft.CodeAnalysis.ExternalAccess.FSharp.FSharpGlyph
+type private FSharpRoslynGlyph = Microsoft.CodeAnalysis.ExternalAccess.FSharp.FSharpGlyph
 
-module LoggingService =
-    let inline private log f = Printf.kprintf f
-
-    let inline private logWithThread f format =
-        log (log f "[UI - %b] %s" Runtime.IsMainThread) format
-
-    let logDebug format = logWithThread LoggingService.LogDebug format
-    let logError format = logWithThread LoggingService.LogError format
-    let logInfo format = logWithThread LoggingService.LogInfo format
-    let logWarning format = logWithThread LoggingService.LogWarning format
 
 type Path with
     static member GetFullPathSafe path =
@@ -141,9 +132,10 @@ module private SourceText =
         sourceText
 
 type SourceText with
+
     member this.ToFSharpSourceText() =
         SourceText.weakTable.GetValue(this, Runtime.CompilerServices.ConditionalWeakTable<_,_>.CreateValueCallback(SourceText.create))
-(*
+
 type FSharpNavigationDeclarationItem with
     member x.RoslynGlyph : FSharpRoslynGlyph =
         match x.Glyph with
@@ -216,7 +208,6 @@ type FSharpNavigationDeclarationItem with
             | Some SynAccess.Internal -> FSharpRoslynGlyph.ExtensionMethodInternal
             | _ -> FSharpRoslynGlyph.ExtensionMethodPublic
         | FSharpGlyph.Error -> FSharpRoslynGlyph.Error
-*)
 
 [<RequireQualifiedAccess>]
 module String =   
@@ -249,12 +240,6 @@ module Option =
             xs |> List.map Option.get |> Some
         else
             None
-
-    let inline tryCast<'T> (o: obj): 'T option =
-        match o with
-        | null -> None
-        | :? 'T as a -> Some a
-        | _ -> None
 
 [<RequireQualifiedAccess>]
 module Seq =
