@@ -63,7 +63,7 @@ type internal FSharpCompletionSource
     (textView: ITextView, checkerProvider: FSharpCheckerProvider, projectInfoManager: FSharpProjectOptionsManager, assemblyContentProvider: AssemblyContentProvider) =
 
 
-    let settings: EditorOptions = textView.TextBuffer.GetWorkspace().Services.GetService()
+    //let settings: EditorOptions = textView.TextBuffer.GetWorkspace().Services.GetService()
 
     let createParagraphFromLines(lines: List<ClassifiedTextElement>) =
         if lines.Count = 1 then
@@ -233,13 +233,14 @@ type internal FSharpCompletionSource
                 | Some (_parsingOptions, projectOptions) ->
                     let! textVersion = document.GetTextVersionAsync(token) |> liftTaskAsync
                     let getAllSymbols(fileCheckResults: FSharpCheckFileResults) =
-                        if settings.IntelliSense.IncludeSymbolsFromUnopenedNamespacesOrModules
-                        then assemblyContentProvider.GetAllEntitiesInProjectAndReferencedAssemblies(fileCheckResults)
-                        else []
+                        []
+                        //if settings.IntelliSense.IncludeSymbolsFromUnopenedNamespacesOrModules
+                        //then assemblyContentProvider.GetAllEntitiesInProjectAndReferencedAssemblies(fileCheckResults)
+                        //else []
 
 
                     session.TextView.Properties.["PotentialCommitCharacters"] <- commitChars
-                    let! completions = FSharpCompletionProvider.ProvideCompletionsAsyncAux(this, checkerProvider.Checker, sourceText, triggerLocation.Position, projectOptions, document.FilePath, textVersion.GetHashCode(), getAllSymbols, settings.LanguageServicePerformance, settings.IntelliSense)
+                    let! completions = FSharpCompletionProvider.ProvideCompletionsAsyncAux(this, checkerProvider.Checker, sourceText, triggerLocation.Position, projectOptions, document.FilePath, textVersion.GetHashCode(), getAllSymbols, (*settings.LanguageServicePerformance*) LanguageServicePerformanceOptions.Default, (*settings.IntelliSense*) IntelliSenseOptions.Default)
                     match completions with
                     | Some completions' ->
                         return new Data.CompletionContext(completions'.ToImmutableArray())
@@ -295,27 +296,24 @@ type internal FSharpCompletionSource
 
             let document = triggerLocation.Snapshot.GetOpenDocumentInCurrentContextWithChanges()
 
-            let getInfo() = 
+            let getInfo() =
                 let defines = projectInfoManager.GetCompilationDefinesForEditingDocument(document)
                 (document.Id, document.FilePath, defines)
             
-            match document.TryGetText() with
-            | true, sourceText ->
-                let shouldTrigger =
-                    FSharpCompletionProvider.ShouldTriggerCompletionAux(sourceText, triggerLocation.Position, trigger, getInfo, settings.IntelliSense)
 
-                match shouldTrigger with
-                | false ->
-                    Data.CompletionStartData.DoesNotParticipateInCompletion
-                | true ->
-                    Data.CompletionStartData(
-                        participation = Data.CompletionParticipation.ProvidesItems,
-                        applicableToSpan = new SnapshotSpan(
-                            triggerLocation.Snapshot,
-                            CompletionUtils.getCompletionItemSpan sourceText triggerLocation.Position))
-            | false, _ ->
+            let sourceText = triggerLocation.Snapshot.AsText()
+            let shouldTrigger =
+                FSharpCompletionProvider.ShouldTriggerCompletionAux(sourceText, triggerLocation.Position, trigger, getInfo, (*settings.IntelliSense*) IntelliSenseOptions.Default)
+
+            match shouldTrigger with
+            | false ->
                 Data.CompletionStartData.DoesNotParticipateInCompletion
-
+            | true ->
+                Data.CompletionStartData(
+                    participation = Data.CompletionParticipation.ProvidesItems,
+                    applicableToSpan = new SnapshotSpan(
+                        triggerLocation.Snapshot,
+                        CompletionUtils.getCompletionItemSpan sourceText triggerLocation.Position))
 
 [<Export(typeof<IAsyncCompletionSourceProvider>)>]
 [<Export(typeof<IAsyncCompletionCommitManagerProvider>)>]
