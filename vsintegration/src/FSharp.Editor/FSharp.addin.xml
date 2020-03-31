@@ -47,4 +47,16 @@
                      blockCommentEndTag="*)"
                      codeDomType="FSharp.Compiler.CodeDom.FSharpCleanCodeProvider" />
   </Extension>
+    
+  <Extension path="/MonoDevelop/Ide/Pads">
+    <ComplexCondition>
+      <Or>
+        <Condition id="MSBuildTargetIsAvailable" target="$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.0\Framework\v4.0\Microsoft.FSharp.Targets" />
+        <Condition id="MSBuildTargetIsAvailable" target="$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.1\Framework\v4.0\Microsoft.FSharp.Targets" />
+        <Condition id="MSBuildTargetIsAvailable" target="$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\4.0\Framework\v4.0\Microsoft.FSharp.Targets" />
+      </Or>
+      <Pad id="FSharp.Editor.FSharpInteractivePad" defaultPlacement="Bottom" _label="F# New Interactive" icon="md-project" class="FSharp.Editor.FSharpInteractivePad" />
+<!--      <Pad id="MonoDevelop.FSharp.FakePad" defaultPlacement="Bottom" _label="FAKE" icon="md-command" class="MonoDevelop.FSharp.FakePad" />-->
+    </ComplexCondition>
+  </Extension>
 </ExtensionModel>
