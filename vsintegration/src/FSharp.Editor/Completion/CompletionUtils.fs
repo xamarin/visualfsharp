@@ -144,7 +144,7 @@ module internal CompletionUtils =
         let rec findStart index =
             let c = sourceText.[index-1]
             match isIdentifierStartCharacter c with
-            | true when index > 0 ->
+            | true when index > 1 ->
                 findStart (index-1)
             | _ -> index
 
