@@ -29,6 +29,7 @@ open System
 open System.IO
 open System.Threading.Tasks
 open System.Collections.Generic
+open System.Collections.Immutable
 
 open Gdk
 open MonoDevelop.Components
@@ -50,6 +51,10 @@ open Microsoft.VisualStudio.Text
 open Gtk
 open Microsoft.VisualStudio.Text.Classification
 open CoreGraphics
+open Microsoft.VisualStudio.Core.Imaging
+open Microsoft.VisualStudio.Text.Tagging
+open System.ComponentModel.Composition
+open Microsoft.VisualStudio.Imaging
 
 [<AutoOpen>]
 module ColorHelpers =
@@ -200,7 +205,7 @@ type ShellHistory() =
 
 module InteractiveContentTypeName =
     [<Literal>]
-    let ContentTypeName = "F#"
+    let ContentTypeName = "F# Interactive"
 
 type InteractiveContentTypeDefinition() =
     [<System.ComponentModel.Composition.Export>]
@@ -208,32 +213,116 @@ type InteractiveContentTypeDefinition() =
     [<Microsoft.VisualStudio.Utilities.BaseDefinition("text")>]
     member val InteractiveContentTypeDefinition: Microsoft.VisualStudio.Utilities.ContentTypeDefinition = null with get, set
 
+type InteractivePromptGlyphTag() = interface IGlyphTag
+
+type InteractiveGlyphFactory(imageId:ImageId, imageService:IImageService) =
+    let mutable imageCache: AppKit.NSImage option = None
+    
+    interface IGlyphFactory with
+        member x.GenerateGlyph(line, tag) =
+            match tag with
+            | :? InteractivePromptGlyphTag ->
+                if imageCache.IsNone then
+                    imageCache <- Some(imageService.GetImage (imageId) :?> AppKit.NSImage)
+                let imageView = AppKit.NSImageView.FromImage imageCache.Value
+                imageView.SetFrameSize (imageView.FittingSize)
+                Some (imageView :> obj)
+            | _ -> None
+            |> Option.toObj
+
+[<Export(typeof<IGlyphFactoryProvider>)>]
+[<Microsoft.VisualStudio.Utilities.Name("InteractivePromptGlyphTag")>]
+[<Microsoft.VisualStudio.Utilities.ContentType(InteractiveContentTypeName.ContentTypeName)>]
+[<TagType(typeof<InteractivePromptGlyphTag>)>]
+//[<TextViewRole(PredefinedTextViewRoles.Debuggable)>]
+type InteractiveGlyphFactoryProvider() as this =
+    [<Import>]
+    member val ImageService:IImageService = null with get, set
+
+    interface IGlyphFactoryProvider with
+        member x.GetGlyphFactory(view, margin) =
+            let imageId = ImageId(Guid("{3404e281-57a6-4f3a-972b-185a683e0753}"), 1)
+            upcast InteractiveGlyphFactory(imageId, x.ImageService)
+
+
+type InteractivePromptGlyphTagger(textView: ITextView) as this =
+    let tagsChanged = Event<_,_>()
+
+    let promptSpans = HashSet<_>()
+    let promptsChanged = Event<_>()
+
+    do
+    //    glyphManager.PromptsChanged.Add(fun (args) ->
+    //        tagsChanged.Trigger(this, args))//  (this :> ITagger<InteractivePromptGlyphTag>).Ta
+        textView.Properties.[typeof<InteractivePromptGlyphTagger>] <- this
+
+    //member x.Controller = textView.Properties.[typeof<InteractivePadController>] :?> InteractivePadController
+        
+    member x.AddPrompt(pos:int) =
+        if promptSpans.Add(pos) then
+            tagsChanged.Trigger(this, SnapshotSpanEventArgs(SnapshotSpan(textView.TextSnapshot, pos, 1)))
+    
+    interface ITagger<InteractivePromptGlyphTag> with
+        [<CLIEvent>]
+        member this.TagsChanged = tagsChanged.Publish
+        
+        /// <summary>
+        /// Occurs when tags are added to or removed from the provider.
+        /// </summary>
+        //event EventHandler<SnapshotSpanEventArgs> TagsChanged;
+        //member this.add_TagsChanged(handler) = tagsChanged.Publish
+
+        //member this.remove_TagsChanged(handler) = ()// tagsChanged.Publish.RemoveHandler(handler)
+        //public IEnumerable<ITagSpan<BaseBreakpointGlyphTag>> GetTags(NormalizedSnapshotSpanCollection spans)
+        member x.GetTags(spans) =
+            seq {
+                for span in spans do
+                    if promptSpans.Contains(span.Start.Position) then
+                        yield TagSpan<InteractivePromptGlyphTag>(span, InteractivePromptGlyphTag())
+            }
+
+//type InteractiveGlyphManager(textView:ITextView) =
+//    let promptSpans = HashSet<_>()
+//    let promptsChanged = new Event<_>()
+
+//    member x.PromptsChanged = promptsChanged.Publish
+
+//    member x.PromptSpans = promptSpans
+
+//    member x.AddPrompt(pos:int) =
+//        if promptSpans.Add(pos) then
+//            promptsChanged.Trigger(new SnapshotSpanEventArgs(new SnapshotSpan(textView.TextSnapshot, pos, 1)))
+
+module InteractiveGlyphManagerService =
+    let getGlyphManager(textView: ITextView) =
+        textView.Properties.GetOrCreateSingletonProperty(typeof<InteractivePromptGlyphTagger>, fun () -> InteractivePromptGlyphTagger textView)
+
 [<Microsoft.VisualStudio.Utilities.BaseDefinition("text")>]
 [<Microsoft.VisualStudio.Utilities.Name(InteractiveContentTypeName.ContentTypeName)>]
 [<System.ComponentModel.Composition.Export>]
 type InteractivePadController() as this =
     let mutable view = null
-    let mutable textView = null
-    do
-        let contentTypeRegistry = CompositionManager.Instance.GetExportedValue<Microsoft.VisualStudio.Utilities.IContentTypeRegistryService>()
-        let textBufferFactory = CompositionManager.Instance.GetExportedValue<ITextBufferFactoryService>()
-        let factory = CompositionManager.Instance.GetExportedValue<ICocoaTextEditorFactoryService>()
-        let contentType = contentTypeRegistry.GetContentType(InteractiveContentTypeName.ContentTypeName)
-        let editorFormatMapService = CompositionManager.Instance.GetExportedValue<IEditorFormatMapService>()
-        //let appearanceCategory = Guid.NewGuid().ToString()
-        //let editorFormat = editorFormatMapService.GetEditorFormatMap(appearanceCategory)
-        //let resourceDictionary = editorFormat.GetProperties("Plain Text")
-        //resourceDictionary.[ClassificationFormatDefinition.TypefaceId] <- TextField.Font
-        //resourceDictionary.[ClassificationFormatDefinition.FontRenderingSizeId] <- 20
-        //resourceDictionary.[ClassificationFormatDefinition.BackgroundBrushId] <- System.Windows.Media.Brushes.Black
-        //resourceDictionary.[ClassificationFormatDefinition.ForegroundColorId] <- System.Windows.Media.Brushes.Black
-        //editorFormat.SetProperties("Plain Text", resourceDictionary)
+    //let mutable textView = null
+    let contentTypeRegistry = CompositionManager.Instance.GetExportedValue<Microsoft.VisualStudio.Utilities.IContentTypeRegistryService>()
+    let textBufferFactory = CompositionManager.Instance.GetExportedValue<ITextBufferFactoryService>()
+    let factory = CompositionManager.Instance.GetExportedValue<ICocoaTextEditorFactoryService>()
+    let contentType = contentTypeRegistry.GetContentType(InteractiveContentTypeName.ContentTypeName)
+    let editorFormatMapService = CompositionManager.Instance.GetExportedValue<IEditorFormatMapService>()
+    //let appearanceCategory = Guid.NewGuid().ToString()
+    //let editorFormat = editorFormatMapService.GetEditorFormatMap(appearanceCategory)
+    //let resourceDictionary = editorFormat.GetProperties("Plain Text")
+    //resourceDictionary.[ClassificationFormatDefinition.TypefaceId] <- TextField.Font
+    //resourceDictionary.[ClassificationFormatDefinition.FontRenderingSizeId] <- 20
+    //resourceDictionary.[ClassificationFormatDefinition.BackgroundBrushId] <- System.Windows.Media.Brushes.Black
+    //resourceDictionary.[ClassificationFormatDefinition.ForegroundColorId] <- System.Windows.Media.Brushes.Black
+    //editorFormat.SetProperties("Plain Text", resourceDictionary)
 
-        let roles = factory.CreateTextViewRoleSet(PredefinedTextViewRoles.Analyzable, PredefinedTextViewRoles.Editable, PredefinedTextViewRoles.Interactive)
-        let textBuffer = textBufferFactory.CreateTextBuffer("", contentType)
-        
-        textView <- factory.CreateTextView(textBuffer, roles)
-        //textView.Background <- CGColor.CreateSrgb(nfloat 0.0, nfloat 0.0, nfloat 0.0, nfloat 0.0)
+    let roles = factory.CreateTextViewRoleSet(PredefinedTextViewRoles.Analyzable, PredefinedTextViewRoles.Editable, PredefinedTextViewRoles.Interactive)
+    let textBuffer = textBufferFactory.CreateTextBuffer("", contentType)
+    
+    let textView = factory.CreateTextView(textBuffer, roles)
+    //textView.Background <- CGColor.CreateSrgb(nfloat 0.0, nfloat 0.0, nfloat 0.0, nfloat 0.0)
+    do
         textView.Options.SetOptionValue(DefaultTextViewOptions.UseVisibleWhitespaceId, false)
         //textView.Options.SetOptionValue(DefaultCocoaViewOptions.AppearanceCategory, appearanceCategory)
         textView.Options.SetOptionValue(DefaultTextViewHostOptions.ChangeTrackingId, false)
@@ -241,7 +330,7 @@ type InteractivePadController() as this =
         textView.Options.SetOptionValue(DefaultTextViewHostOptions.OutliningMarginId, false)
         textView.Options.SetOptionValue(DefaultTextViewHostOptions.GlyphMarginId, true)
         textView.VisualElement.TranslatesAutoresizingMaskIntoConstraints <- false
-        textView.Properties.[typeof<InteractivePadController>] <- this
+        //textView.Properties.[typeof<InteractivePadController>] <- this
         let host = factory.CreateTextViewHost(textView, true)
         view <- host.HostControl
 
@@ -254,6 +343,37 @@ type InteractivePadController() as this =
 
         if edit.Insert(position, text) then
             edit.Apply() |> ignore
+
+    member this.SetPrompt() =
+        this.FsiOutput "\n"
+        let buffer = textView.TextBuffer
+        //use edit = buffer.CreateEdit()
+        let snapshot = buffer.CurrentSnapshot
+        let lastLine = snapshot.GetLineFromLineNumber(snapshot.LineCount - 1)
+        //let span = new SnapshotSpan(lastLine.Start., lastLine.End)
+        let glyphManager = InteractiveGlyphManagerService.getGlyphManager(textView)
+
+        glyphManager.AddPrompt lastLine.Start.Position
+        //(glyphManager :> ITagger<InteractivePromptGlyphTag>).TagsChanged
+
+
+[<Export(typeof<IViewTaggerProvider>)>]
+[<Microsoft.VisualStudio.Utilities.ContentType(InteractiveContentTypeName.ContentTypeName)>]
+[<TagType(typeof<InteractivePromptGlyphTag>)>]
+//[TagType(typeof(BreakpointDisabledGlyphTag))]
+//[TagType(typeof(BreakpointInvalidGlyphTag))]
+//[TagType(typeof(TracepointGlyphTag))]
+//[TagType(typeof(TracepointDisabledGlyphTag))]
+//[TagType(typeof(TracepointInvalidGlyphTag))]
+//[TextViewRole(PredefinedTextViewRoles.Debuggable)]
+type InteractivePromptGlyphTaggerProvider() =
+    interface IViewTaggerProvider with
+    //[Import]
+    //public ITextDocumentFactoryService TextDocumentFactoryService { get; set; }
+
+        //public ITagger<T> CreateTagger<T>(ITextView textView, ITextBuffer buffer) where T : ITag
+        member x.CreateTagger(textView, buffer) =
+            box(InteractivePromptGlyphTagger textView) :?> _
 
 type FSharpInteractivePad() as this =
     inherit MonoDevelop.Ide.Gui.PadContent()
@@ -332,7 +452,7 @@ type FSharpInteractivePad() as this =
             promptReceived <- false
             let textReceived = ses.TextReceived.Subscribe(fun t -> Runtime.RunInMainThread(fun () -> controller.FsiOutput t) |> ignore)
             //let imageReceived = ses.ImageReceived.Subscribe(fun image -> Runtime.RunInMainThread(fun () -> renderImage image) |> Async.AwaitTask |> Async.RunSynchronously)
-            let promptReady = ses.PromptReady.Subscribe(fun () -> Runtime.RunInMainThread(fun () -> promptReceived <- true; setPrompt() ) |> ignore)
+            let promptReady = ses.PromptReady.Subscribe(fun () -> Runtime.RunInMainThread(fun () -> promptReceived <- true; controller.SetPrompt() ) |> ignore)
 
             ses.Exited.Add(fun _ ->
                 textReceived.Dispose()
