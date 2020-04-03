@@ -23,7 +23,7 @@
 // AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-namespace FSharp.Editor
+namespace Microsoft.VisualStudio.FSharp.Editor
 
 open System
 open System.IO
@@ -232,7 +232,7 @@ type InteractiveGlyphFactory(imageId:ImageId, imageService:IImageService) =
                     imageCache <- Some(imageService.GetImage (imageId) :?> AppKit.NSImage)
                 let imageView = AppKit.NSImageView.FromImage imageCache.Value
                 imageView.SetFrameSize (imageView.FittingSize)
-                Some (imageView :> obj)
+                Some (box imageView)
             | _ -> None
             |> Option.toObj
 
@@ -338,6 +338,7 @@ type InteractivePadController(session: InteractiveSession) as this =
         textView.Options.SetOptionValue(DefaultTextViewHostOptions.GlyphMarginId, true)
         textView.VisualElement.TranslatesAutoresizingMaskIntoConstraints <- false
         textView.Properties.[typeof<InteractivePadController>] <- this
+        textView.Properties.[typeof<InteractiveSession>] <- session
         //textView.Properties.[typeof<InteractivePadController>] <- this
         let host = factory.CreateTextViewHost(textView, true)
         view <- host.HostControl

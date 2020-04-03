@@ -1,20 +1,4 @@
-﻿//
-// InteractiveCompletionService.fs
-//
-// Author:
-//       jasonimison <jaimison@microsoft.com>
-//
-// Copyright (c) Microsoft Corporation.
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
+// Copyright (c) Microsoft Corporation.  All Rights Reserved.  See License.txt in the project root for license information.
 
 namespace Microsoft.VisualStudio.FSharp.Editor
 
@@ -37,15 +21,13 @@ open Microsoft.CodeAnalysis.Classification
 open Microsoft.CodeAnalysis.Text;
 open Microsoft.VisualStudio.Text;
 open Microsoft.VisualStudio.Text.Adornments;
-
+open MonoDevelop.FSharp
 open FSharp.Compiler.SourceCodeServices
+open System
+open Microsoft.VisualStudio.Core.Imaging
+open Microsoft.VisualStudio.Imaging
 
-
-type CompletionType =
-    | Document of Document
-    | Interactive
-
-type internal InteractiveCompletionService
+type internal FSharpInteractiveCompletionService
     (
         workspace: Workspace,
         checkerProvider: FSharpCheckerProvider,
@@ -79,8 +61,8 @@ type internal InteractiveCompletionService
             .WithDefaultEnterKeyRule(enterKeyRule)
 
 [<Shared>]
-[<ExportLanguageServiceFactory(typeof<CompletionService>, FSharpConstants.FSharpContentTypeName)>]
-type internal FSharpCompletionSource
+[<ExportLanguageServiceFactory(typeof<CompletionService>, InteractiveContentTypeName.ContentTypeName)>]
+type internal FSharpInteractiveCompletionSource
     (textView: ITextView, checkerProvider: FSharpCheckerProvider, projectInfoManager: FSharpProjectOptionsManager, assemblyContentProvider: AssemblyContentProvider) =
 
 
@@ -237,8 +219,30 @@ type internal FSharpCompletionSource
     /// <returns>A struct that holds completion items and applicable span</returns>
     let commitChars = [|' '; '='; ','; '.'; '<'; '>'; '('; ')'; '!'; ':'; '['; ']'; '|'|].ToImmutableArray()
 
-    let projectId = ProjectId.CreateNewId("F# Interactive")
-    let documentId = DocumentId.CreateNewId(projectId, "F# Interactive")
+    let imageCatalogGuid = Guid.Parse("ae27a6b0-e345-4288-96df-5eaf394ee369");
+    let symbolStringToIcon = function
+        | "ActivePatternCase" -> ImageId(imageCatalogGuid, KnownImageIds.Enumeration)
+        | "Field" -> ImageId(imageCatalogGuid, KnownImageIds.Field)
+        | "UnionCase" -> ImageId(imageCatalogGuid, KnownImageIds.Union)
+        | "Class" -> ImageId(imageCatalogGuid, KnownImageIds.Class)
+        | "Delegate" -> ImageId(imageCatalogGuid, KnownImageIds.Delegate)
+        | "Constructor" -> ImageId(imageCatalogGuid, KnownImageIds.Method)
+        | "Event" -> ImageId(imageCatalogGuid, KnownImageIds.Event)
+        | "Property" -> ImageId(imageCatalogGuid, KnownImageIds.Property)
+        | "ExtensionMethod" -> ImageId(imageCatalogGuid, KnownImageIds.ExtensionMethod)
+        | "Method" -> ImageId(imageCatalogGuid, KnownImageIds.Method)
+        | "Operator" -> ImageId(imageCatalogGuid, KnownImageIds.Operator)
+        | "ClosureOrNestedFunction" -> ImageId(imageCatalogGuid, KnownImageIds.Method)
+        | "Val" -> ImageId(imageCatalogGuid, KnownImageIds.Field)
+        | "Enum" -> ImageId(imageCatalogGuid, KnownImageIds.Enumeration)
+        | "Interface" -> ImageId(imageCatalogGuid, KnownImageIds.Interface)
+        | "Module" -> ImageId(imageCatalogGuid, KnownImageIds.Module)
+        | "Namespace" -> ImageId(imageCatalogGuid, KnownImageIds.Namespace)
+        | "Record" -> ImageId(imageCatalogGuid, KnownImageIds.Class)
+        | "Union" -> ImageId(imageCatalogGuid, KnownImageIds.Union)
+        | "ValueType" -> ImageId(imageCatalogGuid, KnownImageIds.Structure)
+        | "Entity" -> ImageId(imageCatalogGuid, KnownImageIds.Class)
+        | _ -> ImageId(imageCatalogGuid, KnownImageIds.LocalVariable)
 
     interface IAsyncExpandingCompletionSource with
         member __.GetExpandedCompletionContextAsync(session, expander, initialTrigger, applicableToSpan, token) =
@@ -248,78 +252,55 @@ type internal FSharpCompletionSource
 
     interface IAsyncCompletionSource with
         member this.GetCompletionContextAsync(session, trigger, triggerLocation, applicableToSpan, token) =
-            //let getProjectOptions completionType (sourceText: SourceText) =
-                //async {
-                //     match! completionType with   
-                //     | Interactive ->
-                //         let scriptProjectOptions, _ = checkerProvider.Checker.GetProjectOptionsFromScript("__FSI__.fsx", sourceText.ToFSharpSourceText()) |> Async.RunSynchronously
-                //         "__FSI__.fsx", scriptProjectOptions, VersionStamp.Default
- 
-                //     | Document document ->
-
-                //         let options = projectInfoManager.TryGetOptionsForEditingDocumentOrProject(document, token) |> Async.RunSynchronously
-                //         match options with
-                //         | Some (_parsingOptions, projectOptions) ->
-                //             let version =
-                //                 match document.TryGetTextVersion() with
-                //                 | true, version -> version
-                //                 | _ -> VersionStamp.Create()
-
-                //             document.FilePath, projectOptions, version
-
-                //         | _ -> failwith "Could not get options"
-                //}
-
             async {
                 System.Diagnostics.Trace.WriteLine("GetCompletionContextAsync")
-                let document = session.TextView.TextSnapshot.GetOpenDocumentInCurrentContextWithChanges()
+                let (interactiveSession: InteractiveSession) = downcast textView.Properties.[typeof<InteractiveSession>]
+                let snapshot = session.TextView.TextBuffer.CurrentSnapshot
+                let line = snapshot.GetLineFromPosition(triggerLocation.Position)
+                let start = line.Start.Position
+                let finish = line.End.Position
 
-                let sourceText = session.TextView.TextSnapshot.AsText()
-                //let document =
-                //    match document with
-                //    | null ->
-                //        let workspace = new AdhocWorkspace()
-                //        let projectInfo = ProjectInfo.Create(projectId, VersionStamp.Create(), "name", "name.dll", "F#")
-                //        let project = workspace.AddProject(projectInfo)
-                //        project.AddDocument("__FSI__.fsx", sourceText)
-                //    | _ -> document
+                let span = new Span(start, finish - start)
+                let text = snapshot.GetText(span).Trim()
+                session.TextView.Properties.["PotentialCommitCharacters"] <- commitChars
+                interactiveSession.SendCompletionRequest text (triggerLocation.Position - start)
+                let! completions = interactiveSession.CompletionsReceived |> Async.AwaitEvent
+                                      //|> Async.RunSynchronously
+                                      //|> Array.map (fun c -> FsiMemberCompletionData(c.displayText, c.completionText, symbolStringToIcon c.icon))
+                                      //|> Seq.cast<CompletionData>
 
-                let filePath, projectOptions, textVersion =
-                    match document with
-                    | null ->
-                        let scriptProjectOptions, _ = checkerProvider.Checker.GetProjectOptionsFromScript("__FSI__.fsx", sourceText.ToFSharpSourceText()) |> Async.RunSynchronously
-                        "__FSI__.fsx", scriptProjectOptions, VersionStamp.Default
+                return
+                    match completions with
+                    | [||] ->
+                        Data.CompletionContext.Empty
                     | _ ->
-                        let options = projectInfoManager.TryGetOptionsForEditingDocumentOrProject(document, token) |> Async.RunSynchronously
-                        match options with
-                        | Some (_parsingOptions, projectOptions) ->
-                            let version =
-                                match document.TryGetTextVersion() with
-                                | true, version -> version
-                                | _ -> VersionStamp.Create()
+                        let completions =
+                            completions
+                            |> Array.map (fun c ->
+                                Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion.Data.CompletionItem(c.completionText, this, icon = ImageElement(symbolStringToIcon c.icon)))
+                        Data.CompletionContext(completions.ToImmutableArray())
 
-                            document.FilePath, projectOptions, version
+                //let document = session.TextView.TextSnapshot.GetOpenDocumentInCurrentContextWithChanges()
 
-                        | _ -> failwith "Could not get options"
-                    
-
+                //let sourceText = session.TextView.TextSnapshot.AsText()
                 //let! options = projectInfoManager.TryGetOptionsForEditingDocumentOrProject(document, token)
                 //match options with
                 //| Some (_parsingOptions, projectOptions) ->
-                let getAllSymbols(fileCheckResults: FSharpCheckFileResults) =
-                    []
-                    //if settings.IntelliSense.IncludeSymbolsFromUnopenedNamespacesOrModules
-                    //then assemblyContentProvider.GetAllEntitiesInProjectAndReferencedAssemblies(fileCheckResults)
-                    //else []
+                //    let! textVersion = document.GetTextVersionAsync(token) |> liftTaskAsync
+                //    let getAllSymbols(fileCheckResults: FSharpCheckFileResults) =
+                //        []
+                //        //if settings.IntelliSense.IncludeSymbolsFromUnopenedNamespacesOrModules
+                //        //then assemblyContentProvider.GetAllEntitiesInProjectAndReferencedAssemblies(fileCheckResults)
+                //        //else []
 
 
-                session.TextView.Properties.["PotentialCommitCharacters"] <- commitChars
-                let! completions = FSharpCompletionProvider.ProvideCompletionsAsyncAux(this, checkerProvider.Checker, sourceText, triggerLocation.Position, projectOptions, filePath, textVersion.GetHashCode(), getAllSymbols, (*settings.LanguageServicePerformance*) LanguageServicePerformanceOptions.Default, (*settings.IntelliSense*) IntelliSenseOptions.Default)
-                match completions with
-                | Some completions' ->
-                    return new Data.CompletionContext(completions'.ToImmutableArray())
-                | None ->
-                    return Data.CompletionContext.Empty
+                //    session.TextView.Properties.["PotentialCommitCharacters"] <- commitChars
+                //    let! completions = FSharpCompletionProvider.ProvideCompletionsAsyncAux(this, checkerProvider.Checker, sourceText, triggerLocation.Position, projectOptions, document.FilePath, textVersion.GetHashCode(), getAllSymbols, (*settings.LanguageServicePerformance*) LanguageServicePerformanceOptions.Default, (*settings.IntelliSense*) IntelliSenseOptions.Default)
+                //    match completions with
+                //    | Some completions' ->
+                //        return new Data.CompletionContext(completions'.ToImmutableArray())
+                //    | None ->
+                //        return Data.CompletionContext.Empty
                 //| _ ->
                 //    return Data.CompletionContext.Empty
             } |> RoslynHelpers.StartAsyncAsTask token
@@ -371,13 +352,12 @@ type internal FSharpCompletionSource
             let document = triggerLocation.Snapshot.GetOpenDocumentInCurrentContextWithChanges()
 
             let getInfo() =
-                match document with
-                | null ->
-                    (documentId, "__FSI__.fsx", [])
-                | _ ->
-                    let defines = projectInfoManager.GetCompilationDefinesForEditingDocument(document)
-                    (document.Id, document.FilePath, defines)
+                //let defines = projectInfoManager.GetCompilationDefinesForEditingDocument(document)
+                let projectId = ProjectId.CreateNewId()
+                let documentId = DocumentId.CreateNewId(projectId)
+                (documentId, "temp.fsx", [])
             
+
             let sourceText = triggerLocation.Snapshot.AsText()
             let shouldTrigger =
                 FSharpCompletionProvider.ShouldTriggerCompletionAux(sourceText, triggerLocation.Position, trigger, getInfo, (*settings.IntelliSense*) IntelliSenseOptions.Default)
@@ -394,9 +374,9 @@ type internal FSharpCompletionSource
 
 [<Export(typeof<IAsyncCompletionSourceProvider>)>]
 [<Export(typeof<IAsyncCompletionCommitManagerProvider>)>]
-[<Microsoft.VisualStudio.Utilities.Name("FSharp Completion Source Provider")>]
-[<Microsoft.VisualStudio.Utilities.ContentType(FSharpContentTypeNames.FSharpContentType)>]
-type internal CompletionSourceProvider
+[<Microsoft.VisualStudio.Utilities.Name("FSharp Interactive Completion Source Provider")>]
+[<Microsoft.VisualStudio.Utilities.ContentType(InteractiveContentTypeName.ContentTypeName)>]
+type internal InteractiveCompletionSourceProvider
     [<ImportingConstructor>] 
     (
         checkerProvider: FSharpCheckerProvider,
@@ -407,7 +387,7 @@ type internal CompletionSourceProvider
     interface IAsyncCompletionSourceProvider with
         member __.GetOrCreate(textView) =
             System.Diagnostics.Trace.WriteLine("Completion .ctor")
-            new FSharpCompletionSource(textView, checkerProvider, projectInfoManager, assemblyContentProvider) :> _
+            new FSharpInteractiveCompletionSource(textView, checkerProvider, projectInfoManager, assemblyContentProvider) :> _
 
     interface IAsyncCompletionCommitManagerProvider with
         member __.GetOrCreate(_textView) =

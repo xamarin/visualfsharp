@@ -164,7 +164,7 @@ module internal CompletionUtils =
         let start = findStart position
 
         let endIndex =
-            if start <> position then
+            if start <> position && position < sourceText.Length then
                 findEnd position
             else
                 position

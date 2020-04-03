@@ -200,7 +200,7 @@
     <Compile Include="VSMac\FSharpOutlineDocumentExtension.fs" />
     <Compile Include="VSMac\FSharpOutlineDocumentExtensionProvider.fs" />
     <ProjectReference Include="..\..\..\..\fsharpbinding\FSharp\Microsoft.CodeAnalysis.ExternalAccess.FSharp.csproj">
-      <Project>{DFA822CA-CE06-4ECB-BA60-EB2A256E28F6}</Project>
+      <Project>{BAF30090-4E79-4D11-9E8D-30104E933B04}</Project>
       <Name>Microsoft.CodeAnalysis.ExternalAccess.FSharp</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\..\..\..\src\addins\MonoDevelop.DesignerSupport\MonoDevelop.DesignerSupport.csproj">
@@ -260,7 +260,7 @@
       <Project>{AF5FEAD5-B50E-4F07-A274-32F23D5C504D}</Project>
       <Name>MonoDevelop.FSharp.Shared</Name>
     </ProjectReference>
-    <None Include="VSMac\InteractiveCompletionService.fs" />
+    <Compile Include="VSMac\CompletionService.fs" />
   </ItemGroup>
   <ProjectExtensions>
     <MonoDevelop>
