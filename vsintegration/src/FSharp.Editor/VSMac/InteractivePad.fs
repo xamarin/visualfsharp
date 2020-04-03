@@ -55,6 +55,12 @@ open Microsoft.VisualStudio.Core.Imaging
 open Microsoft.VisualStudio.Text.Tagging
 open System.ComponentModel.Composition
 open Microsoft.VisualStudio.Imaging
+open Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion
+open Microsoft.VisualStudio.Text
+open Microsoft.VisualStudio.Commanding
+open Microsoft.VisualStudio.Text.Editor
+open Microsoft.VisualStudio.Text.Editor.Commanding.Commands
+open Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion
 
 [<AutoOpen>]
 module ColorHelpers =
@@ -300,7 +306,7 @@ module InteractiveGlyphManagerService =
 [<Microsoft.VisualStudio.Utilities.BaseDefinition("text")>]
 [<Microsoft.VisualStudio.Utilities.Name(InteractiveContentTypeName.ContentTypeName)>]
 [<System.ComponentModel.Composition.Export>]
-type InteractivePadController() as this =
+type InteractivePadController(session: InteractiveSession) as this =
     let mutable view = null
     //let mutable textView = null
     let contentTypeRegistry = CompositionManager.Instance.GetExportedValue<Microsoft.VisualStudio.Utilities.IContentTypeRegistryService>()
@@ -321,6 +327,7 @@ type InteractivePadController() as this =
     let textBuffer = textBufferFactory.CreateTextBuffer("", contentType)
     
     let textView = factory.CreateTextView(textBuffer, roles)
+    let history = ShellHistory()
     //textView.Background <- CGColor.CreateSrgb(nfloat 0.0, nfloat 0.0, nfloat 0.0, nfloat 0.0)
     do
         textView.Options.SetOptionValue(DefaultTextViewOptions.UseVisibleWhitespaceId, false)
@@ -330,11 +337,29 @@ type InteractivePadController() as this =
         textView.Options.SetOptionValue(DefaultTextViewHostOptions.OutliningMarginId, false)
         textView.Options.SetOptionValue(DefaultTextViewHostOptions.GlyphMarginId, true)
         textView.VisualElement.TranslatesAutoresizingMaskIntoConstraints <- false
+        textView.Properties.[typeof<InteractivePadController>] <- this
         //textView.Properties.[typeof<InteractivePadController>] <- this
         let host = factory.CreateTextViewHost(textView, true)
         view <- host.HostControl
 
+    let getActiveDocumentFileName () =
+        if IdeApp.Workbench.ActiveDocument <> null && FileService.isInsideFSharpFile() then
+            let docFileName = IdeApp.Workbench.ActiveDocument.FileName.ToString()
+            if docFileName <> null then
+                let directoryName = Path.GetDirectoryName docFileName
+                //ctx.WorkingFolder <- Some directoryName
+                Some docFileName
+            else None
+        else None
+
     member this.View = view
+
+    member this.FsiInput text =
+        let fileName = getActiveDocumentFileName()
+        //input.Add text
+        history.Push text
+        session.SendInput (text + "\n") fileName
+        //session.SendInput
 
     member this.FsiOutput text =
         let buffer = textView.TextBuffer
@@ -374,6 +399,10 @@ type InteractivePromptGlyphTaggerProvider() =
         //public ITagger<T> CreateTagger<T>(ITextView textView, ITextBuffer buffer) where T : ITag
         member x.CreateTagger(textView, buffer) =
             box(InteractivePromptGlyphTagger textView) :?> _
+
+//module InteractiveControllerProvider =
+//    let getOrCreateController(textView: ITextView) =
+//        textView.Properties.GetOrCreateSingletonProperty(typeof<InteractivePadController>, fun () -> new InteractivePadController())
 
 type FSharpInteractivePad() as this =
     inherit MonoDevelop.Ide.Gui.PadContent()
@@ -443,11 +472,11 @@ type FSharpInteractivePad() as this =
             let pathToExe =
                 Path.Combine(Reflection.Assembly.GetExecutingAssembly().Location |> Path.GetDirectoryName, "MonoDevelop.FSharpInteractive.Service.exe")
                 |> ProcessArgumentBuilder.Quote
-            let controller = new InteractivePadController();
+            let ses = InteractiveSession(pathToExe)
+            let controller = new InteractivePadController(ses)
             this.Host <- new GtkNSViewHost(controller.View)
             this.Host.ShowAll()
 
-            let ses = InteractiveSession(pathToExe)
             input.Clear()
             promptReceived <- false
             let textReceived = ses.TextReceived.Subscribe(fun t -> Runtime.RunInMainThread(fun () -> controller.FsiOutput t) |> ignore)
@@ -681,7 +710,52 @@ type FSharpInteractivePad() as this =
             let file = dlg.SelectedFile
             //x.SendCommand ("#load @\"" + file.FullPath.ToString() + "\"")
             ()
+[<Microsoft.VisualStudio.Utilities.Name("InteractivePadCompletionTypeCharHandler")>]
+[<Microsoft.VisualStudio.Utilities.ContentType(InteractiveContentTypeName.ContentTypeName)>]
+//[<TextViewRole(PredefinedTextViewRoles.Interactive)>]
+[<Export(typeof<ICommandHandler>)>]
+[<Microsoft.VisualStudio.Utilities.Order(After = PredefinedCompletionNames.CompletionCommandHandler)>]
+type InteractivePadCompletionTypeCharHandler() =
+    interface ICommandHandler<TypeCharCommandArgs> with
+        member x.DisplayName = "InteractivePadCompletionTypeCharHandler"
+        member x.GetCommandState _args =
+            CommandState.Available
 
+        member x.ExecuteCommand(args, context) =
+            false
+
+[<Microsoft.VisualStudio.Utilities.Name("InteractivePadCompletionReturn")>]
+[<Microsoft.VisualStudio.Utilities.ContentType(InteractiveContentTypeName.ContentTypeName)>]
+//[<TextViewRole(PredefinedTextViewRoles.Interactive)>]
+[<Export(typeof<ICommandHandler>)>]
+//[<Microsoft.VisualStudio.Utilities.Order(After = PredefinedCompletionNames.CompletionCommandHandler)>]
+type InteractivePadCompletionReturnHandler() =
+    //interface ICommandHandler
+    //interface Microsoft.VisualStudio.Utilities.INamed with
+    //    member x.DisplayName = "InteractivePadCompletionCommandHandler"
+
+    interface ICommandHandler<ReturnKeyCommandArgs> with
+        member x.DisplayName = "InteractivePadCompletionReturn"
+        member x.GetCommandState _args =
+            CommandState.Available
+
+        member x.ExecuteCommand(args, context) =
+            let textView = args.TextView
+            let (controller: InteractivePadController) = downcast textView.Properties.[typeof<InteractivePadController>]
+            let textBuffer = textView.TextBuffer
+            let snapshot = textBuffer.CurrentSnapshot
+            let position = textView.Caret.Position.BufferPosition.Position
+            let line = snapshot.GetLineFromPosition(position)
+            let start = line.Start.Position
+            let finish = line.End.Position
+
+            let start = Math.Min(start, finish);
+
+            let span = new Span(start, finish - start)
+            let text = snapshot.GetText(span).Trim()
+            controller.FsiOutput "\n"
+            controller.FsiInput text
+            true
 /// handles keypresses for F# Interactive
 //type FSharpFsiEditorCompletion() =
 //    inherit TextEditorExtension()
