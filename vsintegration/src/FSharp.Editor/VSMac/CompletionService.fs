@@ -265,9 +265,6 @@ type internal FSharpInteractiveCompletionSource
                 session.TextView.Properties.["PotentialCommitCharacters"] <- commitChars
                 interactiveSession.SendCompletionRequest text (triggerLocation.Position - start)
                 let! completions = interactiveSession.CompletionsReceived |> Async.AwaitEvent
-                                      //|> Async.RunSynchronously
-                                      //|> Array.map (fun c -> FsiMemberCompletionData(c.displayText, c.completionText, symbolStringToIcon c.icon))
-                                      //|> Seq.cast<CompletionData>
 
                 return
                     match completions with
@@ -280,29 +277,6 @@ type internal FSharpInteractiveCompletionSource
                                 Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion.Data.CompletionItem(c.completionText, this, icon = ImageElement(symbolStringToIcon c.icon)))
                         Data.CompletionContext(completions.ToImmutableArray())
 
-                //let document = session.TextView.TextSnapshot.GetOpenDocumentInCurrentContextWithChanges()
-
-                //let sourceText = session.TextView.TextSnapshot.AsText()
-                //let! options = projectInfoManager.TryGetOptionsForEditingDocumentOrProject(document, token)
-                //match options with
-                //| Some (_parsingOptions, projectOptions) ->
-                //    let! textVersion = document.GetTextVersionAsync(token) |> liftTaskAsync
-                //    let getAllSymbols(fileCheckResults: FSharpCheckFileResults) =
-                //        []
-                //        //if settings.IntelliSense.IncludeSymbolsFromUnopenedNamespacesOrModules
-                //        //then assemblyContentProvider.GetAllEntitiesInProjectAndReferencedAssemblies(fileCheckResults)
-                //        //else []
-
-
-                //    session.TextView.Properties.["PotentialCommitCharacters"] <- commitChars
-                //    let! completions = FSharpCompletionProvider.ProvideCompletionsAsyncAux(this, checkerProvider.Checker, sourceText, triggerLocation.Position, projectOptions, document.FilePath, textVersion.GetHashCode(), getAllSymbols, (*settings.LanguageServicePerformance*) LanguageServicePerformanceOptions.Default, (*settings.IntelliSense*) IntelliSenseOptions.Default)
-                //    match completions with
-                //    | Some completions' ->
-                //        return new Data.CompletionContext(completions'.ToImmutableArray())
-                //    | None ->
-                //        return Data.CompletionContext.Empty
-                //| _ ->
-                //    return Data.CompletionContext.Empty
             } |> RoslynHelpers.StartAsyncAsTask token
 
     /// <summary>

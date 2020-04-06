@@ -61,6 +61,7 @@ open Microsoft.VisualStudio.Commanding
 open Microsoft.VisualStudio.Text.Editor
 open Microsoft.VisualStudio.Text.Editor.Commanding.Commands
 open Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion
+open Microsoft.VisualStudio.Language.Intellisense
 
 [<AutoOpen>]
 module ColorHelpers =
@@ -730,10 +731,9 @@ type InteractivePadCompletionTypeCharHandler() =
 //[<TextViewRole(PredefinedTextViewRoles.Interactive)>]
 [<Export(typeof<ICommandHandler>)>]
 //[<Microsoft.VisualStudio.Utilities.Order(After = PredefinedCompletionNames.CompletionCommandHandler)>]
-type InteractivePadCompletionReturnHandler() =
-    //interface ICommandHandler
-    //interface Microsoft.VisualStudio.Utilities.INamed with
-    //    member x.DisplayName = "InteractivePadCompletionCommandHandler"
+type InteractivePadCompletionReturnHandler
+    [<ImportingConstructor>]
+    ( completionBroker:ICompletionBroker ) =
 
     interface ICommandHandler<ReturnKeyCommandArgs> with
         member x.DisplayName = "InteractivePadCompletionReturn"
@@ -741,6 +741,9 @@ type InteractivePadCompletionReturnHandler() =
             CommandState.Available
 
         member x.ExecuteCommand(args, context) =
+            if completionBroker.IsCompletionActive(args.TextView) then
+                false
+            else
             let textView = args.TextView
             let (controller: InteractivePadController) = downcast textView.Properties.[typeof<InteractivePadController>]
             let textBuffer = textView.TextBuffer
