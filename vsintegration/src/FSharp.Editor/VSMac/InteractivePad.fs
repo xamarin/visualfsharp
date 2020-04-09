@@ -62,7 +62,13 @@ open Microsoft.VisualStudio.Text.Editor
 open Microsoft.VisualStudio.Text.Editor.Commanding.Commands
 open Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion
 open Microsoft.VisualStudio.Language.Intellisense
-
+open Microsoft.CodeAnalysis
+open Microsoft.CodeAnalysis.Text
+open Microsoft.VisualStudio.FSharp.Editor
+open Microsoft.VisualStudio.Text
+open Microsoft.VisualStudio.Text.Editor
+open Microsoft.VisualStudio.Threading
+open FSharp.Editor
 [<AutoOpen>]
 module ColorHelpers =
     let strToColor s =
@@ -217,7 +223,7 @@ module InteractiveContentTypeName =
 type InteractiveContentTypeDefinition() =
     [<System.ComponentModel.Composition.Export>]
     [<Microsoft.VisualStudio.Utilities.Name(InteractiveContentTypeName.ContentTypeName)>]
-    [<Microsoft.VisualStudio.Utilities.BaseDefinition("text")>]
+    [<Microsoft.VisualStudio.Utilities.BaseDefinition("Roslyn Languages")>]
     member val InteractiveContentTypeDefinition: Microsoft.VisualStudio.Utilities.ContentTypeDefinition = null with get, set
 
 type InteractivePromptGlyphTag() = interface IGlyphTag
@@ -315,22 +321,26 @@ type InteractivePadController(session: InteractiveSession) as this =
     let factory = CompositionManager.Instance.GetExportedValue<ICocoaTextEditorFactoryService>()
     let contentType = contentTypeRegistry.GetContentType(InteractiveContentTypeName.ContentTypeName)
     let editorFormatMapService = CompositionManager.Instance.GetExportedValue<IEditorFormatMapService>()
-    //let appearanceCategory = Guid.NewGuid().ToString()
-    //let editorFormat = editorFormatMapService.GetEditorFormatMap(appearanceCategory)
-    //let resourceDictionary = editorFormat.GetProperties("Plain Text")
-    //resourceDictionary.[ClassificationFormatDefinition.TypefaceId] <- TextField.Font
-    //resourceDictionary.[ClassificationFormatDefinition.FontRenderingSizeId] <- 20
-    //resourceDictionary.[ClassificationFormatDefinition.BackgroundBrushId] <- System.Windows.Media.Brushes.Black
-    //resourceDictionary.[ClassificationFormatDefinition.ForegroundColorId] <- System.Windows.Media.Brushes.Black
-    //editorFormat.SetProperties("Plain Text", resourceDictionary)
 
-    let roles = factory.CreateTextViewRoleSet(PredefinedTextViewRoles.Analyzable, PredefinedTextViewRoles.Editable, PredefinedTextViewRoles.Interactive)
+    let appearanceCategory = Guid.NewGuid().ToString()
+    let editorFormat = editorFormatMapService.GetEditorFormatMap(appearanceCategory)
+    let resourceDictionary = editorFormat.GetProperties("Plain Text")
+
+    let roles = factory.CreateTextViewRoleSet(PredefinedTextViewRoles.Editable, PredefinedTextViewRoles.Interactive, PredefinedTextViewRoles.Document)
     let textBuffer = textBufferFactory.CreateTextBuffer("", contentType)
     
     let textView = factory.CreateTextView(textBuffer, roles)
+    let workspace = new InteractiveWorkspace()
+    //let (workspace: MiscellaneousFilesWorkspace) = downcast IdeApp.TypeSystemService.GetWorkspaceInternal(null)
     let history = ShellHistory()
     //textView.Background <- CGColor.CreateSrgb(nfloat 0.0, nfloat 0.0, nfloat 0.0, nfloat 0.0)
     do
+        //resourceDictionary.[ClassificationFormatDefinition.TypefaceId] <- TextField.Font
+        resourceDictionary.[ClassificationFormatDefinition.FontRenderingSizeId] <- 20
+        resourceDictionary.[ClassificationFormatDefinition.BackgroundBrushId] <- System.Windows.Media.Brushes.Black
+        resourceDictionary.[ClassificationFormatDefinition.ForegroundColorId] <- System.Windows.Media.Brushes.White
+        editorFormat.SetProperties("Plain Text", resourceDictionary)
+
         textView.Options.SetOptionValue(DefaultTextViewOptions.UseVisibleWhitespaceId, false)
         //textView.Options.SetOptionValue(DefaultCocoaViewOptions.AppearanceCategory, appearanceCategory)
         textView.Options.SetOptionValue(DefaultTextViewHostOptions.ChangeTrackingId, false)
@@ -343,6 +353,10 @@ type InteractivePadController(session: InteractiveSession) as this =
         //textView.Properties.[typeof<InteractivePadController>] <- this
         let host = factory.CreateTextViewHost(textView, true)
         view <- host.HostControl
+        // Add the view to a workspace so that Roslyn can fetch LanguageServices
+        // Note: this fake file name must end with .fs, not .fsx so that we don't get the MiscellaneousFilesWorkspace
+        //workspace.OnDocumentOpened("interactive.fsx", textBuffer)
+        workspace.CreateDocument(textBuffer)
 
     let getActiveDocumentFileName () =
         if IdeApp.Workbench.ActiveDocument <> null && FileService.isInsideFSharpFile() then
@@ -354,14 +368,22 @@ type InteractivePadController(session: InteractiveSession) as this =
             else None
         else None
 
+    let inputLines = HashSet<int>()
+
     member this.View = view
+
+    member this.IsInputLine(line:int) =
+        let buffer = textView.TextBuffer
+        let snapshot = buffer.CurrentSnapshot
+        inputLines.Contains line || line = snapshot.LineCount - 1
 
     member this.FsiInput text =
         let fileName = getActiveDocumentFileName()
-        //input.Add text
         history.Push text
+        let buffer = textView.TextBuffer
+        let snapshot = buffer.CurrentSnapshot
+        inputLines.Add(snapshot.LineCount - 1) |> ignore
         session.SendInput (text + "\n") fileName
-        //session.SendInput
 
     member this.FsiOutput text =
         let buffer = textView.TextBuffer
@@ -500,7 +522,9 @@ type FSharpInteractivePad() as this =
             ses.StartReceiving()
             //editor.GrabFocus()
             Some(ses)
-        with _exn -> None
+        with 
+        | :? Exception as e ->
+            None
 
     let mutable session = None
 

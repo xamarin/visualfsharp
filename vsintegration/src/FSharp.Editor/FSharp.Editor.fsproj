@@ -254,6 +254,7 @@
       <Aliases>CoreUtility</Aliases>
       <Name>CoreUtility</Name>
     </ProjectReference>
+    <Compile Include="VSMac\InteractiveWorkspace.fs" />
     <Compile Include="VSMac\InteractiveSession.fs" />
     <Compile Include="VSMac\InteractivePad.fs" />
     <ProjectReference Include="..\..\..\..\fsharpbinding\MonoDevelop.FSharp.Shared\MonoDevelop.FSharp.Shared.fsproj">
@@ -261,6 +262,7 @@
       <Name>MonoDevelop.FSharp.Shared</Name>
     </ProjectReference>
     <Compile Include="VSMac\CompletionService.fs" />
+    <Compile Include="VSMac\InteractiveClassificationService.fs" />
   </ItemGroup>
   <ProjectExtensions>
     <MonoDevelop>

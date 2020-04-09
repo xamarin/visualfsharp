@@ -17,7 +17,7 @@ open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Classification
 open Microsoft.VisualStudio.Text.Classification
 open System.Windows.Media
 open MonoDevelop.Core
-
+open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Editor
 // IEditorClassificationService is marked as Obsolete, but is still supported. The replacement (IClassificationService)
 // is internal to Microsoft.CodeAnalysis.Workspaces which we don't have internals visible to. Rather than add yet another
 // IVT, we'll maintain the status quo.
@@ -62,7 +62,7 @@ module internal FSharpClassificationTypes =
         | SemanticClassificationType.Operator -> Operator 
         | SemanticClassificationType.Disposable -> Disposable
 
-[<Export(typeof<IFSharpClassificationService>)>]
+[<Export>]
 type internal FSharpClassificationService
     [<ImportingConstructor>]
     (
@@ -110,5 +110,3 @@ type internal FSharpClassificationService
 
         // Do not perform classification if we don't have project options (#defines matter)
         member __.AdjustStaleClassification(_: SourceText, classifiedSpan: ClassifiedSpan) : ClassifiedSpan = classifiedSpan
-
-
