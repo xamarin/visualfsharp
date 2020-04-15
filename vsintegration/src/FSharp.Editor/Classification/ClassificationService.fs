@@ -62,7 +62,7 @@ module internal FSharpClassificationTypes =
         | SemanticClassificationType.Operator -> Operator 
         | SemanticClassificationType.Disposable -> Disposable
 
-[<Export>]
+[<Export(typeof<IFSharpClassificationService>)>]
 type internal FSharpClassificationService
     [<ImportingConstructor>]
     (

@@ -61,7 +61,7 @@ type InteractiveWorkspace() =
                     VersionStamp.Create(),
                     name = name,
                     assemblyName = "interactive.dll",
-                    language = LanguageNames.FSharp)
+                    language = "F# Interactive")
 
             base.OnProjectAdded(projectInfo)
             let documentInfo =

@@ -69,6 +69,7 @@ open Microsoft.VisualStudio.Text
 open Microsoft.VisualStudio.Text.Editor
 open Microsoft.VisualStudio.Threading
 open FSharp.Editor
+open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Editor
 [<AutoOpen>]
 module ColorHelpers =
     let strToColor s =
@@ -216,15 +217,7 @@ type ShellHistory() =
             else
                 Some history.[nextDown]
 
-module InteractiveContentTypeName =
-    [<Literal>]
-    let ContentTypeName = "F# Interactive"
 
-type InteractiveContentTypeDefinition() =
-    [<System.ComponentModel.Composition.Export>]
-    [<Microsoft.VisualStudio.Utilities.Name(InteractiveContentTypeName.ContentTypeName)>]
-    [<Microsoft.VisualStudio.Utilities.BaseDefinition("Roslyn Languages")>]
-    member val InteractiveContentTypeDefinition: Microsoft.VisualStudio.Utilities.ContentTypeDefinition = null with get, set
 
 type InteractivePromptGlyphTag() = interface IGlyphTag
 
@@ -245,7 +238,7 @@ type InteractiveGlyphFactory(imageId:ImageId, imageService:IImageService) =
 
 [<Export(typeof<IGlyphFactoryProvider>)>]
 [<Microsoft.VisualStudio.Utilities.Name("InteractivePromptGlyphTag")>]
-[<Microsoft.VisualStudio.Utilities.ContentType(InteractiveContentTypeName.ContentTypeName)>]
+[<Microsoft.VisualStudio.Utilities.ContentType(FSharpContentTypeNames.FSharpInteractiveContentType)>]
 [<TagType(typeof<InteractivePromptGlyphTag>)>]
 //[<TextViewRole(PredefinedTextViewRoles.Debuggable)>]
 type InteractiveGlyphFactoryProvider() as this =
@@ -311,7 +304,7 @@ module InteractiveGlyphManagerService =
         textView.Properties.GetOrCreateSingletonProperty(typeof<InteractivePromptGlyphTagger>, fun () -> InteractivePromptGlyphTagger textView)
 
 [<Microsoft.VisualStudio.Utilities.BaseDefinition("text")>]
-[<Microsoft.VisualStudio.Utilities.Name(InteractiveContentTypeName.ContentTypeName)>]
+[<Microsoft.VisualStudio.Utilities.Name(FSharpContentTypeNames.FSharpInteractiveContentType)>]
 [<System.ComponentModel.Composition.Export>]
 type InteractivePadController(session: InteractiveSession) as this =
     let mutable view = null
@@ -319,12 +312,12 @@ type InteractivePadController(session: InteractiveSession) as this =
     let contentTypeRegistry = CompositionManager.Instance.GetExportedValue<Microsoft.VisualStudio.Utilities.IContentTypeRegistryService>()
     let textBufferFactory = CompositionManager.Instance.GetExportedValue<ITextBufferFactoryService>()
     let factory = CompositionManager.Instance.GetExportedValue<ICocoaTextEditorFactoryService>()
-    let contentType = contentTypeRegistry.GetContentType(InteractiveContentTypeName.ContentTypeName)
-    let editorFormatMapService = CompositionManager.Instance.GetExportedValue<IEditorFormatMapService>()
+    let contentType = contentTypeRegistry.GetContentType(FSharpContentTypeNames.FSharpInteractiveContentType)
+    //let editorFormatMapService = CompositionManager.Instance.GetExportedValue<IEditorFormatMapService>()
 
-    let appearanceCategory = Guid.NewGuid().ToString()
-    let editorFormat = editorFormatMapService.GetEditorFormatMap(appearanceCategory)
-    let resourceDictionary = editorFormat.GetProperties("Plain Text")
+    //let appearanceCategory = Guid.NewGuid().ToString()
+    //let editorFormat = editorFormatMapService.GetEditorFormatMap(appearanceCategory)
+    //let resourceDictionary = editorFormat.GetProperties("Plain Text")
 
     let roles = factory.CreateTextViewRoleSet(PredefinedTextViewRoles.Editable, PredefinedTextViewRoles.Interactive, PredefinedTextViewRoles.Document)
     let textBuffer = textBufferFactory.CreateTextBuffer("", contentType)
@@ -336,10 +329,10 @@ type InteractivePadController(session: InteractiveSession) as this =
     //textView.Background <- CGColor.CreateSrgb(nfloat 0.0, nfloat 0.0, nfloat 0.0, nfloat 0.0)
     do
         //resourceDictionary.[ClassificationFormatDefinition.TypefaceId] <- TextField.Font
-        resourceDictionary.[ClassificationFormatDefinition.FontRenderingSizeId] <- 20
-        resourceDictionary.[ClassificationFormatDefinition.BackgroundBrushId] <- System.Windows.Media.Brushes.Black
-        resourceDictionary.[ClassificationFormatDefinition.ForegroundColorId] <- System.Windows.Media.Brushes.White
-        editorFormat.SetProperties("Plain Text", resourceDictionary)
+        //resourceDictionary.[ClassificationFormatDefinition.FontRenderingSizeId] <- 20
+        //resourceDictionary.[ClassificationFormatDefinition.BackgroundBrushId] <- System.Windows.Media.Brushes.Black
+        //resourceDictionary.[ClassificationFormatDefinition.ForegroundColorId] <- System.Windows.Media.Brushes.White
+        //editorFormat.SetProperties("Plain Text", resourceDictionary)
 
         textView.Options.SetOptionValue(DefaultTextViewOptions.UseVisibleWhitespaceId, false)
         //textView.Options.SetOptionValue(DefaultCocoaViewOptions.AppearanceCategory, appearanceCategory)
@@ -375,14 +368,14 @@ type InteractivePadController(session: InteractiveSession) as this =
     member this.IsInputLine(line:int) =
         let buffer = textView.TextBuffer
         let snapshot = buffer.CurrentSnapshot
-        inputLines.Contains line || line = snapshot.LineCount - 1
+        inputLines.Contains line
 
     member this.FsiInput text =
         let fileName = getActiveDocumentFileName()
         history.Push text
         let buffer = textView.TextBuffer
         let snapshot = buffer.CurrentSnapshot
-        inputLines.Add(snapshot.LineCount - 1) |> ignore
+        //inputLines.Add(snapshot.LineCount - 1) |> ignore
         session.SendInput (text + "\n") fileName
 
     member this.FsiOutput text =
@@ -401,13 +394,14 @@ type InteractivePadController(session: InteractiveSession) as this =
         let lastLine = snapshot.GetLineFromLineNumber(snapshot.LineCount - 1)
         //let span = new SnapshotSpan(lastLine.Start., lastLine.End)
         let glyphManager = InteractiveGlyphManagerService.getGlyphManager(textView)
+        inputLines.Add(snapshot.LineCount - 1) |> ignore
 
         glyphManager.AddPrompt lastLine.Start.Position
         //(glyphManager :> ITagger<InteractivePromptGlyphTag>).TagsChanged
 
 
 [<Export(typeof<IViewTaggerProvider>)>]
-[<Microsoft.VisualStudio.Utilities.ContentType(InteractiveContentTypeName.ContentTypeName)>]
+[<Microsoft.VisualStudio.Utilities.ContentType(FSharpContentTypeNames.FSharpInteractiveContentType)>]
 [<TagType(typeof<InteractivePromptGlyphTag>)>]
 //[TagType(typeof(BreakpointDisabledGlyphTag))]
 //[TagType(typeof(BreakpointInvalidGlyphTag))]
@@ -498,6 +492,7 @@ type FSharpInteractivePad() as this =
                 |> ProcessArgumentBuilder.Quote
             let ses = InteractiveSession(pathToExe)
             let controller = new InteractivePadController(ses)
+            this.Controller <- Some controller
             this.Host <- new GtkNSViewHost(controller.View)
             this.Host.ShowAll()
 
@@ -737,7 +732,7 @@ type FSharpInteractivePad() as this =
             //x.SendCommand ("#load @\"" + file.FullPath.ToString() + "\"")
             ()
 [<Microsoft.VisualStudio.Utilities.Name("InteractivePadCompletionTypeCharHandler")>]
-[<Microsoft.VisualStudio.Utilities.ContentType(InteractiveContentTypeName.ContentTypeName)>]
+[<Microsoft.VisualStudio.Utilities.ContentType(FSharpContentTypeNames.FSharpInteractiveContentType)>]
 //[<TextViewRole(PredefinedTextViewRoles.Interactive)>]
 [<Export(typeof<ICommandHandler>)>]
 [<Microsoft.VisualStudio.Utilities.Order(After = PredefinedCompletionNames.CompletionCommandHandler)>]
@@ -751,7 +746,7 @@ type InteractivePadCompletionTypeCharHandler() =
             false
 
 [<Microsoft.VisualStudio.Utilities.Name("InteractivePadCompletionReturn")>]
-[<Microsoft.VisualStudio.Utilities.ContentType(InteractiveContentTypeName.ContentTypeName)>]
+[<Microsoft.VisualStudio.Utilities.ContentType(FSharpContentTypeNames.FSharpInteractiveContentType)>]
 //[<TextViewRole(PredefinedTextViewRoles.Interactive)>]
 [<Export(typeof<ICommandHandler>)>]
 //[<Microsoft.VisualStudio.Utilities.Order(After = PredefinedCompletionNames.CompletionCommandHandler)>]
@@ -770,6 +765,7 @@ type InteractivePadCompletionReturnHandler
             else
             let textView = args.TextView
             let (controller: InteractivePadController) = downcast textView.Properties.[typeof<InteractivePadController>]
+
             let textBuffer = textView.TextBuffer
             let snapshot = textBuffer.CurrentSnapshot
             let position = textView.Caret.Position.BufferPosition.Position

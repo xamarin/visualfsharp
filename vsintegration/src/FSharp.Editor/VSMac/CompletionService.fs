@@ -61,7 +61,7 @@ type internal FSharpInteractiveCompletionService
             .WithDefaultEnterKeyRule(enterKeyRule)
 
 [<Shared>]
-[<ExportLanguageServiceFactory(typeof<CompletionService>, InteractiveContentTypeName.ContentTypeName)>]
+[<ExportLanguageServiceFactory(typeof<CompletionService>, FSharpContentTypeNames.FSharpInteractiveContentType)>]
 type internal FSharpInteractiveCompletionSource
     (textView: ITextView, checkerProvider: FSharpCheckerProvider, projectInfoManager: FSharpProjectOptionsManager, assemblyContentProvider: AssemblyContentProvider) =
 
@@ -349,7 +349,7 @@ type internal FSharpInteractiveCompletionSource
 [<Export(typeof<IAsyncCompletionSourceProvider>)>]
 [<Export(typeof<IAsyncCompletionCommitManagerProvider>)>]
 [<Microsoft.VisualStudio.Utilities.Name("FSharp Interactive Completion Source Provider")>]
-[<Microsoft.VisualStudio.Utilities.ContentType(InteractiveContentTypeName.ContentTypeName)>]
+[<Microsoft.VisualStudio.Utilities.ContentType(FSharpContentTypeNames.FSharpInteractiveContentType)>]
 type internal InteractiveCompletionSourceProvider
     [<ImportingConstructor>] 
     (

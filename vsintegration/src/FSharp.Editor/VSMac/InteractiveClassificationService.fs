@@ -43,7 +43,8 @@ open MonoDevelop.Core
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Editor
 
 //[<ExportLanguageService(typeof<IFSharpInteracClassificationService>, FSharpContentTypeNames.FSharpInteractiveContentType)>]
-[<Export>]
+//[<Export>]
+[<Export(typeof<IFSharpInteractiveClassificationService>)>]
 type internal FSharpInteractiveClassificationService
     [<ImportingConstructor>]
     (
@@ -52,12 +53,14 @@ type internal FSharpInteractiveClassificationService
     interface IFSharpInteractiveClassificationService with
        
         member __.AddLexicalClassifications(sourceText: SourceText, textSpan: TextSpan, result: List<ClassifiedSpan>, cancellationToken: CancellationToken) =
-            let line = sourceText.Lines.GetLineFromPosition(textSpan.Start).LineNumber
+            //let line = sourceText.Lines.GetLineFromPosition(textSpan.Start).LineNumber
 
-            if FSharpInteractivePad.Fsi.Value.Controller.Value.IsInputLine(line) then
-                service.AddLexicalClassifications(sourceText, textSpan, result, cancellationToken)
+            //if FSharpInteractivePad.Fsi.Value.Controller.Value.IsInputLine(line) then
+            //service.AddLexicalClassifications(sourceText, textSpan, result, cancellationToken)
+            ()
         
         member __.AddSyntacticClassificationsAsync(document: Document, textSpan: TextSpan, result: List<ClassifiedSpan>, cancellationToken: CancellationToken) =
+            //Tasks.Task.CompletedTask
             match document.TryGetText() with
             | true, sourceText ->
                 let line = sourceText.Lines.GetLineFromPosition(textSpan.Start).LineNumber
