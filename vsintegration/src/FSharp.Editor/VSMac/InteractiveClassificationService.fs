@@ -58,7 +58,7 @@ type internal FSharpInteractiveClassificationService
             //if FSharpInteractivePad.Fsi.Value.Controller.Value.IsInputLine(line) then
             //service.AddLexicalClassifications(sourceText, textSpan, result, cancellationToken)
             ()
-        
+
         member __.AddSyntacticClassificationsAsync(document: Document, textSpan: TextSpan, result: List<ClassifiedSpan>, cancellationToken: CancellationToken) =
             //Tasks.Task.CompletedTask
             match document.TryGetText() with

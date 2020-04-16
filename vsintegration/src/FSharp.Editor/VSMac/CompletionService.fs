@@ -26,6 +26,7 @@ open FSharp.Compiler.SourceCodeServices
 open System
 open Microsoft.VisualStudio.Core.Imaging
 open Microsoft.VisualStudio.Imaging
+open FSharp.Compiler.Range
 
 type internal FSharpInteractiveCompletionService
     (
@@ -263,7 +264,7 @@ type internal FSharpInteractiveCompletionSource
                 let span = new Span(start, finish - start)
                 let text = snapshot.GetText(span).Trim()
                 session.TextView.Properties.["PotentialCommitCharacters"] <- commitChars
-                interactiveSession.SendCompletionRequest text (triggerLocation.Position - start)
+                interactiveSession.SendCompletionRequest text (triggerLocation.Position - start + 1)
                 let! completions = interactiveSession.CompletionsReceived |> Async.AwaitEvent
 
                 return
@@ -326,7 +327,6 @@ type internal FSharpInteractiveCompletionSource
             let document = triggerLocation.Snapshot.GetOpenDocumentInCurrentContextWithChanges()
 
             let getInfo() =
-                //let defines = projectInfoManager.GetCompilationDefinesForEditingDocument(document)
                 let projectId = ProjectId.CreateNewId()
                 let documentId = DocumentId.CreateNewId(projectId)
                 (documentId, "temp.fsx", [])
@@ -360,10 +360,8 @@ type internal InteractiveCompletionSourceProvider
 
     interface IAsyncCompletionSourceProvider with
         member __.GetOrCreate(textView) =
-            System.Diagnostics.Trace.WriteLine("Completion .ctor")
             new FSharpInteractiveCompletionSource(textView, checkerProvider, projectInfoManager, assemblyContentProvider) :> _
 
     interface IAsyncCompletionCommitManagerProvider with
         member __.GetOrCreate(_textView) =
-            System.Diagnostics.Trace.WriteLine("GetOrCreate FSharpAsyncCompletionCommitManager")
             FSharpAsyncCompletionCommitManager() :> _
