@@ -6,12 +6,15 @@ open System.Diagnostics
 open MonoDevelop.Core
 open Newtonsoft.Json
 open Microsoft.VisualStudio.FSharp.Editor.Extensions
+open Microsoft.CodeAnalysis.ExternalAccess.FSharp
+open Newtonsoft.Json.Converters
 
 type CompletionData = {
     displayText: string
     completionText: string
     category: string
-    icon: string
+    [<JsonConverter(typeof<StringEnumConverter>)>]
+    icon: FSharpGlyph
     overloads: CompletionData array
     description: string
 }

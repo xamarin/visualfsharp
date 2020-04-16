@@ -221,35 +221,11 @@ type internal FSharpInteractiveCompletionSource
     let commitChars = [|' '; '='; ','; '.'; '<'; '>'; '('; ')'; '!'; ':'; '['; ']'; '|'|].ToImmutableArray()
 
     let imageCatalogGuid = Guid.Parse("ae27a6b0-e345-4288-96df-5eaf394ee369");
-    let symbolStringToIcon = function
-        | "ActivePatternCase" -> ImageId(imageCatalogGuid, KnownImageIds.Enumeration)
-        | "Field" -> ImageId(imageCatalogGuid, KnownImageIds.Field)
-        | "UnionCase" -> ImageId(imageCatalogGuid, KnownImageIds.Union)
-        | "Class" -> ImageId(imageCatalogGuid, KnownImageIds.Class)
-        | "Delegate" -> ImageId(imageCatalogGuid, KnownImageIds.Delegate)
-        | "Constructor" -> ImageId(imageCatalogGuid, KnownImageIds.Method)
-        | "Event" -> ImageId(imageCatalogGuid, KnownImageIds.Event)
-        | "Property" -> ImageId(imageCatalogGuid, KnownImageIds.Property)
-        | "ExtensionMethod" -> ImageId(imageCatalogGuid, KnownImageIds.ExtensionMethod)
-        | "Method" -> ImageId(imageCatalogGuid, KnownImageIds.Method)
-        | "Operator" -> ImageId(imageCatalogGuid, KnownImageIds.Operator)
-        | "ClosureOrNestedFunction" -> ImageId(imageCatalogGuid, KnownImageIds.Method)
-        | "Val" -> ImageId(imageCatalogGuid, KnownImageIds.Field)
-        | "Enum" -> ImageId(imageCatalogGuid, KnownImageIds.Enumeration)
-        | "Interface" -> ImageId(imageCatalogGuid, KnownImageIds.Interface)
-        | "Module" -> ImageId(imageCatalogGuid, KnownImageIds.Module)
-        | "Namespace" -> ImageId(imageCatalogGuid, KnownImageIds.Namespace)
-        | "Record" -> ImageId(imageCatalogGuid, KnownImageIds.Class)
-        | "Union" -> ImageId(imageCatalogGuid, KnownImageIds.Union)
-        | "ValueType" -> ImageId(imageCatalogGuid, KnownImageIds.Structure)
-        | "Entity" -> ImageId(imageCatalogGuid, KnownImageIds.Class)
-        | _ -> ImageId(imageCatalogGuid, KnownImageIds.LocalVariable)
 
     interface IAsyncExpandingCompletionSource with
         member __.GetExpandedCompletionContextAsync(session, expander, initialTrigger, applicableToSpan, token) =
             let ctx = Data.CompletionContext.Empty
             Task.FromResult ctx
-
 
     interface IAsyncCompletionSource with
         member this.GetCompletionContextAsync(session, trigger, triggerLocation, applicableToSpan, token) =
@@ -275,7 +251,7 @@ type internal FSharpInteractiveCompletionSource
                         let completions =
                             completions
                             |> Array.map (fun c ->
-                                Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion.Data.CompletionItem(c.completionText, this, icon = ImageElement(symbolStringToIcon c.icon)))
+                                Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion.Data.CompletionItem(c.completionText, this, icon = ImageElement(GlyphHelper.getImageId c.icon)))
                         Data.CompletionContext(completions.ToImmutableArray())
 
             } |> RoslynHelpers.StartAsyncAsTask token
