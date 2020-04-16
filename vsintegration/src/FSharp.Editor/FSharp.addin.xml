@@ -44,8 +44,8 @@
                      extensions=".fs,.fsi,.fsx,.fsscript,.sketchfs"
                      singleLineCommentTag="//"
                      blockCommentStartTag="(*"
-                     blockCommentEndTag="*)"
-                     codeDomType="FSharp.Compiler.CodeDom.FSharpCleanCodeProvider" />
+                     blockCommentEndTag="*)" />
+<!--                     codeDomType="FSharp.Compiler.CodeDom.FSharpCleanCodeProvider" />-->
   </Extension>
     
   <Extension path="/MonoDevelop/Ide/Pads">
