@@ -363,6 +363,17 @@ type InteractivePadController(session: InteractiveSession) as this =
 
     let inputLines = HashSet<int>()
 
+    let scrollToLastLine() =
+         let textBuffer = textView.TextBuffer
+         let snapshot = textBuffer.CurrentSnapshot
+         let lineCount = snapshot.LineCount
+
+         if lineCount > 0 then
+             let line = snapshot.GetLineFromLineNumber(lineCount - 1)
+             let snapshotSpan = new SnapshotSpan(line.Start, 0)
+
+             textView.ViewScroller.EnsureSpanVisible(snapshotSpan);
+
     member this.View = view
 
     member this.IsInputLine(line:int) =
@@ -385,6 +396,7 @@ type InteractivePadController(session: InteractiveSession) as this =
 
         if edit.Insert(position, text) then
             edit.Apply() |> ignore
+            scrollToLastLine()
 
     member this.SetPrompt() =
         this.FsiOutput "\n"
@@ -396,6 +408,7 @@ type InteractivePadController(session: InteractiveSession) as this =
         let glyphManager = InteractiveGlyphManagerService.getGlyphManager(textView)
         inputLines.Add(snapshot.LineCount - 1) |> ignore
 
+        scrollToLastLine()
         glyphManager.AddPrompt lastLine.Start.Position
         //(glyphManager :> ITagger<InteractivePromptGlyphTag>).TagsChanged
 
