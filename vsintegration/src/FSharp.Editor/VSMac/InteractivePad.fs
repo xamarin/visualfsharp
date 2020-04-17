@@ -438,7 +438,7 @@ type InteractivePadController(session: InteractiveSession) as this =
 
     member this.EnsureLastLine() =
         getLastLine() |> Option.iter(fun line ->
-            if textView.Caret.Position.BufferPosition.Position < line.Start.Position then
+            if textView.Caret.Position.BufferPosition.Position <= line.Start.Position then
                 textView.Caret.MoveTo(line.End) |> ignore)
 
 [<Export(typeof<IViewTaggerProvider>)>]
@@ -775,6 +775,31 @@ type InteractivePadCompletionTypeCharHandler
             controller.EnsureLastLine()
             false
 
+[<Microsoft.VisualStudio.Utilities.Name("InteractivePadCompletionBackspace")>]
+[<Microsoft.VisualStudio.Utilities.ContentType(FSharpContentTypeNames.FSharpInteractiveContentType)>]
+[<Export(typeof<ICommandHandler>)>]
+type InteractivePadCompletionBackspaceHandler
+    [<ImportingConstructor>]
+    ( completionBroker:ICompletionBroker ) =
+
+    interface ICommandHandler<BackspaceKeyCommandArgs> with
+        member x.DisplayName = "InteractivePadKeyBackspaceHandler"
+        member x.GetCommandState _args = CommandState.Available
+
+        member x.ExecuteCommand(args, _context) =
+            let textView = args.TextView
+            let snapshot = textView.TextBuffer.CurrentSnapshot
+            let lineCount = snapshot.LineCount
+
+            if lineCount > 0 then
+                let line = snapshot.GetLineFromLineNumber(lineCount - 1)
+                if textView.Caret.Position.BufferPosition.Position > line.Start.Position then
+                    false
+                else
+                    true
+            else
+                true
+
 [<Microsoft.VisualStudio.Utilities.Name("InteractivePadCompletionReturn")>]
 [<Microsoft.VisualStudio.Utilities.ContentType(FSharpContentTypeNames.FSharpInteractiveContentType)>]
 [<Export(typeof<ICommandHandler>)>]
@@ -784,8 +809,7 @@ type InteractivePadCompletionReturnHandler
 
     interface ICommandHandler<ReturnKeyCommandArgs> with
         member x.DisplayName = "InteractivePadKeyReturnHandler"
-        member x.GetCommandState _args =
-            CommandState.Available
+        member x.GetCommandState _args = CommandState.Available
 
         member x.ExecuteCommand(args, context) =
             if completionBroker.IsCompletionActive(args.TextView) then
@@ -798,15 +822,15 @@ type InteractivePadCompletionReturnHandler
             let snapshot = textBuffer.CurrentSnapshot
             let position = textView.Caret.Position.BufferPosition.Position
             let line = snapshot.GetLineFromPosition(position)
-            let start = line.Start.Position
-            let finish = line.End.Position
 
-            let start = Math.Min(start, finish);
-
-            let span = new Span(start, finish - start)
-            let text = snapshot.GetText(span)
-            controller.FsiOutput "\n"
-            controller.FsiInput text
+            if line.Length > 0 then
+                let start = line.Start.Position
+                let finish = line.End.Position
+                let start = Math.Min(start, finish);
+                let span = new Span(start, finish - start)
+                let text = snapshot.GetText(span)
+                controller.FsiOutput "\n"
+                controller.FsiInput text
             true
 
 [<Microsoft.VisualStudio.Utilities.Name("InteractivePadCompletionUp")>]
