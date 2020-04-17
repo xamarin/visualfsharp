@@ -363,6 +363,17 @@ type InteractivePadController(session: InteractiveSession) as this =
 
     let inputLines = HashSet<int>()
 
+    let setCaretLine text =
+         let snapshot = textBuffer.CurrentSnapshot
+         let lineCount = snapshot.LineCount
+
+         if lineCount > 0 then
+             use edit = textBuffer.CreateEdit()
+             let line = snapshot.GetLineFromLineNumber(lineCount - 1)
+
+             if edit.Replace(new Span(line.Start.Position, line.Length), text) then
+                edit.Apply() |> ignore
+
     let scrollToLastLine() =
          let textBuffer = textView.TextBuffer
          let snapshot = textBuffer.CurrentSnapshot
@@ -378,15 +389,12 @@ type InteractivePadController(session: InteractiveSession) as this =
 
     member this.IsInputLine(line:int) =
         let buffer = textView.TextBuffer
-        let snapshot = buffer.CurrentSnapshot
         inputLines.Contains line
 
     member this.FsiInput text =
         let fileName = getActiveDocumentFileName()
         history.Push text
         let buffer = textView.TextBuffer
-        let snapshot = buffer.CurrentSnapshot
-        //inputLines.Add(snapshot.LineCount - 1) |> ignore
         session.SendInput (text + "\n") fileName
 
     member this.FsiOutput text =
@@ -401,39 +409,28 @@ type InteractivePadController(session: InteractiveSession) as this =
     member this.SetPrompt() =
         this.FsiOutput "\n"
         let buffer = textView.TextBuffer
-        //use edit = buffer.CreateEdit()
         let snapshot = buffer.CurrentSnapshot
         let lastLine = snapshot.GetLineFromLineNumber(snapshot.LineCount - 1)
-        //let span = new SnapshotSpan(lastLine.Start., lastLine.End)
         let glyphManager = InteractiveGlyphManagerService.getGlyphManager(textView)
         inputLines.Add(snapshot.LineCount - 1) |> ignore
 
         scrollToLastLine()
         glyphManager.AddPrompt lastLine.Start.Position
-        //(glyphManager :> ITagger<InteractivePromptGlyphTag>).TagsChanged
 
+    member this.HistoryUp() =
+        history.Up() |> Option.iter setCaretLine
+
+    member this.HistoryDown() =
+        history.Down()
+        |> function Some c -> setCaretLine c | None -> setCaretLine ""
 
 [<Export(typeof<IViewTaggerProvider>)>]
 [<Microsoft.VisualStudio.Utilities.ContentType(FSharpContentTypeNames.FSharpInteractiveContentType)>]
 [<TagType(typeof<InteractivePromptGlyphTag>)>]
-//[TagType(typeof(BreakpointDisabledGlyphTag))]
-//[TagType(typeof(BreakpointInvalidGlyphTag))]
-//[TagType(typeof(TracepointGlyphTag))]
-//[TagType(typeof(TracepointDisabledGlyphTag))]
-//[TagType(typeof(TracepointInvalidGlyphTag))]
-//[TextViewRole(PredefinedTextViewRoles.Debuggable)]
 type InteractivePromptGlyphTaggerProvider() =
     interface IViewTaggerProvider with
-    //[Import]
-    //public ITextDocumentFactoryService TextDocumentFactoryService { get; set; }
-
-        //public ITagger<T> CreateTagger<T>(ITextView textView, ITextBuffer buffer) where T : ITag
         member x.CreateTagger(textView, buffer) =
             box(InteractivePromptGlyphTagger textView) :?> _
-
-//module InteractiveControllerProvider =
-//    let getOrCreateController(textView: ITextView) =
-//        textView.Properties.GetOrCreateSingletonProperty(typeof<InteractivePadController>, fun () -> new InteractivePadController())
 
 type FSharpInteractivePad() as this =
     inherit MonoDevelop.Ide.Gui.PadContent()
@@ -768,7 +765,7 @@ type InteractivePadCompletionReturnHandler
     ( completionBroker:ICompletionBroker ) =
 
     interface ICommandHandler<ReturnKeyCommandArgs> with
-        member x.DisplayName = "InteractivePadCompletionReturn"
+        member x.DisplayName = "InteractivePadKeyReturnHandler"
         member x.GetCommandState _args =
             CommandState.Available
 
@@ -792,6 +789,44 @@ type InteractivePadCompletionReturnHandler
             let text = snapshot.GetText(span).Trim()
             controller.FsiOutput "\n"
             controller.FsiInput text
+            true
+
+[<Microsoft.VisualStudio.Utilities.Name("InteractivePadCompletionUp")>]
+[<Microsoft.VisualStudio.Utilities.ContentType(FSharpContentTypeNames.FSharpInteractiveContentType)>]
+[<Export(typeof<ICommandHandler>)>]
+type InteractivePadCompletionUpHandler
+    [<ImportingConstructor>]
+    ( completionBroker:ICompletionBroker ) =
+    interface ICommandHandler<UpKeyCommandArgs> with
+        member x.DisplayName = "InteractivePadKeyUpHandler"
+        member x.GetCommandState _args = CommandState.Available
+
+        member x.ExecuteCommand(args, context) =
+            if completionBroker.IsCompletionActive(args.TextView) then
+                false
+            else
+            let textView = args.TextView
+            let (controller: InteractivePadController) = downcast textView.Properties.[typeof<InteractivePadController>]
+            controller.HistoryUp()
+            true
+
+[<Microsoft.VisualStudio.Utilities.Name("InteractivePadCompletionDown")>]
+[<Microsoft.VisualStudio.Utilities.ContentType(FSharpContentTypeNames.FSharpInteractiveContentType)>]
+[<Export(typeof<ICommandHandler>)>]
+type InteractivePadCompletionDownHandler
+    [<ImportingConstructor>]
+    ( completionBroker:ICompletionBroker ) =
+    interface ICommandHandler<DownKeyCommandArgs> with
+        member x.DisplayName = "InteractivePadKeyDownHandler"
+        member x.GetCommandState _args = CommandState.Available
+
+        member x.ExecuteCommand(args, context) =
+            if completionBroker.IsCompletionActive(args.TextView) then
+                false
+            else
+            let textView = args.TextView
+            let (controller: InteractivePadController) = downcast textView.Properties.[typeof<InteractivePadController>]
+            controller.HistoryDown()
             true
 /// handles keypresses for F# Interactive
 //type FSharpFsiEditorCompletion() =
