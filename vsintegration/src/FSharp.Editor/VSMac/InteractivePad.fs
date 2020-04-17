@@ -363,27 +363,37 @@ type InteractivePadController(session: InteractiveSession) as this =
 
     let inputLines = HashSet<int>()
 
-    let setCaretLine text =
+    let getLastLine() =
          let snapshot = textBuffer.CurrentSnapshot
          let lineCount = snapshot.LineCount
 
          if lineCount > 0 then
+             Some (snapshot.GetLineFromLineNumber(lineCount - 1))
+         else
+             None
+
+    let setCaretLine text =
+        getLastLine() |> Option.iter(fun line ->
              use edit = textBuffer.CreateEdit()
-             let line = snapshot.GetLineFromLineNumber(lineCount - 1)
 
              if edit.Replace(new Span(line.Start.Position, line.Length), text) then
-                edit.Apply() |> ignore
+                edit.Apply() |> ignore)
 
     let scrollToLastLine() =
-         let textBuffer = textView.TextBuffer
-         let snapshot = textBuffer.CurrentSnapshot
-         let lineCount = snapshot.LineCount
-
-         if lineCount > 0 then
-             let line = snapshot.GetLineFromLineNumber(lineCount - 1)
+        getLastLine() |> Option.iter(fun line ->
              let snapshotSpan = new SnapshotSpan(line.Start, 0)
+             textView.ViewScroller.EnsureSpanVisible(snapshotSpan))
 
-             textView.ViewScroller.EnsureSpanVisible(snapshotSpan);
+    let mutable readOnlyRegion = None
+
+    let updateReadOnlyRegion() =
+        getLastLine() |> Option.iter(fun line ->
+            use edit = textBuffer.CreateReadOnlyRegionEdit()
+
+            readOnlyRegion |> Option.iter(fun region -> edit.RemoveReadOnlyRegion region)
+            readOnlyRegion <- edit.CreateReadOnlyRegion(new Span(0, line.Start.Position - 1)) |> Some
+
+            edit.Apply() |> ignore)
 
     member this.View = view
 
@@ -405,6 +415,7 @@ type InteractivePadController(session: InteractiveSession) as this =
         if edit.Insert(position, text) then
             edit.Apply() |> ignore
             scrollToLastLine()
+            updateReadOnlyRegion()
 
     member this.SetPrompt() =
         this.FsiOutput "\n"
@@ -415,6 +426,7 @@ type InteractivePadController(session: InteractiveSession) as this =
         inputLines.Add(snapshot.LineCount - 1) |> ignore
 
         scrollToLastLine()
+        updateReadOnlyRegion()
         glyphManager.AddPrompt lastLine.Start.Position
 
     member this.HistoryUp() =
@@ -786,7 +798,7 @@ type InteractivePadCompletionReturnHandler
             let start = Math.Min(start, finish);
 
             let span = new Span(start, finish - start)
-            let text = snapshot.GetText(span).Trim()
+            let text = snapshot.GetText(span)
             controller.FsiOutput "\n"
             controller.FsiInput text
             true
