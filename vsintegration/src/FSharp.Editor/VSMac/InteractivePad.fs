@@ -436,6 +436,11 @@ type InteractivePadController(session: InteractiveSession) as this =
         history.Down()
         |> function Some c -> setCaretLine c | None -> setCaretLine ""
 
+    member this.EnsureLastLine() =
+        getLastLine() |> Option.iter(fun line ->
+            if textView.Caret.Position.BufferPosition.Position < line.Start.Position then
+                textView.Caret.MoveTo(line.End) |> ignore)
+
 [<Export(typeof<IViewTaggerProvider>)>]
 [<Microsoft.VisualStudio.Utilities.ContentType(FSharpContentTypeNames.FSharpInteractiveContentType)>]
 [<TagType(typeof<InteractivePromptGlyphTag>)>]
@@ -753,25 +758,26 @@ type FSharpInteractivePad() as this =
             let file = dlg.SelectedFile
             //x.SendCommand ("#load @\"" + file.FullPath.ToString() + "\"")
             ()
-[<Microsoft.VisualStudio.Utilities.Name("InteractivePadCompletionTypeCharHandler")>]
-[<Microsoft.VisualStudio.Utilities.ContentType(FSharpContentTypeNames.FSharpInteractiveContentType)>]
-//[<TextViewRole(PredefinedTextViewRoles.Interactive)>]
-[<Export(typeof<ICommandHandler>)>]
-[<Microsoft.VisualStudio.Utilities.Order(After = PredefinedCompletionNames.CompletionCommandHandler)>]
-type InteractivePadCompletionTypeCharHandler() =
-    interface ICommandHandler<TypeCharCommandArgs> with
-        member x.DisplayName = "InteractivePadCompletionTypeCharHandler"
-        member x.GetCommandState _args =
-            CommandState.Available
 
-        member x.ExecuteCommand(args, context) =
+[<Microsoft.VisualStudio.Utilities.Name("InteractivePadTypeChar")>]
+[<Microsoft.VisualStudio.Utilities.ContentType(FSharpContentTypeNames.FSharpInteractiveContentType)>]
+[<Export(typeof<ICommandHandler>)>]
+type InteractivePadCompletionTypeCharHandler
+    [<ImportingConstructor>]
+    ( completionBroker:ICompletionBroker ) =
+    interface ICommandHandler<TypeCharCommandArgs> with
+        member x.DisplayName = "InteractivePadTypeCharHandler"
+        member x.GetCommandState _args = CommandState.Available
+
+        member x.ExecuteCommand(args, _context) =
+            let textView = args.TextView
+            let (controller: InteractivePadController) = downcast textView.Properties.[typeof<InteractivePadController>]
+            controller.EnsureLastLine()
             false
 
 [<Microsoft.VisualStudio.Utilities.Name("InteractivePadCompletionReturn")>]
 [<Microsoft.VisualStudio.Utilities.ContentType(FSharpContentTypeNames.FSharpInteractiveContentType)>]
-//[<TextViewRole(PredefinedTextViewRoles.Interactive)>]
 [<Export(typeof<ICommandHandler>)>]
-//[<Microsoft.VisualStudio.Utilities.Order(After = PredefinedCompletionNames.CompletionCommandHandler)>]
 type InteractivePadCompletionReturnHandler
     [<ImportingConstructor>]
     ( completionBroker:ICompletionBroker ) =
