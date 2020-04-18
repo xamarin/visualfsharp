@@ -6,20 +6,35 @@ open System.Diagnostics
 open MonoDevelop.Core
 open Newtonsoft.Json
 open Microsoft.VisualStudio.FSharp.Editor.Extensions
-open Microsoft.CodeAnalysis.ExternalAccess.FSharp
 open Newtonsoft.Json.Converters
+open FSharp.Compiler.SourceCodeServices
+open System.Runtime.Serialization.Formatters.Binary
 
 type CompletionData = {
     displayText: string
     completionText: string
     category: string
     [<JsonConverter(typeof<StringEnumConverter>)>]
-    icon: FSharpGlyph
+    icon: Microsoft.CodeAnalysis.ExternalAccess.FSharp.FSharpGlyph
     overloads: CompletionData array
     description: string
 }
 
+module binaryDeserializer =
+    let  deserializeFromString<'T>(base64) =
+        match base64 with
+        | "" ->
+            None
+        | _ ->
+            let b = Convert.FromBase64String(base64)
+            use stream = new MemoryStream(b)
+            let formatter = new BinaryFormatter()
+            let (o:'T) = downcast formatter.Deserialize(stream)
+            Some o
+
 type InteractiveSession(pathToExe) =
+    let jsonSettings = JsonSerializerSettings(ReferenceLoopHandling = ReferenceLoopHandling.Ignore, TypeNameHandling = TypeNameHandling.Auto)
+
     let (|Completion|_|) (command: string) =
         if command.StartsWith("completion ") then
             let payload = command.[11..]
@@ -30,7 +45,7 @@ type InteractiveSession(pathToExe) =
     let (|Tooltip|_|) (command: string) =
         if command.StartsWith("tooltip ") then
             let payload = command.[8..]
-            Some (JsonConvert.DeserializeObject<MonoDevelop.FSharp.Shared.ToolTips> payload)
+            Some (binaryDeserializer.deserializeFromString<FSharpStructuredToolTipText>(payload))
         else
             None
 
@@ -92,7 +107,7 @@ type InteractiveSession(pathToExe) =
 
     let completionsReceivedEvent = new Event<CompletionData array>()
     let imageReceivedEvent = new Event<Xwt.Drawing.Image>()
-    let tooltipReceivedEvent = new Event<MonoDevelop.FSharp.Shared.ToolTips>()
+    let tooltipReceivedEvent = new Event<FSharpStructuredToolTipText option>()
     let parameterHintReceivedEvent = new Event<MonoDevelop.FSharp.Shared.ParameterTooltip array>()
     do
         fsiProcess.OutputDataReceived

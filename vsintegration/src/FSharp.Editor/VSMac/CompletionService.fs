@@ -221,6 +221,7 @@ type internal FSharpInteractiveCompletionSource
     let commitChars = [|' '; '='; ','; '.'; '<'; '>'; '('; ')'; '!'; ':'; '['; ']'; '|'|].ToImmutableArray()
 
     let imageCatalogGuid = Guid.Parse("ae27a6b0-e345-4288-96df-5eaf394ee369");
+    let documentationBuilder = XmlDocumentation.Provider()   
 
     interface IAsyncExpandingCompletionSource with
         member __.GetExpandedCompletionContextAsync(session, expander, initialTrigger, applicableToSpan, token) =
@@ -268,12 +269,37 @@ type internal FSharpInteractiveCompletionSource
     /// <returns>An object that will be passed to <see cref="IViewElementFactoryService"/>. See its documentation for supported types.</returns>
         member __.GetDescriptionAsync(session, item, token) =
             async {
-                let document = session.TextView.TextSnapshot.GetOpenDocumentInCurrentContextWithChanges()
-                //let! sourceText = document.GetTextAsync() |> Async.AwaitTask
-                let provider = FSharpCompletionProvider(document.Project.Solution.Workspace, checkerProvider, projectInfoManager, assemblyContentProvider)
-                let! description = provider.GetDescriptionAsync2(session.TextView, item, token) |> Async.AwaitTask
+                System.Diagnostics.Trace.WriteLine("GetCompletionContextAsync")
+                let (interactiveSession: InteractiveSession) = downcast textView.Properties.[typeof<InteractiveSession>]
+                //let snapshot = session.TextView.TextBuffer.CurrentSnapshot
+                //let line = snapshot.GetLineFromPosition(triggerLocation.Position)
+                //let start = line.Start.Position
+                //let finish = line.End.Position
+
+                //let span = new Span(start, finish - start)
+                //let text = snapshot.GetText(span).Trim()
+                //session.TextView.Properties.["PotentialCommitCharacters"] <- commitChars
+                interactiveSession.SendTooltipRequest item.DisplayText
+                let! tooltip = interactiveSession.TooltipReceived |> Async.AwaitEvent
+                let description =
+                    match tooltip with
+                    | Some description ->
+                        let documentation = List()
+                        let collector = RoslynHelpers.CollectTaggedText documentation
+                        // mix main description and xmldoc by using one collector
+                        XmlDocumentation.BuildDataTipText(documentationBuilder, collector, collector, collector, collector, collector, description) 
+                        CompletionDescription.Create(documentation.ToImmutableArray())
+                    | None ->
+                        CompletionDescription.Empty
                 let elements = description.TaggedParts |>  buildClassifiedTextElements
                 return ContainerElement(ContainerElementStyle.Stacked ||| ContainerElementStyle.VerticalPadding, elements |> Seq.map box) :> obj
+                //    return 
+                //let document = session.TextView.TextSnapshot.GetOpenDocumentInCurrentContextWithChanges()
+                ////let! sourceText = document.GetTextAsync() |> Async.AwaitTask
+                //let provider = FSharpCompletionProvider(document.Project.Solution.Workspace, checkerProvider, projectInfoManager, assemblyContentProvider)
+                //let! description = provider.GetDescriptionAsync2(session.TextView, item, token) |> Async.AwaitTask
+                //let elements = description.TaggedParts |>  buildClassifiedTextElements
+                //return ContainerElement(ContainerElementStyle.Stacked ||| ContainerElementStyle.VerticalPadding, elements |> Seq.map box) :> obj
                 //return elements :> obj
             } |> RoslynHelpers.StartAsyncAsTask token
 

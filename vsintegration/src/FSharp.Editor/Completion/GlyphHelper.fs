@@ -11,7 +11,7 @@ module GlyphHelper =
     // https://github.com/dotnet/roslyn/issues/26642
     let imageCatalogGuid = Guid.Parse("ae27a6b0-e345-4288-96df-5eaf394ee369");
 
-    let getImageId (glyph:Glyph) =
+    let getImageId (glyph:Microsoft.CodeAnalysis.ExternalAccess.FSharp.FSharpGlyph) =
       // VS for mac cannot refer to ImageMoniker
       // so we need to expose ImageId instead of ImageMoniker here
       // and expose ImageMoniker in the EditorFeatures.wpf.dll

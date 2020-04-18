@@ -293,6 +293,7 @@ type internal FSharpCompletionProvider
             | _ -> 
                 return CompletionDescription.Empty
         } |> RoslynHelpers.StartAsyncAsTask cancellationToken
+
     override this.GetChangeAsync(document, item, _, cancellationToken) : Task<CompletionChange> =
         async {
             use _logBlock = Logger.LogBlockMessage document.Name LogEditorFunctionId.Completion_GetChangeAsync
