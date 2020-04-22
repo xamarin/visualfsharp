@@ -201,6 +201,7 @@ type ShellHistory() =
     member x.Up() =
         match nextUp with
         | -1 -> None
+        | index when index >= history.Count -> None
         | index ->
             nextDown <- nextUp
             nextUp <- nextUp - 1
@@ -396,6 +397,7 @@ type InteractivePadController(session: InteractiveSession) as this =
             edit.Apply() |> ignore)
 
     member this.View = view
+    member this.Session = session
 
     member this.IsInputLine(line:int) =
         let buffer = textView.TextBuffer
@@ -764,12 +766,15 @@ type FSharpInteractivePad() as this =
 [<Export(typeof<ICommandHandler>)>]
 type InteractivePadCompletionTypeCharHandler
     [<ImportingConstructor>]
-    ( completionBroker:ICompletionBroker ) =
+    ( completionBroker:ICompletionBroker,
+      signatureHelpBroker:ISignatureHelpBroker ) =
     interface ICommandHandler<TypeCharCommandArgs> with
         member x.DisplayName = "InteractivePadTypeCharHandler"
         member x.GetCommandState _args = CommandState.Available
 
         member x.ExecuteCommand(args, _context) =
+            if args.TypedChar <> '(' && args.TypedChar <> ',' && args.TypedChar <> ' ' then
+                signatureHelpBroker.DismissAllSessions(args.TextView)
             let textView = args.TextView
             let (controller: InteractivePadController) = downcast textView.Properties.[typeof<InteractivePadController>]
             controller.EnsureLastLine()
@@ -805,17 +810,18 @@ type InteractivePadCompletionBackspaceHandler
 [<Export(typeof<ICommandHandler>)>]
 type InteractivePadCompletionReturnHandler
     [<ImportingConstructor>]
-    ( completionBroker:ICompletionBroker ) =
-
+    ( completionBroker:ICompletionBroker,
+      signatureHelpBroker:ISignatureHelpBroker ) =
     interface ICommandHandler<ReturnKeyCommandArgs> with
         member x.DisplayName = "InteractivePadKeyReturnHandler"
         member x.GetCommandState _args = CommandState.Available
 
         member x.ExecuteCommand(args, context) =
-            if completionBroker.IsCompletionActive(args.TextView) then
+            let textView = args.TextView
+            signatureHelpBroker.DismissAllSessions(textView)
+            if completionBroker.IsCompletionActive(textView) then
                 false
             else
-            let textView = args.TextView
             let (controller: InteractivePadController) = downcast textView.Properties.[typeof<InteractivePadController>]
 
             let textBuffer = textView.TextBuffer
@@ -838,13 +844,16 @@ type InteractivePadCompletionReturnHandler
 [<Export(typeof<ICommandHandler>)>]
 type InteractivePadCompletionUpHandler
     [<ImportingConstructor>]
-    ( completionBroker:ICompletionBroker ) =
+    ( completionBroker:ICompletionBroker,
+      signatureHelpBroker:ISignatureHelpBroker ) =
     interface ICommandHandler<UpKeyCommandArgs> with
         member x.DisplayName = "InteractivePadKeyUpHandler"
         member x.GetCommandState _args = CommandState.Available
 
         member x.ExecuteCommand(args, context) =
-            if completionBroker.IsCompletionActive(args.TextView) then
+            if signatureHelpBroker.IsSignatureHelpActive(args.TextView) then
+                false
+            else if completionBroker.IsCompletionActive(args.TextView) then
                 false
             else
             let textView = args.TextView
@@ -857,13 +866,16 @@ type InteractivePadCompletionUpHandler
 [<Export(typeof<ICommandHandler>)>]
 type InteractivePadCompletionDownHandler
     [<ImportingConstructor>]
-    ( completionBroker:ICompletionBroker ) =
+    ( completionBroker:ICompletionBroker,
+      signatureHelpBroker:ISignatureHelpBroker ) =
     interface ICommandHandler<DownKeyCommandArgs> with
         member x.DisplayName = "InteractivePadKeyDownHandler"
         member x.GetCommandState _args = CommandState.Available
 
         member x.ExecuteCommand(args, context) =
-            if completionBroker.IsCompletionActive(args.TextView) then
+            if signatureHelpBroker.IsSignatureHelpActive(args.TextView) then
+                false
+            else if completionBroker.IsCompletionActive(args.TextView) then
                 false
             else
             let textView = args.TextView

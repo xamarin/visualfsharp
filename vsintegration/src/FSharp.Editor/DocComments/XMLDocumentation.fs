@@ -301,11 +301,14 @@ module internal XmlDocumentation =
     type FSharpXmlDocumentationProvider(assemblyPath) =
         inherit Microsoft.CodeAnalysis.XmlDocumentationProvider()
         let xmlPath = Path.ChangeExtension(assemblyPath, ".xml")
-
+        let xmlExists = File.Exists xmlPath
         member x.XmlPath = xmlPath
         member x.GetDocumentation documentationCommentId =
-            let xml = base.GetDocumentationForSymbol(documentationCommentId, Globalization.CultureInfo.CurrentCulture, CancellationToken.None)
-            xml
+            match xmlExists with
+            | true ->
+                let xml = base.GetDocumentationForSymbol(documentationCommentId, Globalization.CultureInfo.CurrentCulture, CancellationToken.None)
+                xml
+            | false -> "<root></root>"
 
         override x.GetSourceStream(_cancellationToken) =
             new FileStream(xmlPath, FileMode.Open, FileAccess.Read) :> Stream

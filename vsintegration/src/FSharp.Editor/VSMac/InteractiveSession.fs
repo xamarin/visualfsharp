@@ -3,12 +3,12 @@
 open System
 open System.IO
 open System.Diagnostics
+open System.Runtime.Serialization.Formatters.Binary
 open MonoDevelop.Core
 open Newtonsoft.Json
 open Microsoft.VisualStudio.FSharp.Editor.Extensions
 open Newtonsoft.Json.Converters
 open FSharp.Compiler.SourceCodeServices
-open System.Runtime.Serialization.Formatters.Binary
 
 type CompletionData = {
     displayText: string
@@ -45,14 +45,14 @@ type InteractiveSession(pathToExe) =
     let (|Tooltip|_|) (command: string) =
         if command.StartsWith("tooltip ") then
             let payload = command.[8..]
-            Some (binaryDeserializer.deserializeFromString<FSharpStructuredToolTipText>(payload))
+            Some (binaryDeserializer.deserializeFromString<FSharpStructuredToolTipText> payload)
         else
             None
 
     let (|ParameterHints|_|) (command: string) =
         if command.StartsWith("parameter-hints ") then
             let payload = command.[16..]
-            Some (JsonConvert.DeserializeObject<MonoDevelop.FSharp.Shared.ParameterTooltip array> payload)
+            Some (binaryDeserializer.deserializeFromString<(FSharpNoteworthyParamInfoLocations * FSharpMethodGroup)> payload)
         else
             None
 
@@ -108,7 +108,7 @@ type InteractiveSession(pathToExe) =
     let completionsReceivedEvent = new Event<CompletionData array>()
     let imageReceivedEvent = new Event<Xwt.Drawing.Image>()
     let tooltipReceivedEvent = new Event<FSharpStructuredToolTipText option>()
-    let parameterHintReceivedEvent = new Event<MonoDevelop.FSharp.Shared.ParameterTooltip array>()
+    let parameterHintReceivedEvent = new Event<(FSharpNoteworthyParamInfoLocations * FSharpMethodGroup) option>()
     do
         fsiProcess.OutputDataReceived
           |> Event.filter (fun de -> de.Data <> null)

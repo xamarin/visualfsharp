@@ -263,6 +263,7 @@
     </ProjectReference>
     <Compile Include="VSMac\CompletionService.fs" />
     <Compile Include="VSMac\InteractiveClassificationService.fs" />
+    <Compile Include="VSMac\SignatureHelp.fs" />
   </ItemGroup>
   <ProjectExtensions>
     <MonoDevelop>
