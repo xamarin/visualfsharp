@@ -419,6 +419,10 @@ type InteractivePadController(session: InteractiveSession) as this =
             scrollToLastLine()
             updateReadOnlyRegion()
 
+    member this.Clear() =
+        use edit = textView.TextBuffer.CreateEdit()
+        edit.Delete(0, textView.TextBuffer.CurrentSnapshot.Length) |> ignore
+
     member this.SetPrompt() =
         this.FsiOutput "\n"
         let buffer = textView.TextBuffer
@@ -540,7 +544,7 @@ type FSharpInteractivePad() as this =
                         LoggingService.LogDebug ("Interactive: process stopped")
                         (*this.FsiOutput "\nSession termination detected. Press Enter to restart." *))|> ignore
                 elif killIntent = Restart then
-                    Runtime.RunInMainThread (fun () -> ()(*editor.Text <- ""*)) |> ignore
+                    Runtime.RunInMainThread (fun () -> controller.Clear()) |> ignore
                 killIntent <- NoIntent)
 
             ses.StartReceiving()
@@ -559,8 +563,8 @@ type FSharpInteractivePad() as this =
     let resetFsi intent =
         if promptReceived then
             killIntent <- intent
-            //session |> Option.iter (fun (ses: InteractiveSession) -> ses.Kill())
-            //if intent = Restart then session <- setupSession()
+            session |> Option.iter (fun (ses: InteractiveSession) -> ses.Kill())
+            if intent = Restart then session <- setupSession()
 
     let history = ShellHistory()
     //new() =
@@ -605,13 +609,13 @@ type FSharpInteractivePad() as this =
     //        history.Push command
     //        ses.SendInput (command + "\n") fileName)
 
-    //member x.SendCommand command =
-    //    let fileName = getActiveDocumentFileName()
+    member x.SendCommand command =
+        let fileName = getActiveDocumentFileName()
 
-    //    input.Add command
-    //    session
-    //    |> Option.iter(fun ses ->
-    //        ses.SendInput (command + ";;") fileName)
+        input.Add command
+        session
+        |> Option.iter(fun ses ->
+            ses.SendInput (command + ";;") fileName)
 
     //member x.RequestCompletions lineStr column =
     //    session 
@@ -671,9 +675,8 @@ type FSharpInteractivePad() as this =
     member x.SendSelection() =
         if x.IsSelectionNonEmpty then
             let textView = IdeApp.Workbench.ActiveDocument.GetContent<ITextView>()
-            ()
-            //for span in textView.Selection.VirtualSelectedSpans do
-            //    x.SendCommand (span.GetText())
+            for span in textView.Selection.VirtualSelectedSpans do
+                x.SendCommand (span.GetText())
         else
           //if nothing is selected send the whole line
             x.SendLine()
@@ -684,13 +687,11 @@ type FSharpInteractivePad() as this =
             let view = IdeApp.Workbench.ActiveDocument.GetContent<ITextView>();
             let line = view.Caret.Position.BufferPosition.GetContainingLine();
             let text = line.GetText()
-            //x.SendCommand text
-            ()
+            x.SendCommand text
 
     member x.SendFile() =
         let text = IdeApp.Workbench.ActiveDocument.TextBuffer.CurrentSnapshot.GetText()
-        //x.SendCommand text
-        ()
+        x.SendCommand text
 
     member x.IsSelectionNonEmpty =
         if isNull IdeApp.Workbench.ActiveDocument ||
@@ -728,7 +729,7 @@ type FSharpInteractivePad() as this =
 
         addButton ("gtk-save", (fun _ -> x.Save()), GettextCatalog.GetString ("Save as script"))
         addButton ("gtk-open", (fun _ -> x.OpenScript()), GettextCatalog.GetString ("Open"))
-        //addButton ("gtk-clear", (fun _ -> editor.Text <- ""), GettextCatalog.GetString ("Clear"))
+        addButton ("gtk-clear", (fun _ -> x.ClearFsi()), GettextCatalog.GetString ("Clear"))
         addButton ("gtk-refresh", (fun _ -> x.RestartFsi()), GettextCatalog.GetString ("Reset"))
         toolbar.ShowAll()
         session <- setupSession()
@@ -736,7 +737,7 @@ type FSharpInteractivePad() as this =
 
     member x.RestartFsi() = resetFsi Restart
 
-    //member x.ClearFsi() = editor.Text <- ""
+    member x.ClearFsi() = x.Controller |> Option.iter(fun c -> c.Clear())
 
     member x.Save() =
         let dlg = new MonoDevelop.Ide.Gui.Dialogs.OpenFileDialog(GettextCatalog.GetString ("Save as .fsx"), MonoDevelop.Components.FileChooserAction.Save)
@@ -758,8 +759,7 @@ type FSharpInteractivePad() as this =
         dlg.AddFilter (GettextCatalog.GetString ("F# script files"), [|".fs"; "*.fsi"; "*.fsx"; "*.fsscript"; "*.ml"; "*.mli" |]) |> ignore
         if dlg.Run () then
             let file = dlg.SelectedFile
-            //x.SendCommand ("#load @\"" + file.FullPath.ToString() + "\"")
-            ()
+            x.SendCommand ("#load @\"" + file.FullPath.ToString() + "\"")
 
 [<Microsoft.VisualStudio.Utilities.Name("InteractivePadTypeChar")>]
 [<Microsoft.VisualStudio.Utilities.ContentType(FSharpContentTypeNames.FSharpInteractiveContentType)>]
@@ -1030,8 +1030,8 @@ type SendReferences() =
 type RestartFsi() =
     inherit InteractiveCommand(fun fsi -> fsi.RestartFsi())
 
-//type ClearFsi() =
-//    inherit InteractiveCommand(fun fsi -> fsi.ClearFsi())
+type ClearFsi() =
+    inherit InteractiveCommand(fun fsi -> fsi.ClearFsi())
 
 //open System.ComponentModel.Composition
 //open Microsoft.VisualStudio.Text.Editor
