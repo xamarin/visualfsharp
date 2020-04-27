@@ -25,25 +25,15 @@
 // THE SOFTWARE.
 namespace Microsoft.VisualStudio.FSharp.Editor
 
-open System
 open System.Composition
 open System.Collections.Generic
-open System.Diagnostics
 open System.Threading
 
 open Microsoft.CodeAnalysis
 open Microsoft.CodeAnalysis.Classification
-open Microsoft.CodeAnalysis.Editor
-open Microsoft.CodeAnalysis.Host.Mef
 open Microsoft.CodeAnalysis.Text
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Classification
-open Microsoft.VisualStudio.Text.Classification
-open System.Windows.Media
-open MonoDevelop.Core
-open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Editor
 
-//[<ExportLanguageService(typeof<IFSharpInteracClassificationService>, FSharpContentTypeNames.FSharpInteractiveContentType)>]
-//[<Export>]
 [<Export(typeof<IFSharpInteractiveClassificationService>)>]
 type internal FSharpInteractiveClassificationService
     [<ImportingConstructor>]
@@ -53,28 +43,25 @@ type internal FSharpInteractiveClassificationService
     interface IFSharpInteractiveClassificationService with
        
         member __.AddLexicalClassifications(sourceText: SourceText, textSpan: TextSpan, result: List<ClassifiedSpan>, cancellationToken: CancellationToken) =
-            //let line = sourceText.Lines.GetLineFromPosition(textSpan.Start).LineNumber
-
-            //if FSharpInteractivePad.Fsi.Value.Controller.Value.IsInputLine(line) then
-            //service.AddLexicalClassifications(sourceText, textSpan, result, cancellationToken)
             ()
 
         member __.AddSyntacticClassificationsAsync(document: Document, textSpan: TextSpan, result: List<ClassifiedSpan>, cancellationToken: CancellationToken) =
-            //Tasks.Task.CompletedTask
-            match document.TryGetText() with
-            | true, sourceText ->
-                let line = sourceText.Lines.GetLineFromPosition(textSpan.Start).LineNumber
-
-                if FSharpInteractivePad.Fsi.Value.Controller.Value.IsInputLine(line) then
-                    //let service = document.Project.LanguageServices.GetService<FSharpClassificationService>();
-
-                    service.AddSyntacticClassificationsAsync(document, textSpan, result, cancellationToken)
-                else
-                    Tasks.Task.CompletedTask
-            | false, _ -> Tasks.Task.CompletedTask
-
-        //member __.AddSemanticClassificationsAsync(document: Document, textSpan: TextSpan, result: List<ClassifiedSpan>, cancellationToken: CancellationToken) =
-        //    System.Threading.Tasks.Task.CompletedTask
+            let classificationTask =
+                maybe {
+                    match document.TryGetText() with
+                    | true, sourceText ->
+                        let line = sourceText.Lines.GetLineFromPosition(textSpan.Start).LineNumber
+                        let! fsi = FSharpInteractivePad.Fsi
+                        let! controller = fsi.Controller
+                        if controller.IsInputLine(line) then
+                            return! service.AddSyntacticClassificationsAsync(document, textSpan, result, cancellationToken) |> Some
+                        else
+                            return! None
+                    | false, _ -> return! None
+                }
+            match classificationTask with
+            | Some classifications -> classifications
+            | None -> Tasks.Task.CompletedTask
 
         // Do not perform classification if we don't have project options (#defines matter)
         member __.AdjustStaleClassification(_: SourceText, classifiedSpan: ClassifiedSpan) : ClassifiedSpan = classifiedSpan

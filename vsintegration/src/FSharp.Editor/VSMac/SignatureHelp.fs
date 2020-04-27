@@ -2,18 +2,14 @@
 
 namespace Microsoft.VisualStudio.FSharp.Editor
 
-open System
 open System.Composition
 open System.Collections.Generic
 
 open Microsoft.CodeAnalysis
-open Microsoft.CodeAnalysis.SignatureHelp
 open Microsoft.CodeAnalysis.Text
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp.SignatureHelp
 
 open Microsoft.VisualStudio.Text
-////open Microsoft.VisualStudio.Shell
-//open Microsoft.VisualStudio.Shell.Interop
 
 open FSharp.Compiler.Layout
 open FSharp.Compiler.Range
@@ -25,41 +21,21 @@ open MonoDevelop.FSharp
 type internal FSharpInteractiveSignatureHelpProvider 
     [<ImportingConstructor>]
     (
-        //serviceProvider: SVsServiceProvider,
         checkerProvider: FSharpCheckerProvider,
         projectInfoManager: FSharpProjectOptionsManager
     ) =
 
     static let userOpName = "SignatureHelpProvider"
-    let documentationBuilder = XmlDocumentation.CreateDocumentationBuilder((*serviceProvider.XMLMemberIndexService*))
+    let documentationBuilder = XmlDocumentation.CreateDocumentationBuilder()
 
     static let oneColAfter (lp: LinePosition) = LinePosition(lp.Line,lp.Character+1)
     static let oneColBefore (lp: LinePosition) = LinePosition(lp.Line,max 0 (lp.Character-1))
 
     // Unit-testable core routine
     static member internal ProvideMethodsAsyncAux(nwpl:FSharpNoteworthyParamInfoLocations, methodGroup:FSharpMethodGroup, documentationBuilder: IDocumentationBuilder, sourceText: SourceText, caretPosition: int, triggerIsTypedChar: char option) = async {
-        ////let (interactiveSession: InteractiveSession) = downcast textView.Properties.[typeof<InteractiveSession>]
-
-        //let! parseResults, checkFileAnswer = checker.ParseAndCheckFileInProject(filePath, textVersionHash, sourceText.ToFSharpSourceText(), options, userOpName = userOpName)
-        //match checkFileAnswer with
-        //| FSharpCheckFileAnswer.Aborted -> return None
-        //| FSharpCheckFileAnswer.Succeeded(checkFileResults) -> 
 
         let textLines = sourceText.Lines
         let caretLinePos = textLines.GetLinePosition(caretPosition)
-        let caretLineColumn = caretLinePos.Character
-
-        //// Get the parameter locations
-        //let paramLocations = parseResults.FindNoteworthyParamInfoLocations(Pos.fromZ 0 caretLineColumn)
-
-        //match paramLocations with
-        //| None -> return None // no locations = no help
-        //| Some nwpl -> 
-        //let names = nwpl.LongId
-        //let lidEnd = nwpl.LongIdEndLocation
-
-        // Get the methods
-        //let! methodGroup = checkFileResults.GetMethods(lidEnd.Line, lidEnd.Column, "", Some names)
 
         let methods = methodGroup.Methods
 
@@ -182,9 +158,6 @@ type internal FSharpInteractiveSignatureHelpProvider
             let suffixParts = [| TaggedText(TextTags.Punctuation, (if isStaticArgTip then ">" else ")")) |]
 
             let completionItem = (method.HasParamArrayArg, documentation, prefixParts, separatorParts, suffixParts, parameters, mainDescription)
-            // FSROSLYNTODO: Do we need a cache like for completion?
-            //declarationItemsCache.Remove(completionItem.DisplayText) |> ignore // clear out stale entries if they exist
-            //declarationItemsCache.Add(completionItem.DisplayText, declarationItem)
             results.Add(completionItem)
 
 
@@ -193,37 +166,20 @@ type internal FSharpInteractiveSignatureHelpProvider
     }
 
     interface IFSharpInteractiveSignatureHelpProvider with
-        //member this.IsTriggerCharacter(c) = c ='(' || c = '<' || c = ',' 
-        //member this.IsRetriggerCharacter(c) = c = ')' || c = '>' || c = '='
-
         member this.GetItemsAsync(document, position, triggerInfo, cancellationToken) = 
             asyncMaybe {
               try
                 let! fsi = FSharpInteractivePad.Fsi
                 let! controller = fsi.Controller
-                //let (interactiveSession: InteractiveSession) = downcast controller.View.Properties.[typeof<InteractiveSession>]
-
-                //if FSharpInteractivePad.Fsi.Value.Controller.Value.IsInputLine(line) then
-
-                //let! parsingOptions, projectOptions = projectInfoManager.TryGetOptionsForEditingDocumentOrProject(document, cancellationToken)
-
                 let! sourceText = document.GetTextAsync(cancellationToken)
                 let line = sourceText.Lines.GetLineFromPosition(position)
                 let column = position - line.Start
                 let snapshot = sourceText.FindCorrespondingEditorTextSnapshot()
                 let lineText = snapshot.GetText(Span(line.Start, line.End - line.Start))
-                //let fssourceText = SourceText.From(lineText).ToFSharpSourceText()
                 MonoDevelop.Core.LoggingService.LogDebug("parameter-hints " + column.ToString() + " " + lineText)
                 controller.Session.SendParameterHintRequest lineText column
 
                 let! paramInfo, methodGroups = controller.Session.ParameterHintReceived |> Async.AwaitEvent
-                //let! textVersion = document.GetTextVersionAsync(cancellationToken)
-                ////let! parseResult, parsedInput, checkResults = checkerProvider.Checker.ParseAndCheckDocument(document, projectOptions, lineText)
-                //let! projectOptions, errors = checkerProvider.Checker.GetProjectOptionsFromScript(document.FilePath, fssourceText) |> liftAsync
-                //let parsingOptions, errors = checkerProvider.Checker.GetParsingOptionsFromProjectOptions(projectOptions)
-                //let! parseResult = checkerProvider.Checker.ParseFileNoCache(document.FilePath, fssourceText, parsingOptions) |> liftAsync
-                //let ino = parseResult.FindNoteworthyParamInfoLocations(Pos.fromZ 0 column)
-                //printfn "%A" ino
                 let triggerTypedChar = 
                     if triggerInfo.TriggerCharacter.HasValue && triggerInfo.TriggerReason = FSharpSignatureHelpTriggerReason.TypeCharCommand then
                         Some triggerInfo.TriggerCharacter.Value

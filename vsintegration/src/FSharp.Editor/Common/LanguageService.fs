@@ -2,16 +2,12 @@
 open System
 open System.Collections.Generic
 open System.IO
-open System.Diagnostics
 open FSharp.Compiler
 open FSharp.Compiler.SourceCodeServices
-open FSharp.Compiler.Text
 open MonoDevelop.FSharp
 open MonoDevelop.Core
 open MonoDevelop.Ide
-open MonoDevelop.Ide.TypeSystem
 open MonoDevelop.Projects
-//type LoggingService = MonoDevelop.FSharp.LoggingService
 open Microsoft.VisualStudio.FSharp.Editor.Extensions
 
 module Symbol =
@@ -28,7 +24,6 @@ module Symbol =
             else
                 (beginLine, beginCol)
         Range.mkPos beginLine beginCol, Range.mkPos endLine endCol
-        //(beginLine, beginCol), (endLine, endCol)
 
 /// Contains settings of the F# language service
 module ServiceSettings =
