@@ -33,8 +33,6 @@ module binaryDeserializer =
             Some o
 
 type InteractiveSession(pathToExe) =
-    let jsonSettings = JsonSerializerSettings(ReferenceLoopHandling = ReferenceLoopHandling.Ignore, TypeNameHandling = TypeNameHandling.Auto)
-
     let (|Completion|_|) (command: string) =
         if command.StartsWith("completion ") then
             let payload = command.[11..]
@@ -73,7 +71,15 @@ type InteractiveSession(pathToExe) =
 
     let mutable waitingForResponse = false
 
-    let fsiProcess =
+    let textReceived = Event<_>()
+    let promptReady = Event<_>()        
+
+    let completionsReceivedEvent = new Event<CompletionData array>()
+    let imageReceivedEvent = new Event<Xwt.Drawing.Image>()
+    let tooltipReceivedEvent = new Event<FSharpStructuredToolTipText option>()
+    let parameterHintReceivedEvent = new Event<(FSharpNoteworthyParamInfoLocations * FSharpMethodGroup) option>()
+
+    let startProcess() =
         let processPid = sprintf " %d" (Process.GetCurrentProcess().Id)
 
         let processName = 
@@ -89,57 +95,60 @@ type InteractiveSession(pathToExe) =
               RedirectStandardInput = true, StandardErrorEncoding = Text.Encoding.UTF8, StandardOutputEncoding = Text.Encoding.UTF8)
 
         try
-            Process.Start(startInfo)
+            let proc = Process.Start(startInfo)
+            LoggingService.logDebug "Process started %d" proc.Id
+            proc.BeginOutputReadLine()
+            proc.BeginErrorReadLine()
+
+            proc.OutputDataReceived
+            |> Event.filter (fun de -> de.Data <> null)
+            |> Event.add (fun de ->
+                LoggingService.logDebug "Interactive: received %s" de.Data
+                match de.Data with
+                | Image image -> imageReceivedEvent.Trigger image
+                | ServerPrompt -> promptReady.Trigger()
+                | data ->
+                    if data.Trim() <> "" then
+                        if waitingForResponse then waitingForResponse <- false
+                        textReceived.Trigger(data + "\n"))
+
+            proc.ErrorDataReceived.Subscribe(fun de -> 
+                if not (String.IsNullOrEmpty de.Data) then
+                    try
+                        match de.Data with
+                        | Completion completions ->
+                            completionsReceivedEvent.Trigger completions
+                        | Tooltip tooltip ->
+                            tooltipReceivedEvent.Trigger tooltip
+                        | ParameterHints hints ->
+                            parameterHintReceivedEvent.Trigger hints
+                        | _ -> LoggingService.logDebug "[fsharpi] don't know how to process command %s" de.Data
+
+                    with 
+                    | :? JsonException as e ->
+                        LoggingService.logError "[fsharpi] - error deserializing error stream - %s\\n %s" e.Message de.Data
+                        ) |> ignore
+
+            proc.EnableRaisingEvents <- true
+            proc
         with e ->
-            LoggingService.LogDebug (sprintf "Interactive: Error %s" (e.ToString()))
+            LoggingService.logDebug "Interactive: Error %s" (e.ToString())
             reraise()
 
-    let textReceived = Event<_>()
-    let promptReady = Event<_>()
+    let mutable fsiProcess = startProcess()
 
     let sendCommand(str:string) =
         waitingForResponse <- true
-        LoggingService.LogDebug (sprintf "Interactive: sending %s" str)
-        let stream = fsiProcess.StandardInput.BaseStream
-        let bytes = Text.Encoding.UTF8.GetBytes(str + "\n")
-        stream.Write(bytes,0,bytes.Length)
-        stream.Flush()
+        LoggingService.logDebug "Interactive: sending %s" str
+        LoggingService.logDebug "send command %d" fsiProcess.Id
 
-    let completionsReceivedEvent = new Event<CompletionData array>()
-    let imageReceivedEvent = new Event<Xwt.Drawing.Image>()
-    let tooltipReceivedEvent = new Event<FSharpStructuredToolTipText option>()
-    let parameterHintReceivedEvent = new Event<(FSharpNoteworthyParamInfoLocations * FSharpMethodGroup) option>()
-    do
-        fsiProcess.OutputDataReceived
-          |> Event.filter (fun de -> de.Data <> null)
-          |> Event.add (fun de ->
-              LoggingService.logDebug "Interactive: received %s" de.Data
-              match de.Data with
-              | Image image -> imageReceivedEvent.Trigger image
-              | ServerPrompt -> promptReady.Trigger()
-              | data ->
-                  if data.Trim() <> "" then
-                      if waitingForResponse then waitingForResponse <- false
-                      textReceived.Trigger(data + "\n"))
+        async {
+            let stream = fsiProcess.StandardInput.BaseStream
+            let bytes = Text.Encoding.UTF8.GetBytes(str + "\n")
+            do! stream.WriteAsync(bytes,0,bytes.Length) |> Async.AwaitTask
+            stream.Flush()
+        } |> Async.Start
 
-        fsiProcess.ErrorDataReceived.Subscribe(fun de -> 
-            if not (String.IsNullOrEmpty de.Data) then
-                try
-                    match de.Data with
-                    | Completion completions ->
-                        completionsReceivedEvent.Trigger completions
-                    | Tooltip tooltip ->
-                        tooltipReceivedEvent.Trigger tooltip
-                    | ParameterHints hints ->
-                        parameterHintReceivedEvent.Trigger hints
-                    | _ -> LoggingService.logDebug "[fsharpi] don't know how to process command %s" de.Data
-
-                with 
-                | :? JsonException as e ->
-                    LoggingService.logError "[fsharpi] - error deserializing error stream - %s\\n %s" e.Message de.Data
-                    ) |> ignore
-
-        fsiProcess.EnableRaisingEvents <- true
 
     member x.Interrupt() =
         LoggingService.logDebug "Interactive: Break!"
@@ -148,22 +157,28 @@ type InteractiveSession(pathToExe) =
     member x.TooltipReceived = tooltipReceivedEvent.Publish
     member x.ParameterHintReceived = parameterHintReceivedEvent.Publish
     member x.ImageReceived = imageReceivedEvent.Publish
-    member x.StartReceiving() =
-        fsiProcess.BeginOutputReadLine()
-        fsiProcess.BeginErrorReadLine()
+    //member x.StartReceiving() =
+    //    fsiProcess.BeginOutputReadLine()
+    //    fsiProcess.BeginErrorReadLine()
 
     member x.TextReceived = textReceived.Publish
     member x.PromptReady = promptReady.Publish
 
     member x.HasExited() = fsiProcess.HasExited
 
+
+
+    member x.Restart() =
+        fsiProcess.Kill()
+        fsiProcess <- startProcess()
+
     member x.Kill() =
-        if not fsiProcess.HasExited then
-            x.SendInput "#q;;" None
-            for i in 0 .. 10 do
-                if not fsiProcess.HasExited then
-                    LoggingService.logDebug "Interactive: waiting for process exit after #q... %d" (i*200)
-                    fsiProcess.WaitForExit(200) |> ignore
+        //if not fsiProcess.HasExited then
+        //    x.SendInput "#q;;" None
+        //    for i in 0 .. 10 do
+        //        if not fsiProcess.HasExited then
+        //            LoggingService.logDebug "Interactive: waiting for process exit after #q... %d" (i*200)
+        //            fsiProcess.WaitForExit(200) |> ignore
 
         if not fsiProcess.HasExited then
             fsiProcess.Kill()

@@ -26,27 +26,10 @@
 namespace FSharp.Editor
 
 open Microsoft.CodeAnalysis
-open MonoDevelop.Ide.Composition
-open System
-
-open System
-open System.Collections.Concurrent
-open System.Collections.Immutable
-open System.ComponentModel.Composition
-open System.IO
-open System.Linq
-open System.Threading
-open System.Threading.Tasks
-open Microsoft.CodeAnalysis
-open Microsoft.CodeAnalysis.CSharp
-open Microsoft.CodeAnalysis.Host
-open Microsoft.CodeAnalysis.Scripting
 open Microsoft.CodeAnalysis.Text
-open Microsoft.VisualStudio.Composition
 open Microsoft.VisualStudio.Text
-open Mono.Addins
-open MonoDevelop.Core
 open MonoDevelop.Ide.Composition
+
 type InteractiveWorkspace() =
     inherit Workspace(CompositionManager.Instance.HostServices, WorkspaceKind.MiscellaneousFiles) with
         member x.CreateDocument(buffer: ITextBuffer) =

@@ -59,4 +59,87 @@
 <!--      <Pad id="MonoDevelop.FSharp.FakePad" defaultPlacement="Bottom" _label="FAKE" icon="md-command" class="MonoDevelop.FSharp.FakePad" />-->
     </ComplexCondition>
   </Extension>
+  <Extension path="/MonoDevelop/Ide/Commands">
+        <!-- RefactoryCommands -->
+    <Category _name = "Refactoring" id = "Refactoring" >
+      <Command id = "MonoDevelop.FSharp.CurrentRefactoringOperations"
+               defaultHandler = "MonoDevelop.FSharp.CurrentRefactoringOperationsHandler"
+               type="array"
+               _label = "Refactoring Operations" />
+    </Category>
+
+    <ComplexCondition>
+      <Or>
+        <Condition id="MSBuildTargetIsAvailable" target="$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.0\Framework\v4.0\Microsoft.FSharp.Targets" />
+        <Condition id="MSBuildTargetIsAvailable" target="$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.1\Framework\v4.0\Microsoft.FSharp.Targets" />
+        <Condition id="MSBuildTargetIsAvailable" target="$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\4.0\Framework\v4.0\Microsoft.FSharp.Targets" />
+      </Or>
+      <Category _name = "F# Integration" id="F# Integration">
+        <Command id="MonoDevelop.FSharp.FSharpCommands.ShowFSharpInteractive"
+                 _label = "F# Interactive"
+                 type="check"
+                 _description="Show F# Interactive pad."
+                 macShortcut="Control|Alt|F"
+                 defaultHandler="MonoDevelop.FSharp.ShowFSharpInteractive" />
+
+        <Command id="MonoDevelop.FSharp.FSharpCommands.SendFile"
+                 _label = "Send current file to F# Interactive"
+                 _description="Send the current file to F# Interactive"
+                 macShortcut=""
+                 defaultHandler="MonoDevelop.FSharp.SendFile" />
+
+        <Command id="MonoDevelop.FSharp.FSharpCommands.SendSelection"
+                 _label = "Send selection to F# Interactive"
+                 _description="Send the selected text to F# Interactive"
+                 macShortcut="Ctrl|Return"
+                 defaultHandler="MonoDevelop.FSharp.SendSelection" />
+
+        <Command id="MonoDevelop.FSharp.FSharpCommands.SendLine"
+                 _label = "Send line to F# Interactive"
+                 _description="Send the current line to F# Interactive"
+                 macShortcut="Ctrl|Alt|L"
+                 defaultHandler="MonoDevelop.FSharp.SendLine" />
+
+        <Command _description="Send the current project references to F# Interactive"
+                 _label="Send references to F# Interactive"
+                 defaultHandler="MonoDevelop.FSharp.SendReferences"
+                 id="MonoDevelop.FSharp.FSharpCommands.SendReferences"
+                 macShortcut="Ctrl|Alt|P" />
+
+        <Command _description="Restart F# Interactive"
+                 _label="Restart F# Interactive"
+                 defaultHandler="MonoDevelop.FSharp.RestartFsi"
+                 id="MonoDevelop.FSharp.FSharpCommands.RestartFsi"
+                 macShortcut="Ctrl|Alt|R" />
+
+        <Command _description="Clear F# Interactive"
+                 _label="Clear F# Interactive"
+                 defaultHandler="MonoDevelop.FSharp.ClearFsi"
+                 id="MonoDevelop.FSharp.FSharpCommands.ClearFsi"
+                 macShortcut="Ctrl|Alt|C" />
+        <Command _description="Start debugging an .fsx script"
+                 _label="Start Debugging"
+                 id="MonoDevelop.FSharp.SolutionPad.DebugScriptInternal" />
+        <Command _description="Start debugging an .fsx script"
+                 _label="Start Debugging on External Console"
+                 id="MonoDevelop.FSharp.SolutionPad.DebugScriptExternal" />
+        <Command _description="Start debugging an .fsx script"
+                 _label="Start Debugging"
+                 id="MonoDevelop.FSharp.Editor.DebugScriptInternal" />
+        <Command _description="Start debugging an .fsx script"
+                 _label="Start Debugging on External Console"
+
+                 id="MonoDevelop.FSharp.Editor.DebugScriptExternal" />
+        <Command _description="Toggle type signature help"
+                 _label="Toggle type signature help"
+                 id="MonoDevelop.FSharp.SignatureHelp.Toggle" />
+                
+        <Command _description="Quick Fix Menu"
+                 id="MonoDevelop.FSharp.QuickFixMenu" 
+                 _label="Quick Fix"
+                 type = "array"
+                 defaultHandler = "MonoDevelop.FSharp.QuickFixMenuHandler" />
+      </Category>
+    </ComplexCondition>
+  </Extension>
 </ExtensionModel>

@@ -26,50 +26,32 @@
 namespace Microsoft.VisualStudio.FSharp.Editor
 
 open System
-open System.IO
-open System.Threading.Tasks
 open System.Collections.Generic
-open System.Collections.Immutable
+open System.ComponentModel.Composition
+open System.IO
+
+open FSharp.Editor
 
 open Gdk
+open Gtk
+
+open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Editor
+open Microsoft.VisualStudio.Commanding
+open Microsoft.VisualStudio.Core.Imaging
+open Microsoft.VisualStudio.FSharp.Editor
+open Microsoft.VisualStudio.Language.Intellisense
+open Microsoft.VisualStudio.Text
+open Microsoft.VisualStudio.Text.Editor
+open Microsoft.VisualStudio.Text.Editor.Commanding.Commands
+open Microsoft.VisualStudio.Text.Tagging
 open MonoDevelop.Components
-open MonoDevelop.Components.Docking
 open MonoDevelop.Components.Commands
+open MonoDevelop.Components.Docking
 open MonoDevelop.Core
 open MonoDevelop.Core.Execution
 open MonoDevelop.FSharp
 open MonoDevelop.Ide
-open MonoDevelop.Ide.CodeCompletion
-open MonoDevelop.Ide.Editor
-open MonoDevelop.Ide.Editor.Extension
-open MonoDevelop.Ide.Gui.Content
-open MonoDevelop.Ide.TypeSystem
-open MonoDevelop.Projects
-open Microsoft.VisualStudio.Text.Editor
 open MonoDevelop.Ide.Composition
-open Microsoft.VisualStudio.Text
-open Gtk
-open Microsoft.VisualStudio.Text.Classification
-open CoreGraphics
-open Microsoft.VisualStudio.Core.Imaging
-open Microsoft.VisualStudio.Text.Tagging
-open System.ComponentModel.Composition
-open Microsoft.VisualStudio.Imaging
-open Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion
-open Microsoft.VisualStudio.Text
-open Microsoft.VisualStudio.Commanding
-open Microsoft.VisualStudio.Text.Editor
-open Microsoft.VisualStudio.Text.Editor.Commanding.Commands
-open Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion
-open Microsoft.VisualStudio.Language.Intellisense
-open Microsoft.CodeAnalysis
-open Microsoft.CodeAnalysis.Text
-open Microsoft.VisualStudio.FSharp.Editor
-open Microsoft.VisualStudio.Text
-open Microsoft.VisualStudio.Text.Editor
-open Microsoft.VisualStudio.Threading
-open FSharp.Editor
-open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Editor
 [<AutoOpen>]
 module ColorHelpers =
     let strToColor s =
@@ -93,100 +75,6 @@ type KillIntent =
     | Restart
     | Kill
     | NoIntent // Unexpected kill, or from #q/#quit, so we prompt
-
-//type ImageRendererMarker(line, image:Xwt.Drawing.Image) =
-//    inherit TextLineMarker()
-//    static let tag = obj()
-//    override x.Draw(editor, cr, metrics) =
-//        cr.DrawImage(editor, image, 30.0, metrics.LineYRenderStartPosition)
-
-//    interface ITextLineMarker with
-//        member x.Line with get() = line
-//        member x.IsVisible with get() = true and set(_value) = ()
-//        member x.Tag with get() = tag and set(_value) = ()
-
-//    interface IExtendingTextLineMarker with
-//        member x.GetLineHeight editor = editor.LineHeight + image.Height
-//        member x.Draw(_editor, _g, _lineNr, _lineArea) = ()
-//        member x.IsSpaceAbove with get() = false
-
-//type FsiDocumentContext() =
-//    inherit DocumentContext()
-//    static let name = "__FSI__.fs"
-//    let pd = new FSharpParsedDocument(name, None, None) :> ParsedDocument
-//    let project = Services.ProjectService.CreateDotNetProject ("F#")
-
-//    let mutable completionWidget:ICompletionWidget = null
-//    let mutable editor:TextEditor = null
-
-//    let contextChanged = DelegateEvent<_>()
-//    let mutable workingFolder: string option = None
-//    do 
-//        project.FileName <- FilePath name
-
-//    override x.ParsedDocument = pd
-//    override x.AttachToProject(_) = ()
-//    override x.ReparseDocument() = ()
-//    override x.GetOptionSet() = IdeApp.TypeSystemService.Workspace.Options
-//    override x.Project = project :> Project
-//    override x.Name = name
-//    override x.AnalysisDocument with get() = null
-//    override x.UpdateParseDocument() = Task.FromResult pd
-//    static member DocumentName = name
-//    member x.CompletionWidget 
-//        with set (value) = 
-//            completionWidget <- value
-//            completionWidget.CompletionContextChanged.Add
-//                (fun _args -> let completion = editor.GetContent<CompletionTextEditorExtension>()
-//                              ParameterInformationWindowManager.HideWindow(completion, value))
-//    member x.Editor with set (value) = editor <- value
-//    member x.WorkingFolder
-//        with get() = workingFolder
-//        and set(folder) = workingFolder <- folder
-//    interface ICompletionWidget with
-//        member x.CaretOffset
-//            with get() = completionWidget.CaretOffset
-//            and set(offset) = completionWidget.CaretOffset <- offset
-//        member x.TextLength = editor.Length
-//        member x.SelectedLength = completionWidget.SelectedLength
-//        member x.GetText(startOffset, endOffset) =
-//            completionWidget.GetText(startOffset, endOffset)
-//        member x.GetChar offset = editor.GetCharAt offset
-//        member x.Replace(offset, count, text) =
-//            completionWidget.Replace(offset, count, text)
-//        member x.GtkStyle = completionWidget.GtkStyle
-
-//        member x.ZoomLevel = completionWidget.ZoomLevel
-//        member x.CreateCodeCompletionContext triggerOffset =
-//            completionWidget.CreateCodeCompletionContext triggerOffset
-//        member x.CurrentCodeCompletionContext 
-//            with get() = completionWidget.CurrentCodeCompletionContext
-
-//        member x.GetCompletionText ctx = completionWidget.GetCompletionText ctx
-
-//        member x.SetCompletionText (ctx, partialWord, completeWord) =
-//            completionWidget.SetCompletionText (ctx, partialWord, completeWord)
-//        member x.SetCompletionText (ctx, partialWord, completeWord, completeWordOffset) =
-//            completionWidget.SetCompletionText (ctx, partialWord, completeWord, completeWordOffset)
-//        [<CLIEvent>]
-//        member x.CompletionContextChanged = contextChanged.Publish
-
-//type FsiPrompt(icon: Xwt.Drawing.Image) =
-//    inherit MarginMarker()
-
-//    override x.CanDrawForeground margin = 
-//        margin :? IconMargin
-
-//    override x.DrawForeground (editor, cairoContext, metrics) =
-//        let size = metrics.Margin.Width
-//        let borderLineWidth = cairoContext.LineWidth
-
-//        let x = Math.Floor (metrics.Margin.XOffset - borderLineWidth / 2.0)
-//        let y = Math.Floor (metrics.Y + (metrics.Height - size) / 2.0)
-
-//        let deltaX = size / 2.0 - icon.Width / 2.0 + 0.5
-//        let deltaY = size / 2.0 - icon.Height / 2.0 + 0.5
-//        cairoContext.DrawImage (editor, icon, Math.Round (x + deltaX), Math.Round (y + deltaY));
 
 type ShellHistory() =
     let history = ResizeArray<string>()
@@ -218,8 +106,6 @@ type ShellHistory() =
             else
                 Some history.[nextDown]
 
-
-
 type InteractivePromptGlyphTag() = interface IGlyphTag
 
 type InteractiveGlyphFactory(imageId:ImageId, imageService:IImageService) =
@@ -241,7 +127,6 @@ type InteractiveGlyphFactory(imageId:ImageId, imageService:IImageService) =
 [<Microsoft.VisualStudio.Utilities.Name("InteractivePromptGlyphTag")>]
 [<Microsoft.VisualStudio.Utilities.ContentType(FSharpContentTypeNames.FSharpInteractiveContentType)>]
 [<TagType(typeof<InteractivePromptGlyphTag>)>]
-//[<TextViewRole(PredefinedTextViewRoles.Debuggable)>]
 type InteractiveGlyphFactoryProvider() as this =
     [<Import>]
     member val ImageService:IImageService = null with get, set
@@ -256,15 +141,10 @@ type InteractivePromptGlyphTagger(textView: ITextView) as this =
     let tagsChanged = Event<_,_>()
 
     let promptSpans = HashSet<_>()
-    let promptsChanged = Event<_>()
 
     do
-    //    glyphManager.PromptsChanged.Add(fun (args) ->
-    //        tagsChanged.Trigger(this, args))//  (this :> ITagger<InteractivePromptGlyphTag>).Ta
         textView.Properties.[typeof<InteractivePromptGlyphTagger>] <- this
 
-    //member x.Controller = textView.Properties.[typeof<InteractivePadController>] :?> InteractivePadController
-        
     member x.AddPrompt(pos:int) =
         if promptSpans.Add(pos) then
             tagsChanged.Trigger(this, SnapshotSpanEventArgs(SnapshotSpan(textView.TextSnapshot, pos, 1)))
@@ -273,32 +153,12 @@ type InteractivePromptGlyphTagger(textView: ITextView) as this =
         [<CLIEvent>]
         member this.TagsChanged = tagsChanged.Publish
         
-        /// <summary>
-        /// Occurs when tags are added to or removed from the provider.
-        /// </summary>
-        //event EventHandler<SnapshotSpanEventArgs> TagsChanged;
-        //member this.add_TagsChanged(handler) = tagsChanged.Publish
-
-        //member this.remove_TagsChanged(handler) = ()// tagsChanged.Publish.RemoveHandler(handler)
-        //public IEnumerable<ITagSpan<BaseBreakpointGlyphTag>> GetTags(NormalizedSnapshotSpanCollection spans)
         member x.GetTags(spans) =
             seq {
                 for span in spans do
                     if promptSpans.Contains(span.Start.Position) then
                         yield TagSpan<InteractivePromptGlyphTag>(span, InteractivePromptGlyphTag())
             }
-
-//type InteractiveGlyphManager(textView:ITextView) =
-//    let promptSpans = HashSet<_>()
-//    let promptsChanged = new Event<_>()
-
-//    member x.PromptsChanged = promptsChanged.Publish
-
-//    member x.PromptSpans = promptSpans
-
-//    member x.AddPrompt(pos:int) =
-//        if promptSpans.Add(pos) then
-//            promptsChanged.Trigger(new SnapshotSpanEventArgs(new SnapshotSpan(textView.TextSnapshot, pos, 1)))
 
 module InteractiveGlyphManagerService =
     let getGlyphManager(textView: ITextView) =
@@ -309,25 +169,17 @@ module InteractiveGlyphManagerService =
 [<System.ComponentModel.Composition.Export>]
 type InteractivePadController(session: InteractiveSession) as this =
     let mutable view = null
-    //let mutable textView = null
     let contentTypeRegistry = CompositionManager.Instance.GetExportedValue<Microsoft.VisualStudio.Utilities.IContentTypeRegistryService>()
     let textBufferFactory = CompositionManager.Instance.GetExportedValue<ITextBufferFactoryService>()
     let factory = CompositionManager.Instance.GetExportedValue<ICocoaTextEditorFactoryService>()
     let contentType = contentTypeRegistry.GetContentType(FSharpContentTypeNames.FSharpInteractiveContentType)
-    //let editorFormatMapService = CompositionManager.Instance.GetExportedValue<IEditorFormatMapService>()
-
-    //let appearanceCategory = Guid.NewGuid().ToString()
-    //let editorFormat = editorFormatMapService.GetEditorFormatMap(appearanceCategory)
-    //let resourceDictionary = editorFormat.GetProperties("Plain Text")
 
     let roles = factory.CreateTextViewRoleSet(PredefinedTextViewRoles.Editable, PredefinedTextViewRoles.Interactive, PredefinedTextViewRoles.Document)
     let textBuffer = textBufferFactory.CreateTextBuffer("", contentType)
     
     let textView = factory.CreateTextView(textBuffer, roles)
     let workspace = new InteractiveWorkspace()
-    //let (workspace: MiscellaneousFilesWorkspace) = downcast IdeApp.TypeSystemService.GetWorkspaceInternal(null)
     let history = ShellHistory()
-    //textView.Background <- CGColor.CreateSrgb(nfloat 0.0, nfloat 0.0, nfloat 0.0, nfloat 0.0)
     do
         //resourceDictionary.[ClassificationFormatDefinition.TypefaceId] <- TextField.Font
         //resourceDictionary.[ClassificationFormatDefinition.FontRenderingSizeId] <- 20
@@ -336,7 +188,6 @@ type InteractivePadController(session: InteractiveSession) as this =
         //editorFormat.SetProperties("Plain Text", resourceDictionary)
 
         textView.Options.SetOptionValue(DefaultTextViewOptions.UseVisibleWhitespaceId, false)
-        //textView.Options.SetOptionValue(DefaultCocoaViewOptions.AppearanceCategory, appearanceCategory)
         textView.Options.SetOptionValue(DefaultTextViewHostOptions.ChangeTrackingId, false)
         textView.Options.SetOptionValue(DefaultTextViewHostOptions.LineNumberMarginId, false)
         textView.Options.SetOptionValue(DefaultTextViewHostOptions.OutliningMarginId, false)
@@ -344,12 +195,8 @@ type InteractivePadController(session: InteractiveSession) as this =
         textView.VisualElement.TranslatesAutoresizingMaskIntoConstraints <- false
         textView.Properties.[typeof<InteractivePadController>] <- this
         textView.Properties.[typeof<InteractiveSession>] <- session
-        //textView.Properties.[typeof<InteractivePadController>] <- this
         let host = factory.CreateTextViewHost(textView, true)
         view <- host.HostControl
-        // Add the view to a workspace so that Roslyn can fetch LanguageServices
-        // Note: this fake file name must end with .fs, not .fsx so that we don't get the MiscellaneousFilesWorkspace
-        //workspace.OnDocumentOpened("interactive.fsx", textBuffer)
         workspace.CreateDocument(textBuffer)
 
     let getActiveDocumentFileName () =
@@ -357,7 +204,6 @@ type InteractivePadController(session: InteractiveSession) as this =
             let docFileName = IdeApp.Workbench.ActiveDocument.FileName.ToString()
             if docFileName <> null then
                 let directoryName = Path.GetDirectoryName docFileName
-                //ctx.WorkingFolder <- Some directoryName
                 Some docFileName
             else None
         else None
@@ -420,8 +266,15 @@ type InteractivePadController(session: InteractiveSession) as this =
             updateReadOnlyRegion()
 
     member this.Clear() =
+        inputLines.Clear()
+        use readOnlyEdit = textBuffer.CreateReadOnlyRegionEdit()
+        readOnlyRegion |> Option.iter(fun region -> readOnlyEdit.RemoveReadOnlyRegion region)
+        readOnlyRegion <- None
+        readOnlyEdit.Apply() |> ignore
+
         use edit = textView.TextBuffer.CreateEdit()
         edit.Delete(0, textView.TextBuffer.CurrentSnapshot.Length) |> ignore
+        edit.Apply() |> ignore
 
     member this.SetPrompt() =
         this.FsiOutput "\n"
@@ -457,21 +310,8 @@ type InteractivePromptGlyphTaggerProvider() =
 
 type FSharpInteractivePad() as this =
     inherit MonoDevelop.Ide.Gui.PadContent()
-   
-    //let ctx = editor.DocumentContext :?> FsiDocumentContext
-    //do
-    //    let options = new CustomEditorOptions (editor.Options)
-    //    editor.MimeType <- "text/x-fsharp"
-    //    editor.ContextMenuPath <- "/MonoDevelop/SourceEditor2/ContextMenu/Fsi"
-    //    options.ShowLineNumberMargin <- false
-    //    options.TabsToSpaces <- true
-    //    options.ShowWhitespaces <- ShowWhitespaces.Never
-    //    ctx.CompletionWidget <- editor.GetContent<ICompletionWidget>()
-    //    ctx.Editor <- editor
-    //    editor.Options <- options
 
     let mutable killIntent = NoIntent
-    let mutable promptReceived = false
     let mutable activeDoc : IDisposable option = None
     let mutable lastLineOutput = None
 
@@ -490,32 +330,6 @@ type FSharpInteractivePad() as this =
 
     let nonBreakingSpace = "\u00A0" // used to disable editor syntax highlighting for output
 
-    //let addMarker image =
-    //    let data = editor.GetContent<ITextEditorDataProvider>().GetTextEditorData()
-    //    let textDocument = data.Document
-
-    //    let line = data.GetLineByOffset editor.Length
-    //    let prompt = FsiPrompt image
-
-    //    textDocument.AddMarker(line, prompt)
-
-    //    textDocument.CommitUpdateAll()
-
-    let setPrompt() =
-        ()
-        //editor.InsertText(editor.Length, "\n")
-        //editor.ScrollTo editor.Length
-        //addMarker promptIcon
-
-    //let renderImage image =
-    //    let data = editor.GetContent<ITextEditorDataProvider>().GetTextEditorData()
-    //    let textDocument = data.Document
-    //    let line = editor.GetLine editor.CaretLine
-    //    let imageMarker = ImageRendererMarker(line, image)
-    //    textDocument.AddMarker(editor.CaretLine, imageMarker)
-    //    textDocument.CommitUpdateAll()
-    //    editor.InsertAtCaret "\n"
-
     let input = new ResizeArray<_>()
 
     let setupSession() =
@@ -530,15 +344,12 @@ type FSharpInteractivePad() as this =
             this.Host.ShowAll()
 
             input.Clear()
-            promptReceived <- false
-            let textReceived = ses.TextReceived.Subscribe(fun t -> Runtime.RunInMainThread(fun () -> controller.FsiOutput t) |> ignore)
+            let textReceived = ses.TextReceived.Subscribe(fun t -> 
+                Runtime.RunInMainThread(fun () -> controller.FsiOutput t) |> ignore)
             //let imageReceived = ses.ImageReceived.Subscribe(fun image -> Runtime.RunInMainThread(fun () -> renderImage image) |> Async.AwaitTask |> Async.RunSynchronously)
-            let promptReady = ses.PromptReady.Subscribe(fun () -> Runtime.RunInMainThread(fun () -> promptReceived <- true; controller.SetPrompt() ) |> ignore)
+            let promptReady = ses.PromptReady.Subscribe(fun () -> Runtime.RunInMainThread(fun () -> controller.SetPrompt() ) |> ignore)
 
             ses.Exited.Add(fun _ ->
-                textReceived.Dispose()
-                promptReady.Dispose()
-                //imageReceived.Dispose()
                 if killIntent = NoIntent then
                     Runtime.RunInMainThread(fun () ->
                         LoggingService.LogDebug ("Interactive: process stopped")
@@ -547,67 +358,24 @@ type FSharpInteractivePad() as this =
                     Runtime.RunInMainThread (fun () -> controller.Clear()) |> ignore
                 killIntent <- NoIntent)
 
-            ses.StartReceiving()
-            //editor.GrabFocus()
             Some(ses)
         with 
-        | :? Exception as e ->
+        | e ->
             None
 
     let mutable session = None
 
-    let setCaretLine (s: string) = ()
-        //let line = editor.GetLineByOffset editor.CaretOffset
-        //editor.ReplaceText(line.Offset, line.EndOffset - line.Offset, s)
-
     let resetFsi intent =
-        if promptReceived then
-            killIntent <- intent
-            session |> Option.iter (fun (ses: InteractiveSession) -> ses.Kill())
-            if intent = Restart then session <- setupSession()
-
-    let history = ShellHistory()
-    //new() =
-    //    let ctx = FsiDocumentContext()
-    //    let doc = TextEditorFactory.CreateNewDocument()
-    //    do
-    //        doc.FileName <- FilePath ctx.Name
-
-    //    let editor = TextEditorFactory.CreateNewEditor(ctx, doc, TextEditorType.Default)
-    //    new FSharpInteractivePad(editor)
-
-    //member x.FsiOutput t : unit =
-    //    if editor.CaretColumn <> 1 then
-    //        editor.InsertAtCaret ("\n")
-    //    editor.InsertAtCaret (nonBreakingSpace + t)
-    //    editor.CaretOffset <- editor.Text.Length
-    //    editor.ScrollTo editor.CaretLocation
-    //    lastLineOutput <- Some editor.CaretLine
-
-    //member x.Text =
-    //    editor.Text
-
-    //member x.SetPrompt() =
-    //    editor.InsertText(editor.Length, "\n")
-    //    editor.ScrollTo editor.Length
-    //    addMarker promptIcon
-
-    //member x.AddMorePrompt() =
-    //    addMarker newLineIcon
+        input.Clear()
+        killIntent <- intent
+        this.Controller |> Option.iter (fun controller -> controller.Clear())
+        session |> Option.iter (fun (ses:InteractiveSession) -> ses.Restart())
 
     member x.Session = session
 
     member x.Shutdown()  =
         do LoggingService.LogDebug ("Interactive: Shutdown()!")
         resetFsi Kill
-
-    //member x.SendCommandAndStore command =
-    //    let fileName = getActiveDocumentFileName()
-    //    input.Add command
-    //    session
-    //    |> Option.iter(fun ses ->
-    //        history.Push command
-    //        ses.SendInput (command + "\n") fileName)
 
     member x.SendCommand command =
         let fileName = getActiveDocumentFileName()
@@ -617,33 +385,10 @@ type FSharpInteractivePad() as this =
         |> Option.iter(fun ses ->
             ses.SendInput (command + ";;") fileName)
 
-    //member x.RequestCompletions lineStr column =
-    //    session 
-    //    |> Option.iter(fun ses ->
-    //        ses.SendCompletionRequest lineStr (column + 1))
-
-    //member x.RequestTooltip symbol =
-    //    session 
-    //    |> Option.iter(fun ses -> ses.SendTooltipRequest symbol)
-
-    //member x.RequestParameterHint lineStr column =
-    //    session 
-    //    |> Option.iter(fun ses ->
-    //        ses.SendParameterHintRequest lineStr (column + 1))
-
-    member x.ProcessCommandHistoryUp () =
-        history.Up()
-        |> Option.iter setCaretLine
-
-    member x.ProcessCommandHistoryDown () =
-        history.Down()
-        |> function Some c -> setCaretLine c | None -> setCaretLine ""
-
     override x.Dispose() =
         LoggingService.LogDebug ("Interactive: disposing pad...")
         activeDoc |> Option.iter (fun ad -> ad.Dispose())
         x.Shutdown()
-        //editor.Dispose()
 
     override x.Control = Control.op_Implicit x.Host
  
@@ -711,14 +456,7 @@ type FSharpInteractivePad() as this =
     member val Controller:InteractivePadController option = None with get, set
 
     override x.Initialize(container:MonoDevelop.Ide.Gui.IPadWindow) =
-        //this.Controller <- Some controller
-        //controller.ConsoleInput += OnViewConsoleInput;
-        //controller.Editable <- true;
-
         LoggingService.LogDebug ("InteractivePad: created!")
-        //editor.MimeType <- "text/x-fsharp"
-        //ctx.CompletionWidget <- editor.GetContent<ICompletionWidget>()
-        //ctx.Editor <- editor
         let toolbar = container.GetToolbar(DockPositionType.Right)
 
         let addButton(icon, action, tooltip) =
@@ -733,7 +471,6 @@ type FSharpInteractivePad() as this =
         addButton ("gtk-refresh", (fun _ -> x.RestartFsi()), GettextCatalog.GetString ("Reset"))
         toolbar.ShowAll()
         session <- setupSession()
-        //editor.RunWhenRealized(fun () -> session <- setupSession())
 
     member x.RestartFsi() = resetFsi Restart
 
@@ -750,7 +487,7 @@ type FSharpInteractivePad() as this =
                 else
                     dlg.SelectedFile.ChangeExtension(".fsx")
 
-            let lines = []// input |> Seq.map (fun line -> line.TrimEnd(';'))
+            let lines = input |> Seq.map (fun line -> line.TrimEnd(';'))
             let fileContent = String.concat "\n" lines
             File.WriteAllText(file.FullPath.ToString(), fileContent)
 
@@ -882,110 +619,6 @@ type InteractivePadCompletionDownHandler
             let (controller: InteractivePadController) = downcast textView.Properties.[typeof<InteractivePadController>]
             controller.HistoryDown()
             true
-/// handles keypresses for F# Interactive
-//type FSharpFsiEditorCompletion() =
-//    inherit TextEditorExtension()
-//    override x.IsValidInContext(context) =
-//        context :? FsiDocumentContext
-
-//    override x.KeyPress (descriptor:KeyDescriptor) =
-//        match FSharpInteractivePad.Fsi with
-//        | Some fsi -> 
-//            let getLineText (editor:TextEditor) (line:IDocumentLine) =
-//                if line.Length > 0 then
-//                    editor.GetLineText line
-//                else
-//                    ""
-
-//            let getInputLines (editor:TextEditor) =
-//                let lineNumbers =
-//                    match fsi.LastOutputLine with
-//                    | Some lineNumber ->
-//                        [ lineNumber+1 .. editor.CaretLine ]
-//                    | None -> [ editor.CaretLine ]
-//                lineNumbers 
-//                |> List.map editor.GetLine
-//                |> List.map (getLineText editor)
-
-//            let result =
-//                match descriptor.SpecialKey with
-//                | SpecialKey.Return ->
-//                    if x.Editor.CaretLine = x.Editor.LineCount then
-//                        let lines = getInputLines x.Editor
-//                        lines
-//                        |> List.iter(fun (lineStr) ->
-//                            fsi.SendCommandAndStore lineStr)
-
-//                        let line = x.Editor.GetLine x.Editor.CaretLine
-//                        let lineStr = getLineText x.Editor line
-//                        x.Editor.CaretOffset <- line.EndOffset
-//                        x.Editor.InsertAtCaret "\n"
-
-//                        if not (lineStr.TrimEnd().EndsWith(";;")) then
-//                            fsi.AddMorePrompt()
-//                        fsi.LastOutputLine <- Some line.LineNumber
-//                    false
-//                | SpecialKey.Up -> 
-//                    if x.Editor.CaretLine = x.Editor.LineCount then
-//                        fsi.ProcessCommandHistoryUp()
-//                        false
-//                    else
-//                        base.KeyPress (descriptor)
-//                | SpecialKey.Down -> 
-//                    if x.Editor.CaretLine = x.Editor.LineCount then
-//                        fsi.ProcessCommandHistoryDown()
-//                        false
-//                    else
-//                        base.KeyPress (descriptor)
-//                | SpecialKey.Left ->
-//                    if (x.Editor.CaretLine <> x.Editor.LineCount) || x.Editor.CaretColumn > 1 then
-//                        base.KeyPress (descriptor)
-//                    else
-//                        false
-//                | SpecialKey.BackSpace ->
-//                    if x.Editor.CaretLine = x.Editor.LineCount && x.Editor.CaretColumn > 1 then
-//                        base.KeyPress (descriptor)
-//                    else
-//                        false
-//                | _ -> 
-//                    if x.Editor.CaretLine <> x.Editor.LineCount then
-//                        x.Editor.CaretOffset <- x.Editor.Length
-//                    base.KeyPress (descriptor)
-
-//            result
-//        | _ -> base.KeyPress (descriptor)
-
-//    member x.clipboardHandler = x.Editor.GetContent<IClipboardHandler>()
-
-//    [<CommandHandler ("MonoDevelop.Ide.Commands.EditCommands.Cut")>]
-//    member x.Cut() = x.clipboardHandler.Cut()
-
-//    [<CommandUpdateHandler ("MonoDevelop.Ide.Commands.EditCommands.Cut")>]
-//    member x.CanCut(ci:CommandInfo) =
-//        ci.Enabled <- x.clipboardHandler.EnableCut
-
-//    [<CommandHandler ("MonoDevelop.Ide.Commands.EditCommands.Copy")>]
-//    member x.Copy() = x.clipboardHandler.Copy()
-
-//    [<CommandUpdateHandler ("MonoDevelop.Ide.Commands.EditCommands.Copy")>]
-//    member x.CanCopy(ci:CommandInfo) =
-//        ci.Enabled <- x.clipboardHandler.EnableCopy
-
-//    [<CommandHandler ("MonoDevelop.Ide.Commands.EditCommands.Paste")>]
-//    member x.Paste() = x.clipboardHandler.Paste()
-
-//    [<CommandUpdateHandler ("MonoDevelop.Ide.Commands.EditCommands.Paste")>]
-//    member x.CanPaste(ci:CommandInfo) =
-//        ci.Enabled <- x.clipboardHandler.EnablePaste
-
-//    [<CommandHandler ("MonoDevelop.Ide.Commands.ViewCommands.ZoomIn")>]
-//    member x.ZoomIn() = x.Editor.GetContent<IZoomable>().ZoomIn()
-
-//    [<CommandHandler ("MonoDevelop.Ide.Commands.ViewCommands.ZoomOut")>]
-//    member x.ZoomOut() = x.Editor.GetContent<IZoomable>().ZoomOut()
-
-//    [<CommandHandler ("MonoDevelop.Ide.Commands.ViewCommands.ZoomReset")>]
-//    member x.ZoomReset() = x.Editor.GetContent<IZoomable>().ZoomReset()
 
 type InteractiveCommand(command) =
     inherit CommandHandler()
@@ -1032,25 +665,3 @@ type RestartFsi() =
 
 type ClearFsi() =
     inherit InteractiveCommand(fun fsi -> fsi.ClearFsi())
-
-//open System.ComponentModel.Composition
-//open Microsoft.VisualStudio.Text.Editor
-//open MonoDevelop.TextEditor
-////open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Editor
-////open Microsoft.VisualStudio.FSharp.Editor
-//open Microsoft.VisualStudio.Threading
-  
-//[<Export(typeof<IEditorContentProvider>)>]
-//[<Microsoft.VisualStudio.Utilities.ContentType(FSharpContentTypeNames.FSharpContentType)>]
-//[<TextViewRole(PredefinedTextViewRoles.PrimaryDocument)>]
-//[<Microsoft.VisualStudio.Utilities.Order(Before = "Default")>]
-//type internal FSharpPathedDocumentExtensionProvider
-//    [<ImportingConstructor>]
-//    (
-//        //fsharpCheckerProvider: FSharpCheckerProvider,
-//        //optionsManager: FSharpProjectOptionsManagerk,
-//        joinableTaskContext: JoinableTaskContext
-//    ) as x =
-//    inherit EditorContentInstanceProvider<FSharpPathedDocumentExtension>()
-  
-//    override x.CreateInstance(view) = new FSharpPathedDocumentExtension(optionsManager, fsharpCheckerProvider.Checker, view, joinableTaskContext)
