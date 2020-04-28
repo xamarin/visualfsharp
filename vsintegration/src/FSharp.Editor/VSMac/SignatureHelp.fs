@@ -1,8 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation.  All Rights Reserved.  See License.txt in the project root for license information.
 
 namespace Microsoft.VisualStudio.FSharp.Editor
-
-open System.Composition
+open System
+open System.ComponentModel.Composition
 open System.Collections.Generic
 
 open Microsoft.CodeAnalysis
@@ -16,13 +16,13 @@ open FSharp.Compiler.Range
 open FSharp.Compiler.SourceCodeServices
 open MonoDevelop.FSharp
 
-[<Shared>]
+[<Composition.Shared>]
 [<Export(typeof<IFSharpInteractiveSignatureHelpProvider>)>]
 type internal FSharpInteractiveSignatureHelpProvider 
     [<ImportingConstructor>]
     (
-        checkerProvider: FSharpCheckerProvider,
-        projectInfoManager: FSharpProjectOptionsManager
+        //checkerProvider: FSharpCheckerProvider,
+        //projectInfoManager: FSharpProjectOptionsManager
     ) =
 
     static let userOpName = "SignatureHelpProvider"

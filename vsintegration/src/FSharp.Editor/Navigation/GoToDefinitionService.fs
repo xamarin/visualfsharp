@@ -2,7 +2,6 @@
 
 namespace Microsoft.VisualStudio.FSharp.Editor
 
-open System.Composition
 open System.Threading
 open System.Threading.Tasks
 

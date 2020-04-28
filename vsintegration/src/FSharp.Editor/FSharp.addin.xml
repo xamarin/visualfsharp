@@ -61,13 +61,13 @@
   </Extension>
   <Extension path="/MonoDevelop/Ide/Commands">
         <!-- RefactoryCommands -->
+    <!--
     <Category _name = "Refactoring" id = "Refactoring" >
       <Command id = "MonoDevelop.FSharp.CurrentRefactoringOperations"
                defaultHandler = "MonoDevelop.FSharp.CurrentRefactoringOperationsHandler"
                type="array"
                _label = "Refactoring Operations" />
     </Category>
-
     <ComplexCondition>
       <Or>
         <Condition id="MSBuildTargetIsAvailable" target="$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.0\Framework\v4.0\Microsoft.FSharp.Targets" />
@@ -141,5 +141,6 @@
                  defaultHandler = "MonoDevelop.FSharp.QuickFixMenuHandler" />
       </Category>
     </ComplexCondition>
+    -->
   </Extension>
 </ExtensionModel>

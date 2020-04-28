@@ -69,8 +69,6 @@ type InteractiveSession(pathToExe) =
         else
             None
 
-    let mutable waitingForResponse = false
-
     let textReceived = Event<_>()
     let promptReady = Event<_>()        
 
@@ -79,6 +77,7 @@ type InteractiveSession(pathToExe) =
     let tooltipReceivedEvent = new Event<FSharpStructuredToolTipText option>()
     let parameterHintReceivedEvent = new Event<(FSharpNoteworthyParamInfoLocations * FSharpMethodGroup) option>()
 
+    let mutable hasStarted = false
     let startProcess() =
         let processPid = sprintf " %d" (Process.GetCurrentProcess().Id)
 
@@ -109,7 +108,6 @@ type InteractiveSession(pathToExe) =
                 | ServerPrompt -> promptReady.Trigger()
                 | data ->
                     if data.Trim() <> "" then
-                        if waitingForResponse then waitingForResponse <- false
                         textReceived.Trigger(data + "\n"))
 
             proc.ErrorDataReceived.Subscribe(fun de -> 
@@ -130,15 +128,15 @@ type InteractiveSession(pathToExe) =
                         ) |> ignore
 
             proc.EnableRaisingEvents <- true
+            hasStarted <- true
             proc
         with e ->
             LoggingService.logDebug "Interactive: Error %s" (e.ToString())
             reraise()
 
-    let mutable fsiProcess = startProcess()
+    let mutable fsiProcess = Unchecked.defaultof<Process>
 
     let sendCommand(str:string) =
-        waitingForResponse <- true
         LoggingService.logDebug "Interactive: sending %s" str
         LoggingService.logDebug "send command %d" fsiProcess.Id
 
@@ -149,7 +147,6 @@ type InteractiveSession(pathToExe) =
             stream.Flush()
         } |> Async.Start
 
-
     member x.Interrupt() =
         LoggingService.logDebug "Interactive: Break!"
 
@@ -157,37 +154,33 @@ type InteractiveSession(pathToExe) =
     member x.TooltipReceived = tooltipReceivedEvent.Publish
     member x.ParameterHintReceived = parameterHintReceivedEvent.Publish
     member x.ImageReceived = imageReceivedEvent.Publish
-    //member x.StartReceiving() =
-    //    fsiProcess.BeginOutputReadLine()
-    //    fsiProcess.BeginErrorReadLine()
-
     member x.TextReceived = textReceived.Publish
     member x.PromptReady = promptReady.Publish
+    member x.StartReceiving() = fsiProcess <- startProcess()
 
+    member x.HasStarted = hasStarted
     member x.HasExited() = fsiProcess.HasExited
-
-
 
     member x.Restart() =
         fsiProcess.Kill()
         fsiProcess <- startProcess()
 
-    member x.Kill() =
-        //if not fsiProcess.HasExited then
-        //    x.SendInput "#q;;" None
-        //    for i in 0 .. 10 do
-        //        if not fsiProcess.HasExited then
-        //            LoggingService.logDebug "Interactive: waiting for process exit after #q... %d" (i*200)
-        //            fsiProcess.WaitForExit(200) |> ignore
+    //member x.Kill() =
+    //    //if not fsiProcess.HasExited then
+    //    //    x.SendInput "#q;;" None
+    //    //    for i in 0 .. 10 do
+    //    //        if not fsiProcess.HasExited then
+    //    //            LoggingService.logDebug "Interactive: waiting for process exit after #q... %d" (i*200)
+    //    //            fsiProcess.WaitForExit(200) |> ignore
 
-        if not fsiProcess.HasExited then
-            fsiProcess.Kill()
-            for i in 0 .. 10 do
-                if not fsiProcess.HasExited then
-                    LoggingService.logDebug "Interactive: waiting for process exit after kill... %d" (i*200)
-                    fsiProcess.WaitForExit(200) |> ignore
+    //    if not fsiProcess.HasExited then
+    //        fsiProcess.Kill()
+    //        for i in 0 .. 10 do
+    //            if not fsiProcess.HasExited then
+    //                LoggingService.logDebug "Interactive: waiting for process exit after kill... %d" (i*200)
+    //                fsiProcess.WaitForExit(200) |> ignore
 
-    member x.KillNow() = fsiProcess.Kill()
+    //member x.KillNow() = fsiProcess.Kill()
 
     member x.SendInput input documentName =
         documentName

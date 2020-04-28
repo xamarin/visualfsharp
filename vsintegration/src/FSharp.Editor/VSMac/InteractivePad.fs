@@ -136,7 +136,6 @@ type InteractiveGlyphFactoryProvider() as this =
             let imageId = ImageId(Guid("{3404e281-57a6-4f3a-972b-185a683e0753}"), 1)
             upcast InteractiveGlyphFactory(imageId, x.ImageService)
 
-
 type InteractivePromptGlyphTagger(textView: ITextView) as this =
     let tagsChanged = Event<_,_>()
 
@@ -178,6 +177,7 @@ type InteractivePadController(session: InteractiveSession) as this =
     let textBuffer = textBufferFactory.CreateTextBuffer("", contentType)
     
     let textView = factory.CreateTextView(textBuffer, roles)
+
     let workspace = new InteractiveWorkspace()
     let history = ShellHistory()
     do
@@ -284,9 +284,9 @@ type InteractivePadController(session: InteractiveSession) as this =
         let glyphManager = InteractiveGlyphManagerService.getGlyphManager(textView)
         inputLines.Add(snapshot.LineCount - 1) |> ignore
 
+        glyphManager.AddPrompt lastLine.Start.Position
         scrollToLastLine()
         updateReadOnlyRegion()
-        glyphManager.AddPrompt lastLine.Start.Position
 
     member this.HistoryUp() =
         history.Up() |> Option.iter setCaretLine
@@ -328,12 +328,10 @@ type FSharpInteractivePad() as this =
             else None
         else None
 
-    let nonBreakingSpace = "\u00A0" // used to disable editor syntax highlighting for output
-
     let input = new ResizeArray<_>()
 
     let setupSession() =
-        try
+        //try
             let pathToExe =
                 Path.Combine(Reflection.Assembly.GetExecutingAssembly().Location |> Path.GetDirectoryName, "MonoDevelop.FSharpInteractive.Service.exe")
                 |> ProcessArgumentBuilder.Quote
@@ -342,26 +340,26 @@ type FSharpInteractivePad() as this =
             this.Controller <- Some controller
             this.Host <- new GtkNSViewHost(controller.View)
             this.Host.ShowAll()
-
             input.Clear()
             let textReceived = ses.TextReceived.Subscribe(fun t -> 
                 Runtime.RunInMainThread(fun () -> controller.FsiOutput t) |> ignore)
             //let imageReceived = ses.ImageReceived.Subscribe(fun image -> Runtime.RunInMainThread(fun () -> renderImage image) |> Async.AwaitTask |> Async.RunSynchronously)
             let promptReady = ses.PromptReady.Subscribe(fun () -> Runtime.RunInMainThread(fun () -> controller.SetPrompt() ) |> ignore)
 
-            ses.Exited.Add(fun _ ->
-                if killIntent = NoIntent then
-                    Runtime.RunInMainThread(fun () ->
-                        LoggingService.LogDebug ("Interactive: process stopped")
-                        (*this.FsiOutput "\nSession termination detected. Press Enter to restart." *))|> ignore
-                elif killIntent = Restart then
-                    Runtime.RunInMainThread (fun () -> controller.Clear()) |> ignore
-                killIntent <- NoIntent)
+            //ses.Exited.Add(fun _ ->
+            //    if killIntent = NoIntent then
+            //        Runtime.RunInMainThread(fun () ->
+            //            LoggingService.LogDebug ("Interactive: process stopped")
+            //            (*this.FsiOutput "\nSession termination detected. Press Enter to restart." *))|> ignore
+            //    elif killIntent = Restart then
+            //        Runtime.RunInMainThread (fun () -> controller.Clear()) |> ignore
+            //    killIntent <- NoIntent)
 
-            Some(ses)
-        with 
-        | e ->
-            None
+            //Some(ses)
+            ses
+        //with 
+        //| e ->
+        //    None
 
     let mutable session = None
 
@@ -470,7 +468,11 @@ type FSharpInteractivePad() as this =
         addButton ("gtk-clear", (fun _ -> x.ClearFsi()), GettextCatalog.GetString ("Clear"))
         addButton ("gtk-refresh", (fun _ -> x.RestartFsi()), GettextCatalog.GetString ("Reset"))
         toolbar.ShowAll()
-        session <- setupSession()
+        let ses = setupSession()
+        session <- ses |> Some
+
+        //container.PadShown.Add(fun _args -> session <- setupSession())
+        container.PadContentShown.Add(fun _args -> if not ses.HasStarted then ses.StartReceiving() |> ignore)
 
     member x.RestartFsi() = resetFsi Restart
 
@@ -497,128 +499,6 @@ type FSharpInteractivePad() as this =
         if dlg.Run () then
             let file = dlg.SelectedFile
             x.SendCommand ("#load @\"" + file.FullPath.ToString() + "\"")
-
-[<Microsoft.VisualStudio.Utilities.Name("InteractivePadTypeChar")>]
-[<Microsoft.VisualStudio.Utilities.ContentType(FSharpContentTypeNames.FSharpInteractiveContentType)>]
-[<Export(typeof<ICommandHandler>)>]
-type InteractivePadCompletionTypeCharHandler
-    [<ImportingConstructor>]
-    ( completionBroker:ICompletionBroker,
-      signatureHelpBroker:ISignatureHelpBroker ) =
-    interface ICommandHandler<TypeCharCommandArgs> with
-        member x.DisplayName = "InteractivePadTypeCharHandler"
-        member x.GetCommandState _args = CommandState.Available
-
-        member x.ExecuteCommand(args, _context) =
-            if args.TypedChar <> '(' && args.TypedChar <> ',' && args.TypedChar <> ' ' then
-                signatureHelpBroker.DismissAllSessions(args.TextView)
-            let textView = args.TextView
-            let (controller: InteractivePadController) = downcast textView.Properties.[typeof<InteractivePadController>]
-            controller.EnsureLastLine()
-            false
-
-[<Microsoft.VisualStudio.Utilities.Name("InteractivePadCompletionBackspace")>]
-[<Microsoft.VisualStudio.Utilities.ContentType(FSharpContentTypeNames.FSharpInteractiveContentType)>]
-[<Export(typeof<ICommandHandler>)>]
-type InteractivePadCompletionBackspaceHandler
-    [<ImportingConstructor>]
-    ( completionBroker:ICompletionBroker ) =
-
-    interface ICommandHandler<BackspaceKeyCommandArgs> with
-        member x.DisplayName = "InteractivePadKeyBackspaceHandler"
-        member x.GetCommandState _args = CommandState.Available
-
-        member x.ExecuteCommand(args, _context) =
-            let textView = args.TextView
-            let snapshot = textView.TextBuffer.CurrentSnapshot
-            let lineCount = snapshot.LineCount
-
-            if lineCount > 0 then
-                let line = snapshot.GetLineFromLineNumber(lineCount - 1)
-                if textView.Caret.Position.BufferPosition.Position > line.Start.Position then
-                    false
-                else
-                    true
-            else
-                true
-
-[<Microsoft.VisualStudio.Utilities.Name("InteractivePadCompletionReturn")>]
-[<Microsoft.VisualStudio.Utilities.ContentType(FSharpContentTypeNames.FSharpInteractiveContentType)>]
-[<Export(typeof<ICommandHandler>)>]
-type InteractivePadCompletionReturnHandler
-    [<ImportingConstructor>]
-    ( completionBroker:ICompletionBroker,
-      signatureHelpBroker:ISignatureHelpBroker ) =
-    interface ICommandHandler<ReturnKeyCommandArgs> with
-        member x.DisplayName = "InteractivePadKeyReturnHandler"
-        member x.GetCommandState _args = CommandState.Available
-
-        member x.ExecuteCommand(args, context) =
-            let textView = args.TextView
-            signatureHelpBroker.DismissAllSessions(textView)
-            if completionBroker.IsCompletionActive(textView) then
-                false
-            else
-            let (controller: InteractivePadController) = downcast textView.Properties.[typeof<InteractivePadController>]
-
-            let textBuffer = textView.TextBuffer
-            let snapshot = textBuffer.CurrentSnapshot
-            let position = textView.Caret.Position.BufferPosition.Position
-            let line = snapshot.GetLineFromPosition(position)
-
-            if line.Length > 0 then
-                let start = line.Start.Position
-                let finish = line.End.Position
-                let start = Math.Min(start, finish);
-                let span = new Span(start, finish - start)
-                let text = snapshot.GetText(span)
-                controller.FsiOutput "\n"
-                controller.FsiInput text
-            true
-
-[<Microsoft.VisualStudio.Utilities.Name("InteractivePadCompletionUp")>]
-[<Microsoft.VisualStudio.Utilities.ContentType(FSharpContentTypeNames.FSharpInteractiveContentType)>]
-[<Export(typeof<ICommandHandler>)>]
-type InteractivePadCompletionUpHandler
-    [<ImportingConstructor>]
-    ( completionBroker:ICompletionBroker,
-      signatureHelpBroker:ISignatureHelpBroker ) =
-    interface ICommandHandler<UpKeyCommandArgs> with
-        member x.DisplayName = "InteractivePadKeyUpHandler"
-        member x.GetCommandState _args = CommandState.Available
-
-        member x.ExecuteCommand(args, context) =
-            if signatureHelpBroker.IsSignatureHelpActive(args.TextView) then
-                false
-            else if completionBroker.IsCompletionActive(args.TextView) then
-                false
-            else
-            let textView = args.TextView
-            let (controller: InteractivePadController) = downcast textView.Properties.[typeof<InteractivePadController>]
-            controller.HistoryUp()
-            true
-
-[<Microsoft.VisualStudio.Utilities.Name("InteractivePadCompletionDown")>]
-[<Microsoft.VisualStudio.Utilities.ContentType(FSharpContentTypeNames.FSharpInteractiveContentType)>]
-[<Export(typeof<ICommandHandler>)>]
-type InteractivePadCompletionDownHandler
-    [<ImportingConstructor>]
-    ( completionBroker:ICompletionBroker,
-      signatureHelpBroker:ISignatureHelpBroker ) =
-    interface ICommandHandler<DownKeyCommandArgs> with
-        member x.DisplayName = "InteractivePadKeyDownHandler"
-        member x.GetCommandState _args = CommandState.Available
-
-        member x.ExecuteCommand(args, context) =
-            if signatureHelpBroker.IsSignatureHelpActive(args.TextView) then
-                false
-            else if completionBroker.IsCompletionActive(args.TextView) then
-                false
-            else
-            let textView = args.TextView
-            let (controller: InteractivePadController) = downcast textView.Properties.[typeof<InteractivePadController>]
-            controller.HistoryDown()
-            true
 
 type InteractiveCommand(command) =
     inherit CommandHandler()

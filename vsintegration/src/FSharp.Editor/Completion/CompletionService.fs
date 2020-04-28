@@ -57,8 +57,6 @@ type internal FSharpCompletionService
             .WithDismissIfLastCharacterDeleted(true)
             .WithDefaultEnterKeyRule(enterKeyRule)
 
-[<Shared>]
-[<ExportLanguageServiceFactory(typeof<CompletionService>, FSharpConstants.FSharpContentTypeName)>]
 type internal FSharpCompletionSource
     (textView: ITextView, checkerProvider: FSharpCheckerProvider, projectInfoManager: FSharpProjectOptionsManager, assemblyContentProvider: AssemblyContentProvider) =
 

@@ -25,7 +25,7 @@
 // THE SOFTWARE.
 namespace Microsoft.VisualStudio.FSharp.Editor
 
-open System.Composition
+open System.ComponentModel.Composition
 open System.Collections.Generic
 open System.Threading
 

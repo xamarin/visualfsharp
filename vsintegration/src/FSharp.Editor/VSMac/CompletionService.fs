@@ -2,7 +2,8 @@
 
 namespace Microsoft.VisualStudio.FSharp.Editor
 
-open System.Composition
+open System
+open System.ComponentModel.Composition
 open System.Collections.Immutable
 
 open Microsoft.CodeAnalysis
@@ -11,7 +12,6 @@ open Microsoft.CodeAnalysis.Host.Mef
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Editor
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Completion
-open System.ComponentModel.Composition
 open Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion
 open Microsoft.VisualStudio.Text.Editor
 open System.Threading.Tasks
@@ -61,8 +61,6 @@ type internal FSharpInteractiveCompletionService
             .WithDismissIfLastCharacterDeleted(true)
             .WithDefaultEnterKeyRule(enterKeyRule)
 
-[<Shared>]
-[<ExportLanguageServiceFactory(typeof<CompletionService>, FSharpContentTypeNames.FSharpInteractiveContentType)>]
 type internal FSharpInteractiveCompletionSource
     (textView: ITextView, checkerProvider: FSharpCheckerProvider, projectInfoManager: FSharpProjectOptionsManager, assemblyContentProvider: AssemblyContentProvider) =
 
