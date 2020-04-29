@@ -219,7 +219,7 @@ type internal GoToDefinition(checker: FSharpChecker, projectInfoManager: FSharpP
                     return implSymbol.RangeAlternate
         }
 
-    member private this.FindDefinitionAtPosition(originDocument: Document, position: int) =
+    member this.FindDefinitionAtPosition(originDocument: Document, position: int) =
         asyncMaybe {
             let! parsingOptions, projectOptions = projectInfoManager.TryGetOptionsForEditingDocumentOrProject(originDocument, CancellationToken.None)
             let! sourceText = originDocument.GetTextAsync () |> liftTaskAsync
