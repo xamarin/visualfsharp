@@ -256,6 +256,7 @@
     </ProjectReference>
     <Compile Include="VSMac\InteractiveWorkspace.fs" />
     <Compile Include="VSMac\InteractiveSession.fs" />
+    <Compile Include="VSMac\InteractiveGlyph.fs" />
     <Compile Include="VSMac\InteractivePad.fs" />
     <ProjectReference Include="..\..\..\..\fsharpbinding\MonoDevelop.FSharp.Shared\MonoDevelop.FSharp.Shared.fsproj">
       <Project>{AF5FEAD5-B50E-4F07-A274-32F23D5C504D}</Project>

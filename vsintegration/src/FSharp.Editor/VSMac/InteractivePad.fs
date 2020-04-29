@@ -29,20 +29,15 @@ open System
 open System.Collections.Generic
 open System.ComponentModel.Composition
 open System.IO
-
 open FSharp.Editor
 
-open Gdk
 open Gtk
 
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Editor
-open Microsoft.VisualStudio.Commanding
 open Microsoft.VisualStudio.Core.Imaging
 open Microsoft.VisualStudio.FSharp.Editor
-open Microsoft.VisualStudio.Language.Intellisense
 open Microsoft.VisualStudio.Text
 open Microsoft.VisualStudio.Text.Editor
-open Microsoft.VisualStudio.Text.Editor.Commanding.Commands
 open Microsoft.VisualStudio.Text.Tagging
 open MonoDevelop.Components
 open MonoDevelop.Components.Commands
@@ -52,18 +47,6 @@ open MonoDevelop.Core.Execution
 open MonoDevelop.FSharp
 open MonoDevelop.Ide
 open MonoDevelop.Ide.Composition
-[<AutoOpen>]
-module ColorHelpers =
-    let strToColor s =
-        let c = ref (Color())
-        match Color.Parse (s, c) with
-        | true -> !c
-        | false -> Color() // black is as good a guess as any here
-
-    let colorToStr (c:Color) =
-        sprintf "#%04X%04X%04X" c.Red c.Green c.Blue
-
-    let cairoToGdk (c:Cairo.Color) = GtkUtil.ToGdkColor(c)
 
 type FSharpCommands =
     | ShowFSharpInteractive = 0
@@ -106,62 +89,6 @@ type ShellHistory() =
             else
                 Some history.[nextDown]
 
-type InteractivePromptGlyphTag() = interface IGlyphTag
-
-type InteractiveGlyphFactory(imageId:ImageId, imageService:IImageService) =
-    let mutable imageCache: AppKit.NSImage option = None
-    
-    interface IGlyphFactory with
-        member x.GenerateGlyph(line, tag) =
-            match tag with
-            | :? InteractivePromptGlyphTag ->
-                if imageCache.IsNone then
-                    imageCache <- Some(imageService.GetImage (imageId) :?> AppKit.NSImage)
-                let imageView = AppKit.NSImageView.FromImage imageCache.Value
-                imageView.SetFrameSize (imageView.FittingSize)
-                Some (box imageView)
-            | _ -> None
-            |> Option.toObj
-
-[<Export(typeof<IGlyphFactoryProvider>)>]
-[<Microsoft.VisualStudio.Utilities.Name("InteractivePromptGlyphTag")>]
-[<Microsoft.VisualStudio.Utilities.ContentType(FSharpContentTypeNames.FSharpInteractiveContentType)>]
-[<TagType(typeof<InteractivePromptGlyphTag>)>]
-type InteractiveGlyphFactoryProvider() as this =
-    [<Import>]
-    member val ImageService:IImageService = null with get, set
-
-    interface IGlyphFactoryProvider with
-        member x.GetGlyphFactory(view, margin) =
-            let imageId = ImageId(Guid("{3404e281-57a6-4f3a-972b-185a683e0753}"), 1)
-            upcast InteractiveGlyphFactory(imageId, x.ImageService)
-
-type InteractivePromptGlyphTagger(textView: ITextView) as this =
-    let tagsChanged = Event<_,_>()
-
-    let promptSpans = HashSet<_>()
-
-    do
-        textView.Properties.[typeof<InteractivePromptGlyphTagger>] <- this
-
-    member x.AddPrompt(pos:int) =
-        if promptSpans.Add(pos) then
-            tagsChanged.Trigger(this, SnapshotSpanEventArgs(SnapshotSpan(textView.TextSnapshot, pos, 1)))
-    
-    interface ITagger<InteractivePromptGlyphTag> with
-        [<CLIEvent>]
-        member this.TagsChanged = tagsChanged.Publish
-        
-        member x.GetTags(spans) =
-            seq {
-                for span in spans do
-                    if promptSpans.Contains(span.Start.Position) then
-                        yield TagSpan<InteractivePromptGlyphTag>(span, InteractivePromptGlyphTag())
-            }
-
-module InteractiveGlyphManagerService =
-    let getGlyphManager(textView: ITextView) =
-        textView.Properties.GetOrCreateSingletonProperty(typeof<InteractivePromptGlyphTagger>, fun () -> InteractivePromptGlyphTagger textView)
 
 [<Microsoft.VisualStudio.Utilities.BaseDefinition("text")>]
 [<Microsoft.VisualStudio.Utilities.Name(FSharpContentTypeNames.FSharpInteractiveContentType)>]
