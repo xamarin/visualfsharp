@@ -208,10 +208,10 @@ type InteractivePadController(session: InteractiveSession) as this =
         let buffer = textView.TextBuffer
         let snapshot = buffer.CurrentSnapshot
         let lastLine = snapshot.GetLineFromLineNumber(snapshot.LineCount - 1)
-        let glyphManager = InteractiveGlyphManagerService.getGlyphManager(textView)
+        let glyphTagger = InteractiveGlyphManagerService.interactiveGlyphTagger(textView)
         inputLines.Add(snapshot.LineCount - 1) |> ignore
 
-        glyphManager.AddPrompt lastLine.Start.Position
+        glyphTagger.AddPrompt lastLine.Start.Position
         scrollToLastLine()
         updateReadOnlyRegion()
 

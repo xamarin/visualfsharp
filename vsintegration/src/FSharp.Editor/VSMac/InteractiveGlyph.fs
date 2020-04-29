@@ -69,6 +69,20 @@ type InteractivePromptGlyphTagger(textView: ITextView) as this =
 
     let promptSpans = HashSet<_>()
 
+    let getLastLine() =
+         let snapshot = textView.TextBuffer.CurrentSnapshot
+         let lineCount = snapshot.LineCount
+
+         if lineCount > 0 then
+             Some (snapshot.GetLineFromLineNumber(lineCount - 1))
+         else
+             None
+
+    let isOnLastLine(pos:int) =
+        match getLastLine() with
+        | Some line -> line.Start.Position = pos
+        | None -> false
+
     do
         textView.Properties.[typeof<InteractivePromptGlyphTagger>] <- this
 
@@ -83,10 +97,10 @@ type InteractivePromptGlyphTagger(textView: ITextView) as this =
         member x.GetTags(spans) =
             seq {
                 for span in spans do
-                    if promptSpans.Contains(span.Start.Position) then
+                    if promptSpans.Contains(span.Start.Position) || isOnLastLine(span.Start.Position) then
                         yield TagSpan<InteractivePromptGlyphTag>(span, InteractivePromptGlyphTag())
             }
 
 module InteractiveGlyphManagerService =
-    let getGlyphManager(textView: ITextView) =
+    let interactiveGlyphTagger(textView: ITextView) =
         textView.Properties.GetOrCreateSingletonProperty(typeof<InteractivePromptGlyphTagger>, fun () -> InteractivePromptGlyphTagger textView)
