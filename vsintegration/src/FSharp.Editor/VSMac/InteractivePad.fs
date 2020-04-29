@@ -224,7 +224,7 @@ type InteractivePadController(session: InteractiveSession) as this =
 
     member this.EnsureLastLine() =
         getLastLine() |> Option.iter(fun line ->
-            if textView.Caret.Position.BufferPosition.Position <= line.Start.Position then
+            if textView.Caret.Position.BufferPosition.Position < line.Start.Position then
                 textView.Caret.MoveTo(line.End) |> ignore)
 
 [<Export(typeof<IViewTaggerProvider>)>]
