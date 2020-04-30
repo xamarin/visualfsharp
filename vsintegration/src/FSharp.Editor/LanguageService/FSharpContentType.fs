@@ -3,8 +3,7 @@ namespace Microsoft.CodeAnalysis.ExternalAccess.FSharp.Internal
 
 open System.ComponentModel.Composition
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Editor
-//open Microsoft.VisualStudio.Utilities
-open Microsoft.VisualStudio.Editor
+
 type FSharpContentTypeDefinitions() =
     [<Export>]
     [<Microsoft.VisualStudio.Utilities.Name(FSharpContentTypeNames.FSharpSignatureHelpContentType)>]

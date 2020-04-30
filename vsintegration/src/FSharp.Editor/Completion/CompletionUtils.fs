@@ -112,34 +112,6 @@ module internal CompletionUtils =
         | CompletionItemKind.Other -> 6
         | CompletionItemKind.Method (isExtension = true) -> 7
 
-
-        //public static TextSpan GetWordSpan(SourceText text, int position,
-        //    Func<char, bool> isWordStartCharacter, Func<char, bool> isWordCharacter, bool alwaysExtendEndSpan = false)
-        //{
-        //    var start = position;
-        //    while (start > 0 && isWordStartCharacter(text[start - 1]))
-        //    {
-        //        start--;
-        //    }
-
-        //    // If we're brought up in the middle of a word, extend to the end of the word as well.
-        //    // This means that if a user brings up the completion list at the start of the word they
-        //    // will "insert" the text before what's already there (useful for qualifying existing
-        //    // text).  However, if they bring up completion in the "middle" of a word, then they will
-        //    // "overwrite" the text. Useful for correcting misspellings or just replacing unwanted
-        //    // code with new code.
-        //    var end = position;
-        //    if (start != position || alwaysExtendEndSpan)
-        //    {
-        //        while (end < text.Length && isWordCharacter(text[end]))
-        //        {
-        //            end++;
-        //        }
-        //    }
-
-        //    return TextSpan.FromBounds(start, end);
-        //}
-
     let getCompletionItemSpan (sourceText: SourceText) position =
         let rec findStart index =
             let c = sourceText.[index-1]

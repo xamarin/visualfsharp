@@ -1,65 +1,63 @@
 ﻿<?xml version="1.0" encoding="UTF-8" ?>
 <ExtensionModel>
     <Runtime>
-		<Import assembly="FSharp.Editor.dll" />
-	</Runtime>
-	<Extension path="/MonoDevelop/Ide/Composition">
-		<Assembly file="FSharp.Editor.dll"/>
-		<Assembly file="Microsoft.CodeAnalysis.ExternalAccess.FSharp.dll"/>
-<!--		<Assembly file="Microsoft.VisualStudio.LanguageServices.dll"/>-->
-<!--		<Assembly file="Microsoft.VisualStudio.LanguageServices.dll"/>-->
-	</Extension>
-	
-	
-  <Extension path = "/MonoDevelop/Ide/ProjectTemplatePackageRepositories">
-     <PackageRepository path="Packages" />
-  </Extension>
+        <Import assembly="FSharp.Editor.dll" />
+    </Runtime>
+    <Extension path="/MonoDevelop/Ide/Composition">
+        <Assembly file="FSharp.Editor.dll"/>
+        <Assembly file="Microsoft.CodeAnalysis.ExternalAccess.FSharp.dll"/>
+    </Extension>
 
-  <Extension path="/MonoDevelop/ProjectModel/MSBuildItemTypes">
-    <DotNetProjectType language="F#" extension="fsproj" guid="{F2A71F9B-5D33-465A-A702-920D77279786}" type="MonoDevelop.FSharp.FSharpProject"/>
-  </Extension>
+    <Extension path = "/MonoDevelop/Ide/ProjectTemplatePackageRepositories">
+        <PackageRepository path="Packages" />
+    </Extension>
 
-  <Extension path = "/MonoDevelop/ProjectModel/ProjectModelExtensions">
-    <Condition id="MSBuildTargetIsAvailable" target="$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.1\Framework\v4.0\Microsoft.Portable.FSharp.Targets">
-      <ProjectFlavor guid="{786c830f-07a1-408b-bd7f-6ee04809d6db}" type="MonoDevelop.FSharp.PortableFSharpProjectFlavor" language="F#" alias="F#PortableLibrary"/>
-    </Condition>
-  </Extension>
-  <Extension path="/MonoDevelop/Core/MimeTypes">
-    <MimeType id="text/x-fsharp" _description="F# Source File" icon="md-file-source" isText="true">
-      <File pattern="*.fs" />
-    </MimeType>
-    <MimeType id="text/x-fsharp" _description="F# Script File" icon="md-file-source" isText="true">
-      <File pattern="*.fsx" />
-      <File pattern="*.fsscript" />
+    <Extension path="/MonoDevelop/ProjectModel/MSBuildItemTypes">
+        <DotNetProjectType language="F#" extension="fsproj" guid="{F2A71F9B-5D33-465A-A702-920D77279786}" type="MonoDevelop.FSharp.FSharpProject"/>
+    </Extension>
+
+    <Extension path = "/MonoDevelop/ProjectModel/ProjectModelExtensions">
+        <Condition id="MSBuildTargetIsAvailable" target="$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.1\Framework\v4.0\Microsoft.Portable.FSharp.Targets">
+            <ProjectFlavor guid="{786c830f-07a1-408b-bd7f-6ee04809d6db}" type="MonoDevelop.FSharp.PortableFSharpProjectFlavor" language="F#" alias="F#PortableLibrary"/>
+        </Condition>
+    </Extension>
+
+    <Extension path="/MonoDevelop/Core/MimeTypes">
+        <MimeType id="text/x-fsharp" _description="F# Source File" icon="md-file-source" isText="true">
+            <File pattern="*.fs" />
         </MimeType>
-    <MimeType id="text/x-fsharp" _description="F# Signature File" icon="md-file-header" isText="true">
-      <File pattern="*.fsi" />
+        <MimeType id="text/x-fsharp" _description="F# Script File" icon="md-file-source" isText="true">
+            <File pattern="*.fsx" />
+            <File pattern="*.fsscript" />
         </MimeType>
-    <MimeType id="application/fsproject+xml" _description="F# project file" baseType="application/xml">
-      <File pattern="*.fsproj" />
-    </MimeType>
-  </Extension>
-  <Extension path="/MonoDevelop/ProjectModel/LanguageBindings">
-    <LanguageBinding id="F#"
-                     extensions=".fs,.fsi,.fsx,.fsscript,.sketchfs"
-                     singleLineCommentTag="//"
-                     blockCommentStartTag="(*"
-                     blockCommentEndTag="*)" />
+        <MimeType id="text/x-fsharp" _description="F# Signature File" icon="md-file-header" isText="true">
+            <File pattern="*.fsi" />
+        </MimeType>
+        <MimeType id="application/fsproject+xml" _description="F# project file" baseType="application/xml">
+            <File pattern="*.fsproj" />
+        </MimeType>
+    </Extension>
+    <Extension path="/MonoDevelop/ProjectModel/LanguageBindings">
+        <LanguageBinding id="F#"
+                         extensions=".fs,.fsi,.fsx,.fsscript,.sketchfs"
+                         singleLineCommentTag="//"
+                         blockCommentStartTag="(*"
+                         blockCommentEndTag="*)" />
 <!--                     codeDomType="FSharp.Compiler.CodeDom.FSharpCleanCodeProvider" />-->
-  </Extension>
-    
-  <Extension path="/MonoDevelop/Ide/Pads">
-    <ComplexCondition>
-      <Or>
-        <Condition id="MSBuildTargetIsAvailable" target="$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.0\Framework\v4.0\Microsoft.FSharp.Targets" />
-        <Condition id="MSBuildTargetIsAvailable" target="$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.1\Framework\v4.0\Microsoft.FSharp.Targets" />
-        <Condition id="MSBuildTargetIsAvailable" target="$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\4.0\Framework\v4.0\Microsoft.FSharp.Targets" />
-      </Or>
-      <Pad id="FSharp.Editor.FSharpInteractivePad" defaultPlacement="Bottom" _label="F# New Interactive" icon="md-project" class="Microsoft.VisualStudio.FSharp.Editor.FSharpInteractivePad" />
-<!--      <Pad id="MonoDevelop.FSharp.FakePad" defaultPlacement="Bottom" _label="FAKE" icon="md-command" class="MonoDevelop.FSharp.FakePad" />-->
-    </ComplexCondition>
-  </Extension>
-  <Extension path="/MonoDevelop/Ide/Commands">
+    </Extension>
+
+    <Extension path="/MonoDevelop/Ide/Pads">
+        <ComplexCondition>
+            <Or>
+                <Condition id="MSBuildTargetIsAvailable" target="$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.0\Framework\v4.0\Microsoft.FSharp.Targets" />
+                <Condition id="MSBuildTargetIsAvailable" target="$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.1\Framework\v4.0\Microsoft.FSharp.Targets" />
+                <Condition id="MSBuildTargetIsAvailable" target="$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\4.0\Framework\v4.0\Microsoft.FSharp.Targets" />
+            </Or>
+            <Pad id="FSharp.Editor.FSharpInteractivePad" defaultPlacement="Bottom" _label="F# New Interactive" icon="md-project" class="Microsoft.VisualStudio.FSharp.Editor.FSharpInteractivePad" />
+            <!--      <Pad id="MonoDevelop.FSharp.FakePad" defaultPlacement="Bottom" _label="FAKE" icon="md-command" class="MonoDevelop.FSharp.FakePad" />-->
+        </ComplexCondition>
+    </Extension>
+    <Extension path="/MonoDevelop/Ide/Commands">
         <!-- RefactoryCommands -->
     <!--
     <Category _name = "Refactoring" id = "Refactoring" >
@@ -133,14 +131,14 @@
         <Command _description="Toggle type signature help"
                  _label="Toggle type signature help"
                  id="MonoDevelop.FSharp.SignatureHelp.Toggle" />
-                
+
         <Command _description="Quick Fix Menu"
-                 id="MonoDevelop.FSharp.QuickFixMenu" 
+                 id="MonoDevelop.FSharp.QuickFixMenu"
                  _label="Quick Fix"
                  type = "array"
                  defaultHandler = "MonoDevelop.FSharp.QuickFixMenuHandler" />
       </Category>
     </ComplexCondition>
     -->
-  </Extension>
+    </Extension>
 </ExtensionModel>

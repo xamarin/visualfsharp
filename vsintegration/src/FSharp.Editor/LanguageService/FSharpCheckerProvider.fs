@@ -22,7 +22,6 @@ type internal FSharpCheckerProvider
     [<ImportingConstructor>]
     (
         analyzerService: IFSharpDiagnosticAnalyzerService,
-        //[<Import(typeof<VisualStudioWorkspace>)>] workspace: VisualStudioWorkspace,
         settings: EditorOptions
     ) =
     let workspace = IdeApp.TypeSystemService.Workspace :?> MonoDevelopWorkspace

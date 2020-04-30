@@ -5,8 +5,6 @@ namespace Microsoft.VisualStudio.FSharp.Editor
 open System
 open System.Runtime.CompilerServices
 open System.Text.RegularExpressions
-//open Microsoft.VisualStudio.Shell
-//open Microsoft.VisualStudio.Shell.Interop
 open FSharp.Compiler.SourceCodeServices
 open FSharp.Compiler.Layout
 open FSharp.Compiler.Layout.TaggedTextOps
@@ -314,34 +312,16 @@ module internal XmlDocumentation =
             new FileStream(xmlPath, FileMode.Open, FileAccess.Read) :> Stream
 
         override x.Equals(obj) =
-            if obj :? FSharpXmlDocumentationProvider then
-                (obj:?>FSharpXmlDocumentationProvider).XmlPath = xmlPath
-            else
+            match obj with
+            | :? FSharpXmlDocumentationProvider as provider ->
+                provider.XmlPath = xmlPath
+            | _ ->
                 false
 
         override x.GetHashCode() = xmlPath.GetHashCode()
 
     /// Provide Xml Documentation             
-    type Provider((*xmlIndexService:IVsXMLMemberIndexService*)) = 
-        /// Index of assembly name to xml member index.
-        //let cache = Dictionary<string, IVsXMLMemberIndex>()
-        
-        //do Events.SolutionEvents.OnAfterCloseSolution.Add (fun _ -> cache.Clear())
-
-        /// Retrieve the pre-existing xml index or None
-        //let GetMemberIndexOfAssembly(assemblyName) =
-            //match cache.TryGetValue(assemblyName) with 
-            //| true, memberIndex -> Some(memberIndex)
-            //| false, _ -> 
-                //let ok,memberIndex = xmlIndexService.CreateXMLMemberIndex(assemblyName)
-                //if Com.Succeeded(ok) then 
-                //    let ok = memberIndex.BuildMemberIndex()
-                //    if Com.Succeeded(ok) then
-                //        cache.Add(assemblyName, memberIndex)
-                //        Some(memberIndex)
-                //    else None
-                //else None
-
+    type Provider() = 
         let AppendMemberData(xmlCollector: ITaggedTextCollector, exnCollector: ITaggedTextCollector, xmlDocReader: XmlDocReader, showExceptions, showParameters) =
             AppendHardLine xmlCollector
             xmlCollector.StartXMLDoc()
@@ -380,14 +360,6 @@ module internal XmlDocumentation =
                               paramName:string option                            
                              ) = 
                 try     
-                    //match GetMemberIndexOfAssembly(filename) with
-                    //| Some(index) ->
-                    //    let _,idx = index.ParseMemberSignature(signature)
-                    //    if idx <> 0u then
-                    //        let ok,xml = index.GetMemberXML(idx)
-                    //        if Com.Succeeded(ok) then 
-                    //            (this:>IDocumentationBuilder).AppendDocumentationFromProcessedXML(xmlCollector, exnCollector, xml, showExceptions, showParameters, paramName)
-                    //| None -> ()
                     (this:>IDocumentationBuilder).AppendDocumentationFromProcessedXML(xmlCollector, exnCollector, FSharpXmlDocumentationProvider(filename).GetDocumentation(signature), showExceptions, showParameters, paramName)
                 with e-> 
                     Assert.Exception(e)

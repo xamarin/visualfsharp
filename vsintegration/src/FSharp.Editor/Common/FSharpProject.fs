@@ -9,7 +9,6 @@ open MonoDevelop.Projects
 open MonoDevelop.Projects.MSBuild
 open MonoDevelop.Core.Assemblies
 
-//open ExtCore.Control
 open Microsoft.VisualStudio.FSharp.Editor.Pervasive
 module Project =
     let FSharp3Import        = "$(MSBuildExtensionsPath32)\\..\\Microsoft SDKs\\F#\\3.0\\Framework\\v4.0\\Microsoft.FSharp.Targets"

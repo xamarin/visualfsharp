@@ -10,19 +10,13 @@ open System.Threading.Tasks
 
 open Microsoft.CodeAnalysis
 open Microsoft.CodeAnalysis.Completion
-open Microsoft.CodeAnalysis.Options
 open Microsoft.CodeAnalysis.Text
-open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Completion
-
-//open Microsoft.VisualStudio.Shell
 
 open FSharp.Compiler
 open FSharp.Compiler.Range
 open FSharp.Compiler.SourceCodeServices
 open Microsoft.VisualStudio.Text.Adornments
-open Microsoft.VisualStudio.Text
 open Microsoft.VisualStudio.Text.Editor
-open Microsoft.CodeAnalysis.Editor.Shared.Extensions
 module Logger = Microsoft.VisualStudio.FSharp.Editor.Logger
 
 type internal FSharpCompletionProvider
@@ -195,24 +189,13 @@ type internal FSharpCompletionProvider
                     |> Option.bind (fun parseTree ->
                          UntypedParseImpl.TryGetCompletionContext(Pos.fromZ caretLinePos.Line caretLinePos.Character, parseTree, lineStr))
 
-                //let keywordGlyph = ExternalAccess.FSharp.FSharpGlyph.Keyword
-                //let k = Glyph.Keyword
-                //let roslynGlyph = Microsoft.CodeAnalysis.ExternalAccess.FSharp.Internal.FSharpGlyphHelpers.ConvertTo(k)
-                //let i = ImageElement(roslynGlyph |> Gl GetImageId)
                 let image = GlyphHelper.getImageId Glyph.Keyword |> ImageElement
-                //let c =
-                    //FSharpCommonCompletionItem.Create(keyword, null, CompletionItemRules.Default, Nullable Glyph.Keyword )
-                       //.AddProperty("description", description)
-                       //.AddProperty(IsKeywordPropName, "")
+
                 match completionContext with
                 | None ->
                     let keywordItemsWithSource =
                         keywordCompletionItems
                         |> Seq.mapi (fun n (keyword, description) ->
-                                //FSharpCommonCompletionItem.Create(keyword, null, CompletionItemRules.Default, Nullable Glyph.Keyword )
-                                   //.AddProperty("description", description)
-                                   //.AddProperty(IsKeywordPropName, ""))
-                                let imageId = [ ]
                                 new Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion.Data.CompletionItem
                                         (keyword, completionSource, image, ImmutableArray<Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion.Data.CompletionFilter>.Empty, "", keyword, sprintf "%06d" (1000000 + n), keyword, keyword, ImmutableArray<ImageElement>.Empty ))
 
@@ -222,35 +205,8 @@ type internal FSharpCompletionProvider
             return results
         }
 
-    //override this.ShouldTriggerCompletion(sourceText: SourceText, caretPosition: int, trigger: CompletionTrigger, _: OptionSet) =
-    //    use _logBlock = Logger.LogBlock LogEditorFunctionId.Completion_ShouldTrigger
-
-    //    let getInfo() = 
-    //        let documentId = workspace.GetDocumentIdInCurrentContext(sourceText.Container)
-    //        let document = workspace.CurrentSolution.GetDocument(documentId)
-    //        let defines = projectInfoManager.GetCompilationDefinesForEditingDocument(document)
-    //        (documentId, document.FilePath, defines)
-
-    //    FSharpCompletionProvider.ShouldTriggerCompletionAux(sourceText, caretPosition, trigger, getInfo, settings.IntelliSense)
-
     override this.ProvideCompletionsAsync(context: Completion.CompletionContext) =
         asyncMaybe {
-            //use _logBlock = Logger.LogBlockMessage context.Document.Name LogEditorFunctionId.Completion_ProvideCompletionsAsync
-
-            //let document = context.Document
-            //let! sourceText = context.Document.GetTextAsync(context.CancellationToken)
-            //let defines = projectInfoManager.GetCompilationDefinesForEditingDocument(document)
-            //do! Option.guard (CompletionUtils.shouldProvideCompletion(document.Id, document.FilePath, defines, sourceText, context.Position))
-            //let! _parsingOptions, projectOptions = projectInfoManager.TryGetOptionsForEditingDocumentOrProject(document, context.CancellationToken)
-            //let! textVersion = context.Document.GetTextVersionAsync(context.CancellationToken)
-            //let getAllSymbols(fileCheckResults: FSharpCheckFileResults) =
-            //    if settings.IntelliSense.IncludeSymbolsFromUnopenedNamespacesOrModules
-            //    then assemblyContentProvider.GetAllEntitiesInProjectAndReferencedAssemblies(fileCheckResults)
-            //    else []
-            //let! results = 
-                //FSharpCompletionProvider.ProvideCompletionsAsyncAux(checker, sourceText, context.Position, projectOptions, document.FilePath,
-                                                                    //textVersion.GetHashCode(), getAllSymbols, settings.LanguageServicePerformance, settings.IntelliSense)
-
             context.AddItems([])//results)
         } |> Async.Ignore |> RoslynHelpers.StartAsyncUnitAsTask context.CancellationToken
         
@@ -276,20 +232,14 @@ type internal FSharpCompletionProvider
 
     member this.GetDescriptionAsync2(textView:  ITextView, completionItem: Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion.Data.CompletionItem, cancellationToken: CancellationToken): Task<CompletionDescription> =
         async {
-            //use _logBlock = Logger.LogBlockMessage "DocumentName" ViewportWidthLogEditorFunctionId.Completion_GetDescriptionAsync
             match completionItem.Properties.TryGetProperty IndexPropName with
             | true, (declarationItem: FSharpDeclarationListItem) ->
-                //let completionItemIndex = int completionItemIndexStr
-                //if completionItemIndex < declarationItems.Length then
-                    //let declarationItem = declarationItems.[completionItemIndex]
-                    let! description = declarationItem.StructuredDescriptionTextAsync
-                    let documentation = List()
-                    let collector = RoslynHelpers.CollectTaggedText documentation
-                    // mix main description and xmldoc by using one collector
-                    XmlDocumentation.BuildDataTipText(documentationBuilder, collector, collector, collector, collector, collector, description) 
-                    return CompletionDescription.Create(documentation.ToImmutableArray())
-                //else 
-                    //return CompletionDescription.Empty
+                let! description = declarationItem.StructuredDescriptionTextAsync
+                let documentation = List()
+                let collector = RoslynHelpers.CollectTaggedText documentation
+                // mix main description and xmldoc by using one collector
+                XmlDocumentation.BuildDataTipText(documentationBuilder, collector, collector, collector, collector, collector, description) 
+                return CompletionDescription.Create(documentation.ToImmutableArray())
             | _ -> 
                 return CompletionDescription.Empty
         } |> RoslynHelpers.StartAsyncAsTask cancellationToken

@@ -2,12 +2,10 @@
 
 namespace Microsoft.VisualStudio.FSharp.Editor
 
-open System.Composition
 open System.Collections.Immutable
 
 open Microsoft.CodeAnalysis
 open Microsoft.CodeAnalysis.Completion
-open Microsoft.CodeAnalysis.Host.Mef
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Editor
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Completion
@@ -36,7 +34,7 @@ type internal FSharpCompletionService
 
     let builtInProviders = 
         ImmutableArray.Create<CompletionProvider>(
-            FSharpCompletionProvider(workspace, (*serviceProvider,*) checkerProvider, projectInfoManager, assemblyContentProvider),
+            FSharpCompletionProvider(workspace, checkerProvider, projectInfoManager, assemblyContentProvider),
             FSharpCommonCompletionProvider.Create(
                 HashDirectiveCompletionProvider(workspace, projectInfoManager,
                     [ Completion.Create("""\s*#load\s+(@?"*(?<literal>"[^"]*"?))""", [".fs"; ".fsx"], useIncludeDirectives = true)
@@ -60,8 +58,6 @@ type internal FSharpCompletionService
 type internal FSharpCompletionSource
     (textView: ITextView, checkerProvider: FSharpCheckerProvider, projectInfoManager: FSharpProjectOptionsManager, assemblyContentProvider: AssemblyContentProvider) =
 
-
-    //let settings: EditorOptions = textView.TextBuffer.GetWorkspace().Services.GetService()
 
     let createParagraphFromLines(lines: List<ClassifiedTextElement>) =
         if lines.Count = 1 then

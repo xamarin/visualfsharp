@@ -74,7 +74,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\..\..\src\fsharp\FSharp.Compiler.LanguageServer\JsonOptionConverter.fs" />
-    <Compile Include="Common\AssemblyInfo.fs" />
     <Compile Include="Common\Logger.fsi" />
     <Compile Include="Common\Logger.fs" />
     <Compile Include="Common\Pervasive.fs" />
@@ -91,7 +90,6 @@
     <Compile Include="Common\Parameters.fs" />
     <Compile Include="Common\FileService.fs" />
     <Compile Include="Common\CompilerArguments.fs" />
-    <None Include="Common\MDLanguageService.fs" />
     <Compile Include="Common\CompilerService.fs" />
     <Compile Include="Common\FSharpProject.fs" />
     <Compile Include="Common\LanguageService.fs" />
@@ -134,7 +132,6 @@
     <Compile Include="CodeFix\FixIndexerAccess.fs" />
     <Compile Include="CodeFix\RenameParamToMatchSignature.fs" />
     <Compile Include="Classification\ClassificationService.fs" />
-    <None Include="Classification\ClassificationDefinitions.fs" />
     <Compile Include="Classification\ClassificationDefinition.fs" />
     <Compile Include="Formatting\BraceMatchingService.fs" />
     <Compile Include="Formatting\IndentationService.fs" />
@@ -151,7 +148,6 @@
     <Compile Include="Completion\AsyncCompletionCommitManager.fs" />
     <Compile Include="Completion\CompletionService.fs" />
     <Compile Include="Completion\SignatureHelp.fs" />
-    <None Include="Completion\AsyncCompletionCommitManagerProvider.fs" />
     <Compile Include="InlineRename\InlineRenameService.fs" />
     <Compile Include="DocumentHighlights\DocumentHighlightsService.fs" />
     <Compile Include="Navigation\GoToDefinition.fs" />
@@ -166,7 +162,6 @@
     <Compile Include="QuickInfo\Views.fs" />
     <Compile Include="QuickInfo\QuickInfoProvider.fs" />
     <Compile Include="Structure\BlockStructureService.fs" />
-    <None Include="Commands\FsiCommandService.fs" />
     <None Include="Commands\XmlDocCommandService.fs" />
     <None Include="Commands\HelpContextService.fs" />
     <None Include="Build\SetGlobalPropertiesForSdkProjects.fs" />
@@ -176,7 +171,6 @@
     <None Include="CodeLens\CodeLensGeneralTagger.fs" />
     <None Include="CodeLens\LineLensDisplayService.fs" />
     <None Include="CodeLens\FSharpCodeLensService.fs" />
-    <None Include="CodeLens\CodeLensProvider.fs" />
     <None Include="FSharp.Editor.Designer.fs">
       <DependentUpon>FSharp.Editor.resx</DependentUpon>
     </None>

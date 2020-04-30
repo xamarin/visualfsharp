@@ -46,19 +46,6 @@ type internal UnusedOpensDiagnosticAnalyzer [<ImportingConstructor>] () =
     interface IFSharpUnusedOpensDiagnosticAnalyzer with
 
         member this.AnalyzeSemanticsAsync(descriptor, document: Document, cancellationToken: CancellationToken) =
-             
-             //TextViewFromDocument(Document document)
-             //{
-             //    return document?.GetContent<ITextView>();
-             //}
-
-             //private Document DocumentFromTextView(ITextView textView)
-             //{
-             //    return IdeApp.Workbench.Documents.FirstOrDefault(doc => TextViewFromDocument(doc) == textView);
-             //}
-
-             //private Document DocumentFromTextBuffer(ITextBuffer textBuffer)
-             //{
             let isOpen =
                 MonoDevelop.Ide.IdeApp.Workbench.Documents
                 |> Seq.exists(fun d -> d.FilePath |> string = document.FilePath)
