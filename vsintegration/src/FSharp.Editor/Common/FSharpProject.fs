@@ -272,44 +272,8 @@ type FSharpProject() as self =
     override x.OnGetSupportedClrVersions() =
         [| ClrVersion.Net_2_0; ClrVersion.Net_4_0; ClrVersion.Net_4_5; ClrVersion.Clr_2_1 |]
 
-    override x.OnFileAddedToProject(e) =
-        base.OnFileAddedToProject(e)
-        //if not self.Loading then MDLanguageService.invalidateFiles e
-
-    override x.OnFileRemovedFromProject(e) =
-        base.OnFileRemovedFromProject(e)
-        //if not self.Loading then MDLanguageService.invalidateFiles e
-
-    override x.OnFileRenamedInProject(e) =
-        base.OnFileRenamedInProject(e)
-        //if not self.Loading then MDLanguageService.invalidateFiles e
-
-    override x.OnFilePropertyChangedInProject(e) =
-        base.OnFilePropertyChangedInProject(e)
-        //if not self.Loading then MDLanguageService.invalidateFiles e
-
-    override x.OnReferenceAddedToProject(e) =
-        base.OnReferenceAddedToProject(e)
-        //if not self.Loading then MDLanguageService.invalidateProjectFile self.FileName
-
-    override x.OnReferenceRemovedFromProject(e) =
-        base.OnReferenceRemovedFromProject(e)
-        //if not self.Loading then MDLanguageService.invalidateProjectFile self.FileName
-
-    //override x.OnFileRenamedInProject(e)=
-    //    base.OnFileRenamedInProject(e)
-    //    if not self.Loading then invalidateProjectFile()
-
-    override x.OnNameChanged(e)=
-        base.OnNameChanged(e)
-        //if not self.Loading then MDLanguageService.invalidateProjectFile self.FileName
-
     override x.OnGetDefaultResourceId(projectFile) =
         projectFile.FilePath.FileName
-
-    override x.OnModified(e) =
-        base.OnModified(e)
-        //if not self.Loading && not self.IsReevaluating then MDLanguageService.invalidateProjectFile self.FileName
 
     member x.GetOrderedReferences(config:ConfigurationSelector) =
         async {
@@ -327,22 +291,4 @@ type FSharpProject() as self =
                 |> Seq.toArray
             return orderAssemblyReferences.Order references
         }
-
-    member x.ReevaluateProject(e) =
-        let task = base.OnReevaluateProject (e)
-
-        async {
-            do! task |> Async.AwaitTask
-            //MDLanguageService.invalidateProjectFile self.FileName
-        }
-
-    //override x.OnReevaluateProject(monitor) =
-        //x.ReevaluateProject monitor |> Async.AwaitTask monitor.CancellationToken :> Task
-
-    override x.OnDispose () =
-        //languageService.HideStatusIcon (string self.FileName.FullPath)
-        // FIXME: is it correct to do it every time a project is disposed?
-        //Should only be done on solution close
-        //langServ.ClearLanguageServiceRootCachesAndCollectAndFinalizeAllTransients()
-        base.OnDispose ()
 
