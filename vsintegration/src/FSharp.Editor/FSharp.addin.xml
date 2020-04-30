@@ -18,7 +18,7 @@
 
     <Extension path = "/MonoDevelop/ProjectModel/ProjectModelExtensions">
         <Condition id="MSBuildTargetIsAvailable" target="$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.1\Framework\v4.0\Microsoft.Portable.FSharp.Targets">
-            <ProjectFlavor guid="{786c830f-07a1-408b-bd7f-6ee04809d6db}" type="MonoDevelop.FSharp.PortableFSharpProjectFlavor" language="F#" alias="F#PortableLibrary"/>
+            <ProjectFlavor guid="{786c830f-07a1-408b-bd7f-6ee04809d6db}" type="FSharp.Editor.PortableFSharpProjectFlavor" language="F#" alias="F#PortableLibrary"/>
         </Condition>
     </Extension>
 
@@ -53,8 +53,7 @@
                 <Condition id="MSBuildTargetIsAvailable" target="$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.1\Framework\v4.0\Microsoft.FSharp.Targets" />
                 <Condition id="MSBuildTargetIsAvailable" target="$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\4.0\Framework\v4.0\Microsoft.FSharp.Targets" />
             </Or>
-            <Pad id="FSharp.Editor.FSharpInteractivePad" defaultPlacement="Bottom" _label="F# New Interactive" icon="md-project" class="Microsoft.VisualStudio.FSharp.Editor.FSharpInteractivePad" />
-            <!--      <Pad id="MonoDevelop.FSharp.FakePad" defaultPlacement="Bottom" _label="FAKE" icon="md-command" class="MonoDevelop.FSharp.FakePad" />-->
+            <Pad id="FSharp.Editor.FSharpInteractivePad" defaultPlacement="Bottom" _label="F# Interactive" icon="md-project" class="Microsoft.VisualStudio.FSharp.Editor.FSharpInteractivePad" />
         </ComplexCondition>
     </Extension>
     <Extension path="/MonoDevelop/Ide/Commands">

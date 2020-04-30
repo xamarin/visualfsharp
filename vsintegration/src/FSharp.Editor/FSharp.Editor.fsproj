@@ -258,6 +258,7 @@
     <Compile Include="VSMac\InteractiveClassificationService.fs" />
     <Compile Include="VSMac\SignatureHelp.fs" />
     <Compile Include="VSMac\InteractivePadKeyHandlers.fs" />
+    <Compile Include="VSMac\PortableFSharpProjectFlavor.fs" />
   </ItemGroup>
   <ProjectExtensions>
     <MonoDevelop>
