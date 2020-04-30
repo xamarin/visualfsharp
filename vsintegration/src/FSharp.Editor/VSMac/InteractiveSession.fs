@@ -165,23 +165,6 @@ type InteractiveSession(pathToExe) =
         fsiProcess.Kill()
         fsiProcess <- startProcess()
 
-    //member x.Kill() =
-    //    //if not fsiProcess.HasExited then
-    //    //    x.SendInput "#q;;" None
-    //    //    for i in 0 .. 10 do
-    //    //        if not fsiProcess.HasExited then
-    //    //            LoggingService.logDebug "Interactive: waiting for process exit after #q... %d" (i*200)
-    //    //            fsiProcess.WaitForExit(200) |> ignore
-
-    //    if not fsiProcess.HasExited then
-    //        fsiProcess.Kill()
-    //        for i in 0 .. 10 do
-    //            if not fsiProcess.HasExited then
-    //                LoggingService.logDebug "Interactive: waiting for process exit after kill... %d" (i*200)
-    //                fsiProcess.WaitForExit(200) |> ignore
-
-    //member x.KillNow() = fsiProcess.Kill()
-
     member x.SendInput input documentName =
         documentName
         |> Option.iter(fun fileName ->

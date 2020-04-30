@@ -102,7 +102,6 @@
     <Compile Include="LanguageService\Tokenizer.fs" />
     <Compile Include="LanguageService\Symbols.fs" />
     <Compile Include="LanguageService\FSharpCheckerExtensions.fs" />
-    <None Include="LanguageService\IProjectSite.fs" />
     <None Include="LanguageService\ProvideFSharpVersionRegistrationAttribute.fs" />
     <Compile Include="LanguageService\FSharpCheckerProvider.fs" />
     <Compile Include="LanguageService\FSharpProjectOptionsManager.fs" />
@@ -157,7 +156,6 @@
     <Compile Include="Navigation\FindUsagesService.fs" />
     <None Include="Navigation\NavigationBarItemService.fs" />
     <Compile Include="QuickInfo\NavigableTextRun.fs" />
-    <None Include="QuickInfo\WpfNagivableTextRunViewElementFactory.fs" />
     <Compile Include="QuickInfo\Navigation.fs" />
     <Compile Include="QuickInfo\Views.fs" />
     <Compile Include="QuickInfo\QuickInfoProvider.fs" />

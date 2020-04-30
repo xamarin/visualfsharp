@@ -22,7 +22,6 @@ module Logger = Microsoft.VisualStudio.FSharp.Editor.Logger
 type internal FSharpCompletionProvider
     (
         workspace: Workspace,
-        //serviceProvider: SVsServiceProvider,
         checkerProvider: FSharpCheckerProvider,
         projectInfoManager: FSharpProjectOptionsManager,
         assemblyContentProvider: AssemblyContentProvider
@@ -51,7 +50,6 @@ type internal FSharpCompletionProvider
 
     let settings: EditorOptions = workspace.Services.GetService()
 
-    //let documentationBuilder = XmlDocumentation.CreateDocumentationBuilder(serviceProvider.XMLMemberIndexService)
     let documentationBuilder = XmlDocumentation.Provider()   
     static let noCommitOnSpaceRules = 
         // These are important.  They make sure we don't _commit_ autocompletion when people don't expect them to.  Some examples:
@@ -149,8 +147,6 @@ type internal FSharpCompletionProvider
 
                 let completionItem =
                     let item = new Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion.Data.CompletionItem(name, completionSource, icon = image)
-                    //FSharpCommonCompletionItem.Create(name, null, rules = getRules intellisenseOptions.ShowAfterCharIsTyped, glyph = Nullable glyph, filterText = filterText)
-                                        //.AddProperty(FullNamePropName, declarationItem.FullName)
                     item.Properties.AddProperty(IndexPropName, declarationItem)
                     item
 

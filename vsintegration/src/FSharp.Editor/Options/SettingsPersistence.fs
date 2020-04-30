@@ -15,7 +15,7 @@ type IPersistSettings =
 [<Guid(Guids.svsSettingsPersistenceManagerIdString)>]
 type SVsSettingsPersistenceManager = class end
 
-type SettingsStore((*serviceProvider: IServiceProvider*)) =
+type SettingsStore() =
 
     //let settingsManager = serviceProvider.GetService(typeof<SVsSettingsPersistenceManager>) :?> ISettingsManager
 

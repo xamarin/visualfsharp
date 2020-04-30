@@ -14,15 +14,12 @@ open Microsoft.VisualStudio.Text
 open FSharp.Compiler.Layout
 open FSharp.Compiler.Range
 open FSharp.Compiler.SourceCodeServices
-open MonoDevelop.FSharp
 
 [<Composition.Shared>]
 [<Export(typeof<IFSharpInteractiveSignatureHelpProvider>)>]
 type internal FSharpInteractiveSignatureHelpProvider 
     [<ImportingConstructor>]
     (
-        //checkerProvider: FSharpCheckerProvider,
-        //projectInfoManager: FSharpProjectOptionsManager
     ) =
 
     static let userOpName = "SignatureHelpProvider"

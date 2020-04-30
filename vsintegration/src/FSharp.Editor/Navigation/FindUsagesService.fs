@@ -2,9 +2,7 @@
 
 namespace Microsoft.VisualStudio.FSharp.Editor
 
-open System.Threading
 open System.Collections.Immutable
-open System.Composition
 
 open Microsoft.CodeAnalysis
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp
@@ -13,25 +11,8 @@ open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Editor.FindUsages
 
 open FSharp.Compiler.Range
 open FSharp.Compiler.SourceCodeServices
-open System.Composition
-open System.Threading
-open System.Threading.Tasks
 
-open Microsoft.CodeAnalysis
-open Microsoft.CodeAnalysis.Editor
-open Microsoft.CodeAnalysis.Host.Mef
-open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Editor
-
-open System
-open System;
 open System.ComponentModel.Composition;
-open Microsoft.CodeAnalysis.Editor.Shared.Extensions;
-open Microsoft.CodeAnalysis.Notification;
-open Microsoft.CodeAnalysis.Shared.Extensions;
-open Microsoft.CodeAnalysis.Text;
-open Microsoft.VisualStudio.Commanding;
-open Microsoft.VisualStudio.Text;
-open Microsoft.VisualStudio.Text.Editor.Commanding.Commands;
 
 [<Export(typeof<IFSharpFindUsagesService>)>]
 type internal FSharpFindUsagesService
@@ -152,23 +133,3 @@ type internal FSharpFindUsagesService
         member __.FindImplementationsAsync(document, position, context) =
             findReferencedSymbolsAsync(document, position, context, false, userOpName)
             |> RoslynHelpers.StartAsyncUnitAsTask(context.CancellationToken)
-
-
-//[<Export(typeof<ICommandHandler>)>]
-//[<Name("F# Find References")>]
-//[<ContentType("code++.F#")>]
-//type internal FSharpFindReferencesCommandHandler
-    //[<ImportingConstructor>]
-    //(
-    //    checkerProvider: FSharpCheckerProvider,
-    //    projectInfoManager: FSharpProjectOptionsManager
-    //) =
-
-    //let gtd = GoToDefinition(checkerProvider.Checker, projectInfoManager)
-    //let statusBar = StatusBar((*ServiceProvider.GlobalProvider.GetService<SVsStatusbar,IVsStatusbar>()*))  
-    //interface ICommandHandler<FindReferencesCommandArgs> with
-        //member __.DisplayName = "FSharp Find References"
-        //member __.GetCommandState(_args) =
-        //    CommandState.Available
-        //member __.ExecuteCommand(args, context) =
-            //true

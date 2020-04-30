@@ -158,7 +158,6 @@ module internal FSharpQuickInfo =
 type internal FSharpAsyncQuickInfoSource
     (
         statusBar: StatusBar,
-        //xmlMemberIndexService: IVsXMLMemberIndexService,
         checkerProvider:FSharpCheckerProvider,
         projectInfoManager:FSharpProjectOptionsManager,
         textBuffer:ITextBuffer,
@@ -233,7 +232,6 @@ type internal FSharpAsyncQuickInfoSource
 
                     | Some _sigQuickInfo, Some targetQuickInfo ->
                         let mainDescription, targetDocumentation, sigDocumentation, typeParameterMap, exceptions, usage = ResizeArray(), ResizeArray(), ResizeArray(), ResizeArray(), ResizeArray(), ResizeArray()
-                        //XmlDocumentation.BuildDataTipText(documentationBuilder, ignore, sigDocumentation.Add, ignore, ignore, ignore, sigQuickInfo.StructuredText)
                         XmlDocumentation.BuildDataTipText(documentationBuilder, mainDescription.Add, targetDocumentation.Add, typeParameterMap.Add, exceptions.Add, usage.Add, targetQuickInfo.StructuredText)
                         // get whitespace nomalized documentation text
                         let getText (tts: seq<Layout.TaggedText>) =
@@ -270,7 +268,6 @@ type internal FSharpAsyncQuickInfoSource
 type internal FSharpAsyncQuickInfoSourceProvider
     [<ImportingConstructor>]
     (
-        //[<Import(typeof<SVsServiceProvider>)>] serviceProvider: IServiceProvider,
         checkerProvider:FSharpCheckerProvider,
         projectInfoManager:FSharpProjectOptionsManager,
         settings: EditorOptions
@@ -280,6 +277,5 @@ type internal FSharpAsyncQuickInfoSourceProvider
         override __.TryCreateQuickInfoSource(textBuffer) =
             // GetService calls must be made on the UI thread
             // It is safe to do it here (see #4713)
-            let statusBar = StatusBar((*serviceProvider.GetService<SVsStatusbar,IVsStatusbar>()*))
-            //let xmlMemberIndexService = serviceProvider.XMLMemberIndexService
-            new FSharpAsyncQuickInfoSource(statusBar, (* xmlMemberIndexService,*) checkerProvider, projectInfoManager, textBuffer, settings) :> _
+            let statusBar = StatusBar()
+            new FSharpAsyncQuickInfoSource(statusBar, checkerProvider, projectInfoManager, textBuffer, settings) :> _

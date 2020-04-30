@@ -34,7 +34,6 @@ open FSharp.Editor
 open Gtk
 
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Editor
-open Microsoft.VisualStudio.Core.Imaging
 open Microsoft.VisualStudio.FSharp.Editor
 open Microsoft.VisualStudio.Text
 open Microsoft.VisualStudio.Text.Editor
@@ -250,7 +249,6 @@ type FSharpInteractivePad() as this =
             let docFileName = IdeApp.Workbench.ActiveDocument.FileName.ToString()
             if docFileName <> null then
                 let directoryName = Path.GetDirectoryName docFileName
-                //ctx.WorkingFolder <- Some directoryName
                 Some docFileName
             else None
         else None
@@ -258,35 +256,19 @@ type FSharpInteractivePad() as this =
     let input = new ResizeArray<_>()
 
     let setupSession() =
-        //try
-            let pathToExe =
-                Path.Combine(Reflection.Assembly.GetExecutingAssembly().Location |> Path.GetDirectoryName, "MonoDevelop.FSharpInteractive.Service.exe")
-                |> ProcessArgumentBuilder.Quote
-            let ses = InteractiveSession(pathToExe)
-            let controller = new InteractivePadController(ses)
-            this.Controller <- Some controller
-            this.Host <- new GtkNSViewHost(controller.View)
-            this.Host.ShowAll()
-            input.Clear()
-            let textReceived = ses.TextReceived.Subscribe(fun t -> 
-                Runtime.RunInMainThread(fun () -> controller.FsiOutput t) |> ignore)
-            //let imageReceived = ses.ImageReceived.Subscribe(fun image -> Runtime.RunInMainThread(fun () -> renderImage image) |> Async.AwaitTask |> Async.RunSynchronously)
-            let promptReady = ses.PromptReady.Subscribe(fun () -> Runtime.RunInMainThread(fun () -> controller.SetPrompt() ) |> ignore)
-
-            //ses.Exited.Add(fun _ ->
-            //    if killIntent = NoIntent then
-            //        Runtime.RunInMainThread(fun () ->
-            //            LoggingService.LogDebug ("Interactive: process stopped")
-            //            (*this.FsiOutput "\nSession termination detected. Press Enter to restart." *))|> ignore
-            //    elif killIntent = Restart then
-            //        Runtime.RunInMainThread (fun () -> controller.Clear()) |> ignore
-            //    killIntent <- NoIntent)
-
-            //Some(ses)
-            ses
-        //with 
-        //| e ->
-        //    None
+        let pathToExe =
+            Path.Combine(Reflection.Assembly.GetExecutingAssembly().Location |> Path.GetDirectoryName, "MonoDevelop.FSharpInteractive.Service.exe")
+            |> ProcessArgumentBuilder.Quote
+        let ses = InteractiveSession(pathToExe)
+        let controller = new InteractivePadController(ses)
+        this.Controller <- Some controller
+        this.Host <- new GtkNSViewHost(controller.View)
+        this.Host.ShowAll()
+        input.Clear()
+        ses.TextReceived.Add(fun t -> 
+            Runtime.RunInMainThread(fun () -> controller.FsiOutput t) |> ignore)
+        ses.PromptReady.Add(fun () -> Runtime.RunInMainThread(fun () -> controller.SetPrompt() ) |> ignore)
+        ses
 
     let mutable session = None
 
@@ -374,7 +356,7 @@ type FSharpInteractivePad() as this =
         LoggingService.LogDebug ("FSI:  #LoadReferences")
         async {
             let! orderedReferences = project.GetOrderedReferences (CompilerArguments.getConfig())
-            orderedReferences |> List.iter (fun a -> (*x.SendCommand (sprintf  @"#r ""%s""" a.Path)) *) ())
+            orderedReferences |> List.iter (fun a -> x.SendCommand (sprintf  @"#r ""%s""" a.Path))
         } |> Async.StartImmediate
 
     member val Host:GtkNSViewHost = null with get, set
@@ -398,7 +380,6 @@ type FSharpInteractivePad() as this =
         let ses = setupSession()
         session <- ses |> Some
 
-        //container.PadShown.Add(fun _args -> session <- setupSession())
         container.PadContentShown.Add(fun _args -> if not ses.HasStarted then ses.StartReceiving() |> ignore)
 
     member x.RestartFsi() = resetFsi Restart

@@ -12,5 +12,4 @@ open Mono.Addins
 
 [<AddinDependency ("MonoDevelop.Core", MonoDevelop.BuildInfo.Version)>]
 [<AddinDependency ("MonoDevelop.Ide", MonoDevelop.BuildInfo.Version)>]
-//[<AddinDependency ("MonoDevelop.FSharpBinding", MonoDevelop.BuildInfo.Version)>]
 ()

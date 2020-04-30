@@ -7,18 +7,12 @@ open System.IO
 open System.Composition
 open System.Collections.Generic
 open System.Collections.Immutable
-open System.Threading
 open System.Threading.Tasks
-open System.Runtime.CompilerServices
 open System.Runtime.Caching
 open System.Globalization
 
 open Microsoft.CodeAnalysis
-open Microsoft.CodeAnalysis.Host.Mef
 open Microsoft.CodeAnalysis.Text
-open Microsoft.CodeAnalysis.NavigateTo
-open Microsoft.CodeAnalysis.Navigation
-open Microsoft.CodeAnalysis.PatternMatching
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Navigation
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp.NavigateTo
 
