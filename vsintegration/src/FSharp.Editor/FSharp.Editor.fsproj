@@ -192,7 +192,7 @@
     <Compile Include="VSMac\FSharpOutlineDocumentExtension.fs" />
     <Compile Include="VSMac\FSharpOutlineDocumentExtensionProvider.fs" />
     <ProjectReference Include="..\..\..\..\fsharpbinding\FSharp\Microsoft.CodeAnalysis.ExternalAccess.FSharp.csproj">
-      <Project>{BAF30090-4E79-4D11-9E8D-30104E933B04}</Project>
+      <Project>{4EDEC7A0-782C-41F5-9640-AF4DCD487016}</Project>
       <Name>Microsoft.CodeAnalysis.ExternalAccess.FSharp</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\..\..\..\src\addins\MonoDevelop.DesignerSupport\MonoDevelop.DesignerSupport.csproj">
