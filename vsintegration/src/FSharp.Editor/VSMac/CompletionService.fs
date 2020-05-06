@@ -3,30 +3,24 @@
 namespace Microsoft.VisualStudio.FSharp.Editor
 
 open System
-open System.ComponentModel.Composition
+open System.Collections.Generic;
 open System.Collections.Immutable
-
-open Microsoft.CodeAnalysis
-open Microsoft.CodeAnalysis.Completion
-open Microsoft.CodeAnalysis.Host.Mef
-open Microsoft.CodeAnalysis.ExternalAccess.FSharp
-open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Editor
-open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Completion
-open Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion
-open Microsoft.VisualStudio.Text.Editor
+open System.ComponentModel.Composition
 open System.Threading.Tasks
 
-open System.Collections.Generic;
+open FSharp.Editor
+
+open Microsoft.CodeAnalysis
 open Microsoft.CodeAnalysis.Classification
+open Microsoft.CodeAnalysis.Completion
+open Microsoft.CodeAnalysis.ExternalAccess.FSharp
+open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Completion
+open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Editor
 open Microsoft.CodeAnalysis.Text;
-open Microsoft.VisualStudio.Text;
+open Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion
 open Microsoft.VisualStudio.Text.Adornments;
-open MonoDevelop.FSharp
-open FSharp.Compiler.SourceCodeServices
-open System
-open Microsoft.VisualStudio.Core.Imaging
-open Microsoft.VisualStudio.Imaging
-open FSharp.Compiler.Range
+open Microsoft.VisualStudio.Text.Editor
+open Microsoft.VisualStudio.Text;
 
 type internal FSharpInteractiveCompletionService
     (

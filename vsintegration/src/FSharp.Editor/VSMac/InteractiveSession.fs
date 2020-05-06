@@ -1,10 +1,11 @@
-﻿namespace MonoDevelop.FSharp
+﻿namespace FSharp.Editor
 
 open System
 open System.IO
 open System.Diagnostics
 open System.Runtime.Serialization.Formatters.Binary
 open MonoDevelop.Core
+open MonoDevelop.FSharp
 open Newtonsoft.Json
 open Microsoft.VisualStudio.FSharp.Editor.Extensions
 open Newtonsoft.Json.Converters
@@ -160,7 +161,7 @@ type InteractiveSession(pathToExe) =
 
     member x.HasStarted = hasStarted
     member x.HasExited() = fsiProcess.HasExited
-
+    member x.Kill() = fsiProcess.Kill()
     member x.Restart() =
         fsiProcess.Kill()
         fsiProcess <- startProcess()
