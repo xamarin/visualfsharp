@@ -140,4 +140,8 @@
     </ComplexCondition>
     -->
     </Extension>
+    <Extension path = "/MonoDevelop/Ide/Pads/ProjectPad">
+        <NodeBuilder class = "MonoDevelop.FSharp.FSharpProjectFileNodeExtension"/>
+        <!-- <NodeBuilder class = "MonoDevelop.FSharp.DebugScriptBuilder"/> -->
+    </Extension>
 </ExtensionModel>

@@ -259,6 +259,9 @@
     <Compile Include="VSMac\SignatureHelp.fs" />
     <Compile Include="VSMac\InteractivePadKeyHandlers.fs" />
     <Compile Include="VSMac\PortableFSharpProjectFlavor.fs" />
+    <Compile Include="VSMac\FSharpProjectFileNodeExtension.fs" />
+    <Compile Include="VSMac\FSharpSymbolHelper.fs" />
+    <Compile Include="VSMac\GlobalSearch.fs" />
   </ItemGroup>
   <ProjectExtensions>
     <MonoDevelop>

@@ -104,6 +104,7 @@ type InteractiveSession(pathToExe) =
             |> Event.filter (fun de -> de.Data <> null)
             |> Event.add (fun de ->
                 LoggingService.logDebug "Interactive: received %s" de.Data
+                Console.WriteLine de.Data
                 match de.Data with
                 | Image image -> imageReceivedEvent.Trigger image
                 | ServerPrompt -> promptReady.Trigger()
@@ -167,6 +168,7 @@ type InteractiveSession(pathToExe) =
         fsiProcess <- startProcess()
 
     member x.SendInput input documentName =
+        printfn "%s" input
         documentName
         |> Option.iter(fun fileName ->
             sendCommand (sprintf "input # 0 @\"%s\"" fileName))
