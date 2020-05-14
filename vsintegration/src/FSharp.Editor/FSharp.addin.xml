@@ -144,4 +144,7 @@
         <NodeBuilder class = "MonoDevelop.FSharp.FSharpProjectFileNodeExtension"/>
         <!-- <NodeBuilder class = "MonoDevelop.FSharp.DebugScriptBuilder"/> -->
     </Extension>
+    <Extension path="/MonoDevelop/Ide/SearchCategories">
+        <Class class="MonoDevelop.FSharp.ProjectSearchCategory" />
+    </Extension>
 </ExtensionModel>
