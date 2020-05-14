@@ -2,6 +2,7 @@
   <Import Project="..\..\..\..\..\MonoDevelop.props" />
   <Import Project="$(ReferencesVSEditor)" />
   <Import Project="$(ReferencesGtk)" />
+  <Import Project="VSMac\templates\templates.targets" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
@@ -24,7 +25,7 @@
     <WarningLevel>3</WarningLevel>
     <DocumentationFile>..\..\..\..\..\build\AddIns\FSharp.Editor\FSharp.Editor.XML</DocumentationFile>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-    <OtherFlags> --warnon:11111182 --subsystemversion:6.00 --simpleresolution --nocopyfsharpcore</OtherFlags>
+    <OtherFlags> --warnon:11111182 --subsystemversion:6.00 --simpleresolution</OtherFlags> 
     <SignAssembly>true</SignAssembly>
     <OtherFlags>--publicsign</OtherFlags>
     <AssemblyOriginatorKeyFile>..\..\..\src\buildtools\keys\MSFT.snk</AssemblyOriginatorKeyFile>
@@ -208,7 +209,7 @@
       <Private>False</Private>
     </ProjectReference>
     <PackageReference Include="Microsoft.CodeAnalysis" Version="$(NuGetVersionRoslyn)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
-    <PackageReference Include="FSharp.Core" Version="4.7.0" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
+    <PackageReference Include="FSharp.Core" Version="4.7.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.Features" Version="$(NuGetVersionRoslyn)" />
     <ProjectReference Include="..\..\..\..\..\src\core\MonoDevelop.Ide\MonoDevelop.Ide.csproj">
       <Project>{27096E7F-C91C-4AC6-B289-6897A701DF21}</Project>
