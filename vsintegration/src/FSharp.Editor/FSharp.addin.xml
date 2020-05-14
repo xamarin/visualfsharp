@@ -147,4 +147,34 @@
     <Extension path="/MonoDevelop/Ide/SearchCategories">
         <Class class="MonoDevelop.FSharp.ProjectSearchCategory" />
     </Extension>
+    <Extension path = "/MonoDevelop/SourceEditor2/ContextMenu/Editor">
+        <CommandItem id = "MonoDevelop.FSharp.CurrentRefactoringOperations" insertafter="MonoDevelop.SourceEditor.SourceEditorCommands.MarkerOperations" insertbefore="MonoDevelop.Debugger.DebugCommands.ExpressionEvaluator"/>
+        <Condition id="FileType" fileExtensions=".fs,.fsi,.fsx,.fsscript">
+            <ItemSet id = "MonoDevelop.FSharp.QuickFixMenu" _label = "Quick Fix" autohide = "true" insertafter="MonoDevelop.SourceEditor.SourceEditorCommands.MarkerOperations" insertbefore="MonoDevelop.Debugger.DebugCommands.ExpressionEvaluator">
+                <CommandItem id = "MonoDevelop.FSharp.QuickFixMenu" />
+            </ItemSet>
+            <SeparatorItem id = "FSharpScriptDebug" />
+            <CommandItem id = "MonoDevelop.FSharp.Editor.DebugScriptInternal" />
+            <CommandItem id = "MonoDevelop.FSharp.Editor.DebugScriptExternal" />
+            <SeparatorItem id = "FSharpInteractiveStart" />
+            <CommandItem id = "MonoDevelop.FSharp.FSharpCommands.SendSelection" />
+            <CommandItem id = "MonoDevelop.FSharp.FSharpCommands.SendLine" />
+            <CommandItem id = "MonoDevelop.FSharp.FSharpCommands.SendFile" />
+            <CommandItem id = "MonoDevelop.FSharp.FSharpCommands.SendReferences" />
+        </Condition>
+    </Extension>
+
+    <ExtensionPoint path = "/MonoDevelop/SourceEditor2/ContextMenu/Fsi" name = "Editor context menu for fsi">
+        <Description>Context menu for fsi</Description>
+        <ExtensionNodeSet id="MonoDevelop.Components.Commands.ItemSet" />
+    </ExtensionPoint>
+
+    <Extension path = "/MonoDevelop/SourceEditor2/ContextMenu/Fsi">
+        <CommandItem id = "MonoDevelop.FSharp.FSharpCommands.ClearFsi" />
+        <CommandItem id = "MonoDevelop.FSharp.FSharpCommands.RestartFsi" />
+        <SeparatorItem id = "Separator1" />
+        <CommandItem id = "MonoDevelop.Ide.Commands.EditCommands.Cut" />
+        <CommandItem id = "MonoDevelop.Ide.Commands.EditCommands.Copy" />
+        <CommandItem id = "MonoDevelop.Ide.Commands.EditCommands.Paste" />
+    </Extension>
 </ExtensionModel>
