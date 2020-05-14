@@ -213,56 +213,10 @@ module GlobalSearch =
                         for span in spans do
                             let sr = SymbolSearchResult(pattern.Pattern, symbol.Symbol.DisplayName, rank, symbol, span)
                             callback.ReportResult sr
-                    //let distinctUses = uses |> Array.distinctBy (fun symbolUse -> symbolUse.RangeAlternate)
-                    //return distinctUses
-                | None -> ()//return [||]
+                | None -> ()
             })
         |> Async.Parallel
         |> Async.Ignore
-        // FCS may return several `FSharpSymbolUse`s for same range, which have different `ItemOccurrence`s (Use, UseInAttribute, UseInType, etc.)
-        // We don't care about the occurrence type here, so we distinct by range.
-        //|> Async.map (Array.distinctBy (fun x -> x.RangeAlternate))
-
-    //let getAllProjectSymbols (project: Project) =
-    //    asyncMaybe {
-    //        try
-    //            let filename = "test.fsx"
-    //            let optionsManager = CompositionManager.Instance.GetExportedValue<FSharpProjectOptionsManager>()
-    //            let checker = optionsManager.Checker
-    //            let! projectId = IdeApp.TypeSystemService.GetCodeAnalysisProjectAsync(project) |> liftTaskAsync
-    //            let! parseResults , projOptions = optionsManager.TryGetOptionsByProject(projectId, Async.DefaultCancellationToken)
-    //            //let sourceText = SourceText.ofString source
-    //            //let! projOptions, _errors = checker.GetProjectOptions
-    //            let! checkResults = checker.ParseAndCheckProject(projOptions) |> liftAsync// ParseAndCheckFileInProject(filename, 0, sourceText , projOptions)
-
-    //            if checkResults.Errors.Length > 0 then
-    //                printfn "%A" checkResults.Errors
-
-    //            // Construct new typed parse result if the task succeeded
-    //            match checkResults with
-    //            | FSharpCheckProAnswer.Succeeded(checkResults) ->
-    //                return! checkResults.GetAllUsesOfAllSymbolsInFile()
-    //            | FSharpCheckFileAnswer.Aborted ->
-    //                return Array.empty
-
-    //            let checkResult = languageService.GetCachedProjectCheckResult project
-    //            match checkResult with
-    //            | Some v -> let! allSymbols =  v.GetAllUsesOfAllSymbols()
-    //                        return allSymbols |> Array.toSeq
-    //            | None -> return Seq.empty
-    //        with ex ->
-    //            LoggingService.LogError("Global Search (F#) error", ex)
-
-    //            return Seq.empty }
-
-
-    //let getAllSymbolsInAllProjects() =
-    //    asyncSeq {
-    //        for projectFile in getAllFSharpProjects() do
-    //            let! symbols = getAllProjectSymbols(projectFile)
-    //            for symbol in symbols do
-    //                yield symbol
-    //    }
 
     /// constructors have a display name of ( .ctor ) use the enclosing entities display name
 type ProjectSearchCategory() =
@@ -284,14 +238,4 @@ type ProjectSearchCategory() =
         let optionsManager = CompositionManager.Instance.GetExportedValue<FSharpProjectOptionsManager>()
         GlobalSearch.getSymbolUsesInWorkspace optionsManager pattern callback token
         |> RoslynHelpers.StartAsyncUnitAsTask token
-        
-        
-        //Task.Run(
-        //    (fun () -> async {
-        //        try
-        //            //LoggingService.LogInfo(sprintf "F# Global Search: Getting all project symbols for %s" shortName )
-        //            do! GlobalSearch.getSymbolUsesInWorkspace optionsManager pattern callback token
 
-
-        //        with ex ->
-        //            LoggingService.LogError("F# Global Search error", ex) } |> Async.StartImmediate) , token ) |> startAs
