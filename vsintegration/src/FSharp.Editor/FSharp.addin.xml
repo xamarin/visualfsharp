@@ -71,49 +71,52 @@
         <Condition id="MSBuildTargetIsAvailable" target="$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.1\Framework\v4.0\Microsoft.FSharp.Targets" />
         <Condition id="MSBuildTargetIsAvailable" target="$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\4.0\Framework\v4.0\Microsoft.FSharp.Targets" />
       </Or>
+      -->
       <Category _name = "F# Integration" id="F# Integration">
-        <Command id="MonoDevelop.FSharp.FSharpCommands.ShowFSharpInteractive"
+<!--        <Command id="MonoDevelop.FSharp.FSharpCommands.ShowFSharpInteractive"
                  _label = "F# Interactive"
                  type="check"
                  _description="Show F# Interactive pad."
                  macShortcut="Control|Alt|F"
                  defaultHandler="MonoDevelop.FSharp.ShowFSharpInteractive" />
 
-        <Command id="MonoDevelop.FSharp.FSharpCommands.SendFile"
+-->
+        <Command id="Microsoft.VisualStudio.FSharp.Editor.FSharpCommands.SendFile"
                  _label = "Send current file to F# Interactive"
                  _description="Send the current file to F# Interactive"
                  macShortcut=""
-                 defaultHandler="MonoDevelop.FSharp.SendFile" />
+                 defaultHandler="Microsoft.VisualStudio.FSharp.Editor.SendFile" />
 
-        <Command id="MonoDevelop.FSharp.FSharpCommands.SendSelection"
+        <Command id="Microsoft.VisualStudio.FSharp.Editor.FSharpCommands.SendSelection"
                  _label = "Send selection to F# Interactive"
                  _description="Send the selected text to F# Interactive"
                  macShortcut="Ctrl|Return"
-                 defaultHandler="MonoDevelop.FSharp.SendSelection" />
+                 defaultHandler="Microsoft.VisualStudio.FSharp.Editor.SendSelection" />
 
-        <Command id="MonoDevelop.FSharp.FSharpCommands.SendLine"
+        <Command id="Microsoft.VisualStudio.FSharp.Editor.FSharpCommands.SendLine"
                  _label = "Send line to F# Interactive"
                  _description="Send the current line to F# Interactive"
                  macShortcut="Ctrl|Alt|L"
-                 defaultHandler="MonoDevelop.FSharp.SendLine" />
+                 defaultHandler="Microsoft.VisualStudio.FSharp.Editor.SendLine" />
 
         <Command _description="Send the current project references to F# Interactive"
                  _label="Send references to F# Interactive"
-                 defaultHandler="MonoDevelop.FSharp.SendReferences"
-                 id="MonoDevelop.FSharp.FSharpCommands.SendReferences"
+                 defaultHandler="Microsoft.VisualStudio.FSharp.Editor.SendReferences"
+                 id="Microsoft.VisualStudio.FSharp.Editor.FSharpCommands.SendReferences"
                  macShortcut="Ctrl|Alt|P" />
 
         <Command _description="Restart F# Interactive"
                  _label="Restart F# Interactive"
-                 defaultHandler="MonoDevelop.FSharp.RestartFsi"
-                 id="MonoDevelop.FSharp.FSharpCommands.RestartFsi"
+                 defaultHandler="Microsoft.VisualStudio.FSharp.Editor.RestartFsi"
+                 id="Microsoft.VisualStudio.FSharp.Editor.FSharpCommands.RestartFsi"
                  macShortcut="Ctrl|Alt|R" />
 
         <Command _description="Clear F# Interactive"
                  _label="Clear F# Interactive"
-                 defaultHandler="MonoDevelop.FSharp.ClearFsi"
-                 id="MonoDevelop.FSharp.FSharpCommands.ClearFsi"
+                 defaultHandler="Microsoft.VisualStudio.FSharp.Editor.ClearFsi"
+                 id="Microsoft.VisualStudio.FSharp.Editor.FSharpCommands.ClearFsi"
                  macShortcut="Ctrl|Alt|C" />
+                 <!--
         <Command _description="Start debugging an .fsx script"
                  _label="Start Debugging"
                  id="MonoDevelop.FSharp.SolutionPad.DebugScriptInternal" />
@@ -139,6 +142,7 @@
       </Category>
     </ComplexCondition>
     -->
+      </Category>
     </Extension>
     <Extension path = "/MonoDevelop/Ide/Pads/ProjectPad">
         <NodeBuilder class = "MonoDevelop.FSharp.FSharpProjectFileNodeExtension"/>
@@ -147,29 +151,28 @@
     <Extension path="/MonoDevelop/Ide/SearchCategories">
         <Class class="MonoDevelop.FSharp.ProjectSearchCategory" />
     </Extension>
-    <Extension path = "/MonoDevelop/SourceEditor2/ContextMenu/Editor">
-        <CommandItem id = "MonoDevelop.FSharp.CurrentRefactoringOperations" insertafter="MonoDevelop.SourceEditor.SourceEditorCommands.MarkerOperations" insertbefore="MonoDevelop.Debugger.DebugCommands.ExpressionEvaluator"/>
-        <Condition id="FileType" fileExtensions=".fs,.fsi,.fsx,.fsscript">
-            <ItemSet id = "MonoDevelop.FSharp.QuickFixMenu" _label = "Quick Fix" autohide = "true" insertafter="MonoDevelop.SourceEditor.SourceEditorCommands.MarkerOperations" insertbefore="MonoDevelop.Debugger.DebugCommands.ExpressionEvaluator">
+    <Extension path = "/MonoDevelop/TextEditor/ContextMenu/Editor">
+        <Condition id="FileType" fileExtensions=".fs,.fsi,.fsx">
+<!--            <ItemSet id = "MonoDevelop.FSharp.QuickFixMenu" _label = "Quick Fix" autohide = "true" insertafter="MonoDevelop.SourceEditor.SourceEditorCommands.MarkerOperations" insertbefore="MonoDevelop.Debugger.DebugCommands.ExpressionEvaluator">
                 <CommandItem id = "MonoDevelop.FSharp.QuickFixMenu" />
             </ItemSet>
             <SeparatorItem id = "FSharpScriptDebug" />
             <CommandItem id = "MonoDevelop.FSharp.Editor.DebugScriptInternal" />
             <CommandItem id = "MonoDevelop.FSharp.Editor.DebugScriptExternal" />
-            <SeparatorItem id = "FSharpInteractiveStart" />
-            <CommandItem id = "MonoDevelop.FSharp.FSharpCommands.SendSelection" />
-            <CommandItem id = "MonoDevelop.FSharp.FSharpCommands.SendLine" />
-            <CommandItem id = "MonoDevelop.FSharp.FSharpCommands.SendFile" />
-            <CommandItem id = "MonoDevelop.FSharp.FSharpCommands.SendReferences" />
+            <SeparatorItem id = "FSharpInteractiveStart" />-->
+            <CommandItem id = "Microsoft.VisualStudio.FSharp.Editor.FSharpCommands.SendSelection" />
+            <CommandItem id = "Microsoft.VisualStudio.FSharp.Editor.FSharpCommands.SendLine" />
+            <CommandItem id = "Microsoft.VisualStudio.FSharp.Editor.FSharpCommands.SendFile" />
+            <CommandItem id = "Microsoft.VisualStudio.FSharp.Editor.FSharpCommands.SendReferences" />
         </Condition>
     </Extension>
 
-    <ExtensionPoint path = "/MonoDevelop/SourceEditor2/ContextMenu/Fsi" name = "Editor context menu for fsi">
+    <ExtensionPoint path = "/MonoDevelop/TextEditor/ContextMenu/Fsi" name = "Editor context menu for fsi">
         <Description>Context menu for fsi</Description>
         <ExtensionNodeSet id="MonoDevelop.Components.Commands.ItemSet" />
     </ExtensionPoint>
 
-    <Extension path = "/MonoDevelop/SourceEditor2/ContextMenu/Fsi">
+    <Extension path = "/MonoDevelop/TextEditor/ContextMenu/Fsi">
         <CommandItem id = "MonoDevelop.FSharp.FSharpCommands.ClearFsi" />
         <CommandItem id = "MonoDevelop.FSharp.FSharpCommands.RestartFsi" />
         <SeparatorItem id = "Separator1" />
