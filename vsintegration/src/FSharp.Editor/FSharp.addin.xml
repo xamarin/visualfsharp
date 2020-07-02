@@ -3,6 +3,8 @@
     <Runtime>
         <Import assembly="FSharp.Editor.dll" />
         <Import assembly="FSharpBinding.Gui.dll" />
+        <Import assembly="ExtCore.dll" />
+
         <Import file = "VSMac/templates/EmptyFSharpSource.xft.xml" />
         <Import file = "VSMac/templates/EmptyFSharpScript.xft.xml" />
         <Import file = "VSMac/templates/EmptyFSharpSignature.xft.xml" />
