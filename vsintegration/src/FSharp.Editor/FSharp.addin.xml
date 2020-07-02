@@ -2,6 +2,7 @@
 <ExtensionModel>
     <Runtime>
         <Import assembly="FSharp.Editor.dll" />
+        <Import assembly="FSharpBinding.Gui.dll" />
         <Import file = "VSMac/templates/EmptyFSharpSource.xft.xml" />
         <Import file = "VSMac/templates/EmptyFSharpScript.xft.xml" />
         <Import file = "VSMac/templates/EmptyFSharpSignature.xft.xml" />
@@ -28,6 +29,10 @@
     <Extension path="/MonoDevelop/Ide/Composition">
         <Assembly file="FSharp.Editor.dll"/>
         <Assembly file="Microsoft.CodeAnalysis.ExternalAccess.FSharp.dll"/>
+    </Extension>
+
+    <Extension path="/MonoDevelop/Ide/GlobalOptionsDialog/Other">
+        <Section id="FSharpSettings" _label="F# Settings" class = "MonoDevelop.FSharp.FSharpSettingsPanel" icon="md-prefs-source" />
     </Extension>
 
     <Extension path = "/MonoDevelop/Ide/ProjectTemplatePackageRepositories">

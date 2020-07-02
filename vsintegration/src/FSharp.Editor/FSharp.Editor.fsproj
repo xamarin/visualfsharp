@@ -181,6 +181,7 @@
     <IncludeCopyLocal Include="Microsoft.CodeAnalysis.ExternalAccess.FSharp.dll" />
     <IncludeCopyLocal Include="FSharp.Compiler.Service.dll" />
     <IncludeCopyLocal Include="FSharp.Core.dll" />
+    <IncludeCopyLocal Include="FSharpBinding.Gui.dll" />
     <EmbeddedResource Include="FSharp.Editor.resx">
       <GenerateSource>true</GenerateSource>
       <GeneratedModuleName>Microsoft.VisualStudio.FSharp.Editor.SR</GeneratedModuleName>
@@ -255,6 +256,7 @@
       <Project>{AF5FEAD5-B50E-4F07-A274-32F23D5C504D}</Project>
       <Name>MonoDevelop.FSharp.Shared</Name>
     </ProjectReference>
+    <ProjectReference Include="..\..\..\..\fsharpbinding\MonoDevelop.FSharp.Gui\MonoDevelop.FSharp.Gui.csproj" />
     <Compile Include="VSMac\CompletionService.fs" />
     <Compile Include="VSMac\InteractiveClassificationService.fs" />
     <Compile Include="VSMac\SignatureHelp.fs" />
