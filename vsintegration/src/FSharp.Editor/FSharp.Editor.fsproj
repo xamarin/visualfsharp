@@ -161,6 +161,8 @@
     <Compile Include="QuickInfo\Views.fs" />
     <Compile Include="QuickInfo\QuickInfoProvider.fs" />
     <Compile Include="Structure\BlockStructureService.fs" />
+    <Compile Include="Common\FSharpOptionsPanels.fs" />
+    <Compile Include="Common\FSharpProjectCompilerOptions.fs" />
     <None Include="Commands\XmlDocCommandService.fs" />
     <None Include="Commands\HelpContextService.fs" />
     <None Include="Build\SetGlobalPropertiesForSdkProjects.fs" />
