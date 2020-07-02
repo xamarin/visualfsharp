@@ -69,9 +69,12 @@ type internal FSharpPathedDocumentExtension(projectInfoManager: FSharpProjectOpt
         |> Seq.filter (isNull >> not)
 
     let getActiveDocument() =
-        let workspace = IdeApp.TypeSystemService.Workspace
-        let id = workspace.GetDocumentIdInCurrentContext(textContainer)
-        workspace.CurrentSolution.GetDocument(id) |> Option.ofObj
+        let workspace = registration.Workspace
+        if workspace = null then
+            Option.None
+        else
+            let id = workspace.GetDocumentIdInCurrentContext(textContainer)
+            workspace.CurrentSolution.GetDocument(id) |> Option.ofObj
 
     let workspaceChanged(_) =
         ownerProjects.Clear()
