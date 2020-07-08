@@ -32,6 +32,8 @@ open System.Collections.Generic
 open System.Diagnostics
 open System.Threading
 
+open FSharp.Compiler.SourceCodeServices
+
 open Microsoft.CodeAnalysis
 open Microsoft.CodeAnalysis.Classification
 open Microsoft.CodeAnalysis.Editor
@@ -49,8 +51,84 @@ open MonoDevelop.Core
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Editor
 
 // https://github.com/xamarin/vsmac/blob/dev/kirillo/fsharp/main/external/fsharpbinding/MonoDevelop.FSharpBinding/FSharpUnitTestTextEditorExtension.fs
+type UnitTestLocation(offset: int) =
+    member val UnitTestIdentifier = "" with get, set
+    member val IsIgnored = false with get, set
+    member val IsFixture  = false with get, set
 
-type FSharpUnitTestTagger(textView, checkerProvider, projectInfoManager) =
+module Logic =
+    let hasAttributeNamed (att:FSharpAttribute) (unitTestMarkers: IUnitTestMarkers[]) (filter:  string -> IUnitTestMarkers -> bool) =
+        let attributeName = att.AttributeType.TryFullName
+        match attributeName with
+        | Some name ->
+            unitTestMarkers
+            |> Seq.exists (filter name)
+        | None -> false
+
+    let gatherUnitTests (unitTestMarkers: IUnitTestMarkers[], allSymbols:FSharpSymbolUse [] option) =
+        let hasAttribute a = hasAttributeNamed a unitTestMarkers
+        let tests = ResizeArray<UnitTestLocation>()
+        
+        let testSymbols = 
+            match allSymbols with
+            | None -> None
+            | Some symbols ->
+                symbols 
+                |> Array.filter
+                    (fun s -> match s.Symbol with
+                              | :? FSharpMemberOrFunctionOrValue as fom -> 
+                                  fom.Attributes
+                                  |> Seq.exists (fun a -> hasAttribute a (fun attributeName m -> m.TestMethodAttributeMarker = attributeName || m.TestCaseMethodAttributeMarker = attributeName) )
+                              | :? FSharpEntity as fse -> 
+                                      fse.MembersFunctionsAndValues
+                                      |> Seq.exists (fun fom -> fom.Attributes
+                                                                |> Seq.exists (fun a -> hasAttribute a (fun attributeName m -> m.TestMethodAttributeMarker = attributeName || m.TestCaseMethodAttributeMarker = attributeName) ))
+                              | _ -> false )
+                |> Seq.distinctBy (fun su -> su.RangeAlternate)
+                |> Seq.choose
+                    (fun symbolUse -> 
+                        let range = symbolUse.RangeAlternate
+                        let startOffset = editor.LocationToOffset(range.StartLine, range.StartColumn+1)
+                        let test = UnitTestLocation(startOffset)
+                        match symbolUse.Symbol with
+                        | :? FSharpMemberOrFunctionOrValue as func -> 
+                            let typeName =
+                                match func.DeclaringEntity with
+                                | Some ent -> ent.QualifiedName
+                                | None _ ->
+                                    MonoDevelop.Core.LoggingService.LogWarning(sprintf "F# GatherUnitTests: found a unit test method with no qualified name: %s" func.FullName)
+                                    func.CompiledName
+                            let methName = func.CompiledName
+                            let isIgnored =
+                                func.Attributes
+                                |> Seq.exists (fun a -> hasAttribute a (fun attributeName m -> m.IgnoreTestMethodAttributeMarker = attributeName))
+                            //add test cases
+                            let testCases =
+                                func.Attributes
+                                |> Seq.filter (fun a -> hasAttribute a (fun attributeName m -> m.TestCaseMethodAttributeMarker = attributeName))
+                            testCases
+                            |> Seq.map createTestCase
+                            |> test.TestCases.AddRange
+                            test.UnitTestIdentifier <- typeName + "." + methName
+                            test.IsIgnored <- isIgnored
+                            Some test
+                        | :? FSharpEntity as entity ->
+                            let typeName = entity.QualifiedName
+                            let isIgnored =
+                                entity.Attributes
+                                |> Seq.exists (fun a -> hasAttribute a (fun attributeName m -> m.IgnoreTestMethodAttributeMarker = attributeName))
+                            test.UnitTestIdentifier <- typeName
+                            test.IsIgnored <- isIgnored
+                            test.IsFixture <- true
+                            Some test
+                        | _ -> None)
+                |> Some
+        testSymbols
+        |> Option.iter tests.AddRange 
+        tests
+
+
+type FSharpUnitTestTagger(textView, checkerProvider: FSharpCheckerProvider, projectInfoManager: FSharpProjectOptionsManager) =
     let tagsChanged = Event<_,_>()
 
     interface ITagger<IUnitTestTag> with
@@ -58,15 +136,22 @@ type FSharpUnitTestTagger(textView, checkerProvider, projectInfoManager) =
         member this.TagsChanged = tagsChanged.Publish
 
         member __.GetTags(collection: NormalizedSnapshotSpanCollection) =
-            seq
-            {
-                for span in collection do
-                    let snapshot = span.Snapshot
+            let temp =
+                asyncMaybe {
+                    let snapshot = collection.[0].Snapshot
                     let document = snapshot.GetOpenDocumentInCurrentContextWithChanges()
                     let sourceText = document.GetTextAsync(CancellationToken.None)
-                    let _, _, projectOptions = projectInfoManager.TryGetOptionsForDocumentOrProject(document, CancellationToken.None)
+                    let! _, _, projectOptions = projectInfoManager.TryGetOptionsForDocumentOrProject(document, CancellationToken.None)
+
                     let! _, _, checkResults = checkerProvider.Checker.ParseAndCheckDocument(document, projectOptions, sourceText = sourceText, allowStaleResults = false, userOpName=userOpName)
-            }
+                    let! symbols = checkResults.GetAllUsesOfAllSymbolsInFile() |> liftAsync
+
+                    
+
+                    return 1
+                }
+            temp |> ignore
+            Seq.empty<_>
 
         
 
