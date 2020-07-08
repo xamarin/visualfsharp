@@ -5,11 +5,12 @@ namespace FSharp.Compiler.Scripting.UnitTests
 open System
 open System.Threading.Tasks
 open FSharp.Compiler.Scripting
-open Xunit
+open NUnit.Framework
 
+[<TestFixture>]
 type CompletionTests() =
 
-    [<Fact>]
+    [<Test>]
     member _.``Instance completions in the same submission``() =
         async {
             use script = new FSharpScript()
@@ -17,20 +18,20 @@ type CompletionTests() =
                           "x." ]
             let! completions = script.GetCompletionItems(String.Join("\n", lines), 2, 2)
             let matchingCompletions = completions |> Array.filter (fun d -> d.Name = "CompareTo")
-            Assert.Equal(1, matchingCompletions.Length)
+            Assert.AreEqual(1, matchingCompletions.Length)
         } |> Async.StartAsTask :> Task
 
-    [<Fact>]
+    [<Test>]
     member _.``Instance completions from a previous submission``() =
         async {
             use script = new FSharpScript()
             script.Eval("let x = 1") |> ignoreValue
             let! completions = script.GetCompletionItems("x.", 1, 2)
             let matchingCompletions = completions |> Array.filter (fun d -> d.Name = "CompareTo")
-            Assert.Equal(1, matchingCompletions.Length)
+            Assert.AreEqual(1, matchingCompletions.Length)
         } |> Async.StartAsTask :> Task
 
-    [<Fact>]
+    [<Test>]
     member _.``Completions from types that try to pull in Windows runtime extensions``() =
         async {
             use script = new FSharpScript()
@@ -38,37 +39,37 @@ type CompletionTests() =
             script.Eval("let t = TimeSpan.FromHours(1.0)") |> ignoreValue
             let! completions = script.GetCompletionItems("t.", 1, 2)
             let matchingCompletions = completions |> Array.filter (fun d -> d.Name = "TotalHours")
-            Assert.Equal(1, matchingCompletions.Length)
+            Assert.AreEqual(1, matchingCompletions.Length)
         } |> Async.StartAsTask :> Task
 
-    [<Fact>]
+    [<Test>]
     member _.``Static member completions``() =
         async {
             use script = new FSharpScript()
             let! completions = script.GetCompletionItems("System.String.", 1, 14)
             let matchingCompletions = completions |> Array.filter (fun d -> d.Name = "Join")
-            Assert.True(matchingCompletions.Length >= 1)
+            Assert.GreaterOrEqual(matchingCompletions.Length, 1)
         } |> Async.StartAsTask :> Task
 
-    [<Fact>]
+    [<Test>]
     member _.``Type completions from namespace``() =
         async {
             use script = new FSharpScript()
             let! completions = script.GetCompletionItems("System.", 1, 7)
             let matchingCompletions = completions |> Array.filter (fun d -> d.Name = "String")
-            Assert.True(matchingCompletions.Length >= 1)
+            Assert.GreaterOrEqual(matchingCompletions.Length, 1)
         } |> Async.StartAsTask :> Task
 
-    [<Fact>]
+    [<Test>]
     member _.``Namespace completions``() =
         async {
             use script = new FSharpScript()
             let! completions = script.GetCompletionItems("System.", 1, 7)
             let matchingCompletions = completions |> Array.filter (fun d -> d.Name = "Collections")
-            Assert.Equal(1, matchingCompletions.Length)
+            Assert.AreEqual(1, matchingCompletions.Length)
         } |> Async.StartAsTask :> Task
 
-    [<Fact>]
+    [<Test>]
     member _.``Extension method completions``() =
         async {
             use script = new FSharpScript()
@@ -77,5 +78,5 @@ type CompletionTests() =
                           "list." ]
             let! completions = script.GetCompletionItems(String.Join("\n", lines), 3, 5)
             let matchingCompletions = completions |> Array.filter (fun d -> d.Name = "Select")
-            Assert.Equal(1, matchingCompletions.Length)
+            Assert.AreEqual(1, matchingCompletions.Length)
         } |> Async.StartAsTask :> Task
