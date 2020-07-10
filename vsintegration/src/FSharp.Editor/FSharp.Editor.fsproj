@@ -256,6 +256,7 @@
       <Aliases>CoreUtility</Aliases>
       <Name>CoreUtility</Name>
     </ProjectReference>
+    <ProjectReference Include="..\..\..\..\..\src\addins\MonoDevelop.UnitTesting\MonoDevelop.UnitTesting.csproj" />
     <Compile Include="VSMac\InteractiveWorkspace.fs" />
     <Compile Include="VSMac\InteractiveSession.fs" />
     <Compile Include="VSMac\InteractiveGlyph.fs" />
