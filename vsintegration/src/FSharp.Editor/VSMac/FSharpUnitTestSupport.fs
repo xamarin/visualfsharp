@@ -54,10 +54,12 @@ open MonoDevelop.Core
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Editor
 
 // https://github.com/xamarin/vsmac/blob/dev/kirillo/fsharp/main/external/fsharpbinding/MonoDevelop.FSharpBinding/FSharpUnitTestTextEditorExtension.fs
-type UnitTestLocation(offset: int) =
+type UnitTestLocation(textSpan: TextSpan) =
     member val UnitTestIdentifier = "" with get, set
     member val IsIgnored = false with get, set
     member val IsFixture  = false with get, set
+    member val TextSpan = textSpan
+    member val TestCases = ResizeArray()
 
 module Logic =
     let hasAttributeNamed (att:FSharpAttribute) (unitTestMarkers: IUnitTestMarkers[]) (filter:  string -> IUnitTestMarkers -> bool) =
@@ -68,7 +70,21 @@ module Logic =
             |> Seq.exists (filter name)
         | None -> false
 
-    let gatherUnitTests (snapshot: ITextSnapshot, unitTestMarkers: IUnitTestMarkers[], allSymbols:FSharpSymbolUse []) =
+    let createTestCase (tc:FSharpAttribute) =
+        let sb = Text.StringBuilder()
+        let print format = Printf.bprintf sb format
+        print "%s" "("
+        tc.ConstructorArguments 
+        |> Seq.iteri (fun i (_,arg) ->
+            if i > 0 then print "%s" ", "
+            match arg with
+            | :? string as s -> print "\"%s\"" s
+            | :? char as c -> print "\"%c\"" c
+            | other -> print "%s" (other |> string))
+        print "%s" ")"
+        sb |> string
+
+    let gatherUnitTests (sourceText: SourceText, unitTestMarkers: IUnitTestMarkers[], allSymbols:FSharpSymbolUse []) =
         let hasAttribute a = hasAttributeNamed a unitTestMarkers
         let tests = ResizeArray<UnitTestLocation>()
 
@@ -89,8 +105,8 @@ module Logic =
                 (fun symbolUse -> 
                     let range = symbolUse.RangeAlternate
 
-                    let startOffset = RoslynHelpers. snapshot.GetPosition (range.StartLine, range.StartColumn+1)
-                    let test = UnitTestLocation(startOffset)
+                    let textSpan = RoslynHelpers.FSharpRangeToTextSpan (sourceText, range)
+                    let test = UnitTestLocation(textSpan)
                     match symbolUse.Symbol with
                     | :? FSharpMemberOrFunctionOrValue as func -> 
                         let typeName =
@@ -147,20 +163,22 @@ type FSharpUnitTestTagger(textView, checkerProvider: FSharpCheckerProvider, proj
                     let! sourceText = document.GetTextAsync(CancellationToken.None)
                     let! _, _, projectOptions = projectInfoManager.TryGetOptionsForDocumentOrProject(document, CancellationToken.None)
 
-                    let! _, _, checkResults = checkerProvider.Checker.ParseAndCheckDocument(document, projectOptions, sourceText = sourceText, allowStaleResults = false, userOpName=userOpName)
+                    let! _, _, checkResults = checkerProvider.Checker.ParseAndCheckDocument(document, projectOptions, sourceText = sourceText, allowStaleResults = false, userOpName="FSharpUnitTests")
                     let! symbols = checkResults.GetAllUsesOfAllSymbolsInFile() |> liftAsync
 
                     let unitTestMarkers = AddinManager.GetExtensionNodes("/MonoDevelop/UnitTesting/UnitTestMarkers").OfType<IUnitTestMarkers>().ToArray()
 
-                    let tests = Logic.gatherUnitTests (snapshot, unitTestMarkers, symbols)
+                    let tests = Logic.gatherUnitTests (sourceText, unitTestMarkers, symbols)
+
+                    let testSpans = ResizeArray()
 
                     for test in tests do
-                        test
 
-                        let textSpan = RoslynHelpers.FSharpRangeToTextSpan (sourceText, range)
+                        let textSpan = test.TextSpan
                         let snapshotSpan = SnapshotSpan(snapshot, textSpan.Start, textSpan.Length)
-                        let tag = FSharpUnitTestTag(id)
-                        let tagSpan = TagSpan<IUnitTestTag> (snapshotSpan, tag) 
+                        let tag = FSharpUnitTestTag(test.TestCases)
+                        let tagSpan = TagSpan<IUnitTestTag> (snapshotSpan, tag)
+                        testSpans.Add(tagSpan)
 
                     return 1
                 }
