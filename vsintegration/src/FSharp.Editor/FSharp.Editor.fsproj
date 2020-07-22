@@ -180,6 +180,7 @@
     <None Include="FSharp.Editor.Designer.fs">
       <DependentUpon>FSharp.Editor.resx</DependentUpon>
     </None>
+    <Compile Include="VSMac\FSharpUnitTestSupport.fs" />
     <Compile Include="Properties\AddinInfo.fs" />
     <EmbeddedResource Include="FSharp.addin.xml">
       <XlfSourceFormat></XlfSourceFormat>
