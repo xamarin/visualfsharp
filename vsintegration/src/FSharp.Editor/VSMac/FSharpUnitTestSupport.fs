@@ -129,6 +129,8 @@ module Logic =
                         test.UnitTestIdentifier <- typeName + "." + methName
                         test.IsIgnored <- isIgnored
                         Some test
+
+                    // TODO - should this case even be accounted for? it doesn't seem to populate TestCases
                     | :? FSharpEntity as entity ->
                         let typeName = entity.QualifiedName
                         let isIgnored =
@@ -156,7 +158,7 @@ type FSharpUnitTestTagger(textView, checkerProvider: FSharpCheckerProvider, proj
         member this.TagsChanged = tagsChanged.Publish
 
         member __.GetTags(collection: NormalizedSnapshotSpanCollection) =
-            let temp =
+            let testsTask =
                 asyncMaybe {
                     let snapshot = collection.[0].Snapshot
                     let document = snapshot.GetOpenDocumentInCurrentContextWithChanges()
@@ -170,7 +172,7 @@ type FSharpUnitTestTagger(textView, checkerProvider: FSharpCheckerProvider, proj
 
                     let tests = Logic.gatherUnitTests (sourceText, unitTestMarkers, symbols)
 
-                    let testSpans = ResizeArray()
+                    let testSpans = ResizeArray<ITagSpan<IUnitTestTag>>()
 
                     for test in tests do
 
@@ -180,14 +182,14 @@ type FSharpUnitTestTagger(textView, checkerProvider: FSharpCheckerProvider, proj
                         let tagSpan = TagSpan<IUnitTestTag> (snapshotSpan, tag)
                         testSpans.Add(tagSpan)
 
-                    return 1
+                    return testSpans
                 }
-            temp |> ignore
-            Seq.empty<_>
-
-        
-
-
+            let tests = Async.RunSynchronously testsTask
+            match tests with
+            | Some tests ->
+                tests :> seq<ITagSpan<IUnitTestTag>>
+            | None ->
+                Seq.empty<_>
 
 [<Export(typeof<IViewTaggerProvider>)>]
 [<Microsoft.VisualStudio.Utilities.ContentType(FSharpConstants.FSharpContentTypeName)>]
