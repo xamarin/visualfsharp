@@ -1,9 +1,16 @@
-﻿namespace FSharp.Compiler.ComponentTests.Interop
+﻿// Copyright (c) Microsoft Corporation.  All Rights Reserved.  See License.txt in the project root for license information.
 
-open Xunit
-open FSharp.Test.Utilities.Compiler
+namespace FSharp.Compiler.UnitTests
 
-module ``Verify visibility of properties`` =
+open FSharp.Compiler.SourceCodeServices
+open FSharp.Reflection
+open FSharp.Test
+open FSharp.Test.Utilities
+open FSharp.Test.Utilities.Utilities
+open NUnit.Framework
+
+[<TestFixture>]
+module ILMemberAccessTests =
 
     let csharpBaseClass = """
 namespace ExhaustiveCombinations
@@ -22,7 +29,8 @@ namespace ExhaustiveCombinations
         public string SetPublicGetProtectedInternal { protected internal get; set; }
         public string SetPublicGetPrivate { private get; set; }
     }
-}"""
+}
+"""
 
     let fsharpBaseClass = """
 namespace ExhaustiveCombinations
@@ -30,15 +38,17 @@ namespace ExhaustiveCombinations
 open System
 
 type FSharpBaseClass () =
+
     member this.GetPublicSetInternal    with public   get() = "" and internal set (parameter:string) = ignore parameter
     member this.GetPublicSetPrivate     with public   get() = "" and private  set (parameter:string) = ignore parameter
     member this.SetPublicGetInternal    with internal get() = "" and public   set (parameter:string) = ignore parameter
-    member this.SetPublicGetPrivate     with private  get() = "" and public   set (parameter:string) = ignore parameter"""
+    member this.SetPublicGetPrivate     with private  get() = "" and public   set (parameter:string) = ignore parameter
 
-    [<Fact>]
-    let ``C# class F# derived class - access public`` () =
+"""
 
-        let csharpLib = CSharp csharpBaseClass |> withName "csLib"
+
+    [<Test>][<Ignore("TODO: This is broken RN, since netcoreapp30 is used for C# and 3.1 for F#, should be fixed as part of https://github.com/dotnet/fsharp/issues/9740")>]
+    let ``VerifyVisibility of Properties C# class F# derived class -- AccessPublicStuff`` () =
 
         let fsharpSource =
             fsharpBaseClass + """
@@ -66,23 +76,24 @@ type MyFSharpClass () =
         let _ = this.GetPublicSetPrivate            // Accessible
         ()
 """
-        Fsx fsharpSource
-        |> withLangVersionPreview
-        |> withReferences [csharpLib]
-        |> compile
-        |> shouldFail
-        |> withDiagnostics [
-            (Error 491, Line 19, Col 9, Line 19, Col 41,
-             "The member or object constructor 'GetPublicSetInternal' is not accessible. Private members may only be accessed from within the declaring type. Protected members may only be accessed from an extending type and cannot be accessed from inner lambda expressions.")
-            (Error 491, Line 22, Col 9, Line 22, Col 49,
-             "The member or object constructor 'GetPublicSetPrivateProtected' is not accessible. Private members may only be accessed from within the declaring type. Protected members may only be accessed from an extending type and cannot be accessed from inner lambda expressions.")
-            (Error 491, Line 31, Col 9, Line 31, Col 40,
-             "The member or object constructor 'GetPublicSetPrivate' is not accessible. Private members may only be accessed from within the declaring type. Protected members may only be accessed from an extending type and cannot be accessed from inner lambda expressions.")]
 
-    [<Fact>]
-    let ``C# class F# non-derived class - access public`` () =
+        let csCmpl =
+            CompilationUtil.CreateCSharpCompilation(csharpBaseClass, CSharpLanguageVersion.CSharp8, TargetFramework.NetCoreApp30)
+            |> CompilationReference.Create
 
-        let csharpLib = CSharp csharpBaseClass |> withName "csLib"
+        let fsCmpl =
+            Compilation.Create(fsharpSource, Fsx, Exe, options = [|"--langversion:preview"|], cmplRefs = [csCmpl])
+
+        CompilerAssert.CompileWithErrors(fsCmpl, [|
+            (FSharpErrorSeverity.Error, 491, (22, 9, 22, 41),
+             "The member or object constructor 'GetPublicSetInternal' is not accessible. Private members may only be accessed from within the declaring type. Protected members may only be accessed from an extending type and cannot be accessed from inner lambda expressions.");
+            (FSharpErrorSeverity.Error, 491, (25, 9, 25, 49),
+             "The member or object constructor 'GetPublicSetPrivateProtected' is not accessible. Private members may only be accessed from within the declaring type. Protected members may only be accessed from an extending type and cannot be accessed from inner lambda expressions.");
+            (FSharpErrorSeverity.Error, 491, (34, 9, 34, 40),
+             "The member or object constructor 'GetPublicSetPrivate' is not accessible. Private members may only be accessed from within the declaring type. Protected members may only be accessed from an extending type and cannot be accessed from inner lambda expressions.")|])
+
+    [<Test>][<Ignore("TODO: This is broken RN, since netcoreapp30 is used for C# and 3.1 for F#, should be fixed as part of https://github.com/dotnet/fsharp/issues/9740")>]
+    let ``VerifyVisibility of Properties C# class F# non-derived class -- AccessPublicStuff`` () =
 
         let fsharpSource =
             fsharpBaseClass + """
@@ -111,29 +122,30 @@ type MyFSharpClass () =
         ()
 """
 
-        Fsx fsharpSource
-        |> withLangVersionPreview
-        |> withReferences [csharpLib]
-        |> compile
-        |> shouldFail
-        |> withDiagnostics [
-            (Error 491, Line 19, Col 9, Line 19, Col 39,
-             "The member or object constructor 'GetPublicSetInternal' is not accessible. Private members may only be accessed from within the declaring type. Protected members may only be accessed from an extending type and cannot be accessed from inner lambda expressions.")
-            (Error 491, Line 22, Col 9, Line 22, Col 47,
-             "The member or object constructor 'GetPublicSetPrivateProtected' is not accessible. Private members may only be accessed from within the declaring type. Protected members may only be accessed from an extending type and cannot be accessed from inner lambda expressions.")
-            (Error 491, Line 25, Col 9, Line 25, Col 48,
-             "The member or object constructor 'GetPublicSetProtectedInternal' is not accessible. Private members may only be accessed from within the declaring type. Protected members may only be accessed from an extending type and cannot be accessed from inner lambda expressions.")
-            (Error 491, Line 28, Col 9, Line 28, Col 40,
-             "The member or object constructor 'GetPublicSetProtected' is not accessible. Private members may only be accessed from within the declaring type. Protected members may only be accessed from an extending type and cannot be accessed from inner lambda expressions.")
-            (Error 491, Line 29, Col 17, Line 29, Col 41,
+        let csCmpl =
+            CompilationUtil.CreateCSharpCompilation(csharpBaseClass, CSharpLanguageVersion.CSharp8, TargetFramework.NetCoreApp30)
+            |> CompilationReference.Create
+
+        let fsCmpl =
+            Compilation.Create(fsharpSource, Fsx, Exe, options = [|"--langversion:preview"|], cmplRefs = [csCmpl])
+
+        CompilerAssert.CompileWithErrors(fsCmpl, [|
+            (FSharpErrorSeverity.Error, 491, (22, 9, 22, 39),
+             "The member or object constructor 'GetPublicSetInternal' is not accessible. Private members may only be accessed from within the declaring type. Protected members may only be accessed from an extending type and cannot be accessed from inner lambda expressions.");
+            (FSharpErrorSeverity.Error, 491, (25, 9, 25, 47),
+             "The member or object constructor 'GetPublicSetPrivateProtected' is not accessible. Private members may only be accessed from within the declaring type. Protected members may only be accessed from an extending type and cannot be accessed from inner lambda expressions.");
+            (FSharpErrorSeverity.Error, 491, (28, 9, 28, 48),
+             "The member or object constructor 'GetPublicSetProtectedInternal' is not accessible. Private members may only be accessed from within the declaring type. Protected members may only be accessed from an extending type and cannot be accessed from inner lambda expressions.");
+            (FSharpErrorSeverity.Error, 491, (31, 9, 31, 40),
+             "The member or object constructor 'GetPublicSetProtected' is not accessible. Private members may only be accessed from within the declaring type. Protected members may only be accessed from an extending type and cannot be accessed from inner lambda expressions.");
+            (FSharpErrorSeverity.Error, 491, (32, 17, 32, 41),
              "The member or object constructor 'SetPublicGetProtected' is not accessible. Private members may only be accessed from within the declaring type. Protected members may only be accessed from an extending type and cannot be accessed from inner lambda expressions.");
-            (Error 491, Line 31, Col 9, Line 31, Col 38,
-             "The member or object constructor 'GetPublicSetPrivate' is not accessible. Private members may only be accessed from within the declaring type. Protected members may only be accessed from an extending type and cannot be accessed from inner lambda expressions.")]
+            (FSharpErrorSeverity.Error, 491, (34, 9, 34, 38),
+             "The member or object constructor 'GetPublicSetPrivate' is not accessible. Private members may only be accessed from within the declaring type. Protected members may only be accessed from an extending type and cannot be accessed from inner lambda expressions.")|])
 
-    [<Fact>]
-    let ``F# base F# derived class - access public`` () =
 
-        let csharpLib = CSharp csharpBaseClass |> withName "csLib"
+    [<Test>]
+    let ``VerifyVisibility of Properties F# base F# derived class -- AccessPublicStuff`` () =
 
         let fsharpSource =
             fsharpBaseClass + """
@@ -142,6 +154,7 @@ open ExhaustiveCombinations
 
 type MyFSharpClass () =
     inherit FSharpBaseClass()
+
     member this.AccessPublicStuff() =
 
         this.GetPublicSetInternal <- "1"            // Inaccessible
@@ -156,20 +169,26 @@ type MyFSharpClass () =
         this.SetPublicGetPrivate <- "1"             // Accessible
         let _ = this.SetPublicGetPrivate            // accessible
 
-        ()"""
-        Fsx fsharpSource
-        |> withLangVersionPreview
-        |> withReferences [csharpLib]
-        |> compile
-        |> shouldFail
-        |> withDiagnostics [
-            (Error 810, Line 21, Col 9, Line 21, Col 33, "Property 'GetPublicSetPrivate' cannot be set")
-            (Error 807, Line 28, Col 17, Line 28, Col 41, "Property 'SetPublicGetPrivate' is not readable")]
+        ()
+"""
 
-    [<Fact>]
-    let ``F# class F# non-derived class - access public`` () =
+        let csCmpl =
+            CompilationUtil.CreateCSharpCompilation(csharpBaseClass, CSharpLanguageVersion.CSharp8, TargetFramework.NetCoreApp30)
+            |> CompilationReference.Create
 
-        let csharpLib = CSharp csharpBaseClass |> withName "csLib"
+        let fsCmpl =
+            Compilation.Create(fsharpSource, Fsx, Exe, options = [|"--langversion:preview"|], cmplRefs = [csCmpl])
+
+        CompilerAssert.CompileWithErrors(fsCmpl, [|
+            (FSharpErrorSeverity.Error, 810, (25, 9, 25, 33),
+             "Property 'GetPublicSetPrivate' cannot be set");
+            (FSharpErrorSeverity.Error, 807, (32, 17, 32, 41),
+             "Property 'SetPublicGetPrivate' is not readable")
+        |])
+
+
+    [<Test>]
+    let ``VerifyVisibility of Properties F# class F# non-derived class -- AccessPublicStuff`` () =
 
         let fsharpSource =
             fsharpBaseClass + """
@@ -177,6 +196,7 @@ open System
 open ExhaustiveCombinations
 
 type MyFSharpClass () =
+
     member _.AccessPublicStuff() =
         let bc = new FSharpBaseClass()
 
@@ -185,11 +205,19 @@ type MyFSharpClass () =
 
         bc.GetPublicSetPrivate <- "1"               // Inaccessible
         let _ = bc.GetPublicSetPrivate              // Accessible
-        ()"""
+        ()
+"""
 
-        Fsx fsharpSource
-        |> withLangVersionPreview
-        |> withReferences [csharpLib]
-        |> compile
-        |> shouldFail
-        |> withSingleDiagnostic (Error 810, Line 21, Col 9, Line 21, Col 31, "Property 'GetPublicSetPrivate' cannot be set")
+        let csCmpl =
+            CompilationUtil.CreateCSharpCompilation(csharpBaseClass, CSharpLanguageVersion.CSharp8, TargetFramework.NetCoreApp30)
+            |> CompilationReference.Create
+
+        let fsCmpl =
+            Compilation.Create(fsharpSource, Fsx, Exe, options = [|"--langversion:preview"|], cmplRefs = [csCmpl])
+
+        CompilerAssert.CompileWithErrors(fsCmpl, [|
+            (FSharpErrorSeverity.Error, 810, (25, 9, 25, 31),
+             "Property 'GetPublicSetPrivate' cannot be set")|])
+
+
+
