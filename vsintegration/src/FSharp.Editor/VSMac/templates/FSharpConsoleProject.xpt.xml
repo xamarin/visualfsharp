@@ -6,7 +6,7 @@
     <_Name>Console Project</_Name>
     <Icon>md-console-project</Icon>
     <Image id="md-console-project" />
-    <_Description>A F# project for creating a command line application.</_Description>
+    <_Description>A F# project for creating a command line application targeting .NET Framework 4.7.2.</_Description>
     <Category>other/net/general</Category>
     <LanguageName>F#</LanguageName>
     <GroupId>md-project-console</GroupId>
@@ -24,7 +24,7 @@
     </Options>
 
     <Project name = "${ProjectName}" directory = ".">
-      <Options ExternalConsole="True" TargetFrameworkVersion="4.5.1" />
+      <Options ExternalConsole="True" TargetFrameworkVersion="4.7.2" />
       <References>
         <Reference type="Package" refto="mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
         <Reference type="Package" refto="System, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
@@ -32,7 +32,7 @@
         <Reference type="Package" refto="System.Numerics, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
       </References>
       <Packages requireLicenseAcceptance="false">
-        <Package Id="FSharp.Core" Version="4.5.4" local="true" />
+        <Package Id="FSharp.Core" Version="4.7.2" local="true" />
       </Packages>
       <Files>
         <FileTemplateReference TemplateID="FSharpAssemblyInfo" name="AssemblyInfo.fs" />

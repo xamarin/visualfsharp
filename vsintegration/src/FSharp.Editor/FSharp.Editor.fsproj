@@ -64,6 +64,10 @@
     <Reference Include="System.Runtime.Caching" />
   </ItemGroup>
   <ItemGroup>
+    <DownloadNupkg Include="FSharp.Core" Version="4.7.2" ExtensionDir="Packages" />
+    <DownloadNupkg Include="System.ValueTuple" Version="4.5.0" ExtensionDir="Packages" />
+  </ItemGroup>
+  <ItemGroup>
     <Folder Include="Properties\" />
     <Folder Include="VSMac\" />
   </ItemGroup>

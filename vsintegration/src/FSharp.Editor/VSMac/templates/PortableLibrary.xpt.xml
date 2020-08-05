@@ -30,12 +30,12 @@
 			<Options Target = "Library"
 					 TargetFrameworkVersion = ".NETPortable,Version=v4.5,Profile=Profile78"
 					 FSharpPortable = "true"
-					 TargetFSharpCoreVersion = "4.0.0.1"
+					 TargetFSharpCoreVersion = "4.7.2"
 					 TargetProfile = "netcore" />
 			<References>
 			</References>
       <Packages requireLicenseAcceptance="false">
-        <Package Id="FSharp.Core" Version="4.0.0.1" />
+        <Package Id="FSharp.Core" Version="4.7.2" />
       </Packages>
 			<Files>
 				<FileTemplateReference TemplateID="FSharpAssemblyInfo" name="AssemblyInfo.fs" />
