@@ -27,7 +27,7 @@
 namespace MonoDevelop.FSharp
 
 open System
-open System.Composition
+open System.ComponentModel.Composition
 open System.Collections.Generic
 open System.Diagnostics
 open System.Linq
@@ -178,9 +178,12 @@ type internal FSharpUnitTestTagger(textView, checkerProvider: FSharpCheckerProvi
 
                         let textSpan = test.TextSpan
                         let snapshotSpan = SnapshotSpan(snapshot, textSpan.Start, textSpan.Length)
-                        let tag = FSharpUnitTestTag(test.TestCases)
+                        let testIds = Enumerable.Repeat(test.UnitTestIdentifier, 1)
+                        let tag = FSharpUnitTestTag(testIds)
                         let tagSpan = TagSpan<IUnitTestTag> (snapshotSpan, tag)
-                        testSpans.Add(tagSpan)
+                        let intersects =  collection.IntersectsWith(snapshotSpan)
+                        if intersects then
+                            testSpans.Add(tagSpan)
 
                     return testSpans
                 }
