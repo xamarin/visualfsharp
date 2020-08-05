@@ -150,7 +150,7 @@ type FSharpUnitTestTag (ids: seq<string>) =
     interface IUnitTestTag with
         member __.TestIds = ids
 
-type FSharpUnitTestTagger(textView, checkerProvider: FSharpCheckerProvider, projectInfoManager: FSharpProjectOptionsManager) =
+type internal FSharpUnitTestTagger(textView, checkerProvider: FSharpCheckerProvider, projectInfoManager: FSharpProjectOptionsManager) =
     let tagsChanged = Event<_,_>()
 
     interface ITagger<IUnitTestTag> with
