@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <Compile Include="WriteCodeFragmentTests.fs" />
+    <Compile Include="MapSourceRootsTests.fs"/>
   </ItemGroup>
 
   <ItemGroup>
