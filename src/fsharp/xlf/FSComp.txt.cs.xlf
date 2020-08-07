@@ -22,11 +22,6 @@
         <target state="translated">Dostupná přetížení:\n{0}</target>
         <note />
       </trans-unit>
-      <trans-unit id="csGenericConstructRequiresStructOrReferenceConstraint">
-        <source>A generic construct requires that a generic type parameter be known as a struct or reference type. Consider adding a type annotation.</source>
-        <target state="new">A generic construct requires that a generic type parameter be known as a struct or reference type. Consider adding a type annotation.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="csNoOverloadsFoundArgumentsPrefixPlural">
         <source>Known types of arguments: {0}</source>
         <target state="translated">Známé typy argumentů: {0}</target>
@@ -122,14 +117,9 @@
         <target state="translated">nepovinný zprostředkovatel komunikace s možnou hodnotou null</target>
         <note />
       </trans-unit>
-      <trans-unit id="featureOpenTypeDeclaration">
-        <source>open type declaration</source>
-        <target state="new">open type declaration</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="featureOverloadsForCustomOperations">
-        <source>overloads for custom operations</source>
-        <target state="new">overloads for custom operations</target>
+      <trans-unit id="featureOpenStaticClasses">
+        <source>open static classes</source>
+        <target state="translated">otevřít statické třídy</target>
         <note />
       </trans-unit>
       <trans-unit id="featurePackageManagement">
@@ -197,11 +187,6 @@
         <target state="new">Invalid directive '#{0} {1}'</target>
         <note />
       </trans-unit>
-      <trans-unit id="keywordDescriptionConst">
-        <source>Keyword to specify a constant literal as a type parameter argument in Type Providers.</source>
-        <target state="new">Keyword to specify a constant literal as a type parameter argument in Type Providers.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="lexByteStringMayNotBeInterpolated">
         <source>a byte string may not be interpolated</source>
         <target state="new">a byte string may not be interpolated</target>
@@ -247,19 +232,9 @@
         <target state="translated">Nerozpoznaná hodnota {0} pro parametr --langversion; seznam možností zobrazíte zadáním --langversion:?</target>
         <note />
       </trans-unit>
-      <trans-unit id="optsVersion">
-        <source>Display compiler version banner and exit</source>
-        <target state="new">Display compiler version banner and exit</target>
-        <note />
-      </trans-unit>
       <trans-unit id="packageManagementRequiresVFive">
         <source>The package management feature requires language version 5.0 use /langversion:preview</source>
         <target state="translated">Funkce správy balíčků vyžaduje jazykovou verzi 5.0, použijte /langversion:preview.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="parsEmptyFillInInterpolatedString">
-        <source>Invalid interpolated string. This interpolated string expression fill is empty, an expression was expected.</source>
-        <target state="new">Invalid interpolated string. This interpolated string expression fill is empty, an expression was expected.</target>
         <note />
       </trans-unit>
       <trans-unit id="parsEofInInterpolatedString">
@@ -282,11 +257,6 @@
         <target state="new">Incomplete interpolated verbatim string begun at or before here</target>
         <note />
       </trans-unit>
-      <trans-unit id="parsEqualsMissingInTypeDefinition">
-        <source>Unexpected token in type definition. Expected '=' after the type '{0}'.</source>
-        <target state="new">Unexpected token in type definition. Expected '=' after the type '{0}'.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="parsUnexpectedSymbolDot">
         <source>Unexpected symbol '.' in member definition. Expected 'with', '=' or other token.</source>
         <target state="translated">Neočekávaný symbol . v definici členu. Očekávalo se with, = nebo jiný token.</target>
@@ -300,11 +270,6 @@
       <trans-unit id="optsUnknownChecksumAlgorithm">
         <source>Algorithm '{0}' is not supported</source>
         <target state="translated">Algoritmus {0} není podporovaný.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="poundiNotSupportedByRegisteredDependencyManagers">
-        <source>#i is not supported by the registered PackageManagers</source>
-        <target state="new">#i is not supported by the registered PackageManagers</target>
         <note />
       </trans-unit>
       <trans-unit id="tcAndBangNotSupported">
@@ -327,19 +292,9 @@
         <target state="translated">Tento anonymní záznam má příliš mnoho polí. Odeberte nadbytečná pole {0}.</target>
         <note />
       </trans-unit>
-      <trans-unit id="tcAnonRecdInvalid">
-        <source>Invalid Anonymous Record type declaration.</source>
-        <target state="new">Invalid Anonymous Record type declaration.</target>
-        <note />
-      </trans-unit>
       <trans-unit id="tcAugmentationsCannotHaveAttributes">
         <source>Attributes cannot be applied to type extensions.</source>
         <target state="translated">Atributy nejde použít pro rozšíření typů.</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="tcIllegalByrefsInOpenTypeDeclaration">
-        <source>Byref types are not allowed in an open type declaration.</source>
-        <target state="new">Byref types are not allowed in an open type declaration.</target>
         <note />
       </trans-unit>
       <trans-unit id="tcInterpolationMixedWithPercent">
@@ -535,41 +490,6 @@
       <trans-unit id="useSdkRefs">
         <source>Use reference assemblies for .NET framework references when available (Enabled by default).</source>
         <target state="translated">Pro odkazy na rozhraní .NET používejte referenční sestavení, pokud jsou k dispozici (ve výchozím nastavení povolené).</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="xmlDocBadlyFormed">
-        <source>This XML comment is invalid: '{0}'</source>
-        <target state="new">This XML comment is invalid: '{0}'</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="xmlDocDuplicateParameter">
-        <source>This XML comment is invalid: multiple documentation entries for parameter '{0}'</source>
-        <target state="new">This XML comment is invalid: multiple documentation entries for parameter '{0}'</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="xmlDocInvalidParameterName">
-        <source>This XML comment is invalid: unknown parameter '{0}'</source>
-        <target state="new">This XML comment is invalid: unknown parameter '{0}'</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="xmlDocMissingCrossReference">
-        <source>This XML comment is invalid: missing 'cref' attribute for cross-reference</source>
-        <target state="new">This XML comment is invalid: missing 'cref' attribute for cross-reference</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="xmlDocMissingParameter">
-        <source>This XML comment is incomplete: no documentation for parameter '{0}'</source>
-        <target state="new">This XML comment is incomplete: no documentation for parameter '{0}'</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="xmlDocMissingParameterName">
-        <source>This XML comment is invalid: missing 'name' attribute for parameter or parameter reference</source>
-        <target state="new">This XML comment is invalid: missing 'name' attribute for parameter or parameter reference</target>
-        <note />
-      </trans-unit>
-      <trans-unit id="xmlDocUnresolvedCrossReference">
-        <source>This XML comment is invalid: unresolved cross-reference '{0}'</source>
-        <target state="new">This XML comment is invalid: unresolved cross-reference '{0}'</target>
         <note />
       </trans-unit>
       <trans-unit id="yieldUsedInsteadOfYieldBang">
