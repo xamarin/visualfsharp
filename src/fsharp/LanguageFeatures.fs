@@ -23,7 +23,7 @@ type LanguageFeature =
     | RelaxWhitespace
     | NameOf
     | ImplicitYield
-    | OpenTypeDeclaration
+    | OpenStaticClasses
     | DotlessFloat32Literal
     | PackageManagement
     | FromEndSlicing
@@ -34,7 +34,6 @@ type LanguageFeature =
     | WitnessPassing
     | InterfacesWithMultipleGenericInstantiation
     | StringInterpolation
-    | OverloadsForCustomOperations
 
 /// LanguageVersion management
 type LanguageVersion (specifiedVersionAsString) =
@@ -65,16 +64,15 @@ type LanguageVersion (specifiedVersionAsString) =
             LanguageFeature.AndBang, languageVersion50
             LanguageFeature.NullableOptionalInterop, languageVersion50
             LanguageFeature.DefaultInterfaceMemberConsumption, languageVersion50
+            LanguageFeature.OpenStaticClasses, languageVersion50
+            LanguageFeature.PackageManagement, languageVersion50
+            LanguageFeature.WitnessPassing, languageVersion50
+            LanguageFeature.InterfacesWithMultipleGenericInstantiation, languageVersion50
+            LanguageFeature.NameOf, languageVersion50
 
             // F# preview
             LanguageFeature.FromEndSlicing, previewVersion
-            LanguageFeature.OpenTypeDeclaration, previewVersion
-            LanguageFeature.PackageManagement, previewVersion
-            LanguageFeature.WitnessPassing, previewVersion
-            LanguageFeature.InterfacesWithMultipleGenericInstantiation, previewVersion
-            LanguageFeature.NameOf, previewVersion
             LanguageFeature.StringInterpolation, previewVersion
-            LanguageFeature.OverloadsForCustomOperations, previewVersion
         ]
 
     let specified =
@@ -135,7 +133,7 @@ type LanguageVersion (specifiedVersionAsString) =
         | LanguageFeature.RelaxWhitespace -> FSComp.SR.featureRelaxWhitespace()
         | LanguageFeature.NameOf -> FSComp.SR.featureNameOf()
         | LanguageFeature.ImplicitYield -> FSComp.SR.featureImplicitYield()
-        | LanguageFeature.OpenTypeDeclaration -> FSComp.SR.featureOpenTypeDeclaration()
+        | LanguageFeature.OpenStaticClasses -> FSComp.SR.featureOpenStaticClasses()
         | LanguageFeature.DotlessFloat32Literal -> FSComp.SR.featureDotlessFloat32Literal()
         | LanguageFeature.PackageManagement -> FSComp.SR.featurePackageManagement()
         | LanguageFeature.FromEndSlicing -> FSComp.SR.featureFromEndSlicing()
@@ -146,7 +144,6 @@ type LanguageVersion (specifiedVersionAsString) =
         | LanguageFeature.WitnessPassing -> FSComp.SR.featureWitnessPassing()
         | LanguageFeature.InterfacesWithMultipleGenericInstantiation -> FSComp.SR.featureInterfacesWithMultipleGenericInstantiation()
         | LanguageFeature.StringInterpolation -> FSComp.SR.featureStringInterpolation()
-        | LanguageFeature.OverloadsForCustomOperations -> FSComp.SR.featureOverloadsForCustomOperations()
 
     /// Get a version string associated with the given feature.
     member _.GetFeatureVersionString feature =
