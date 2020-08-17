@@ -33,6 +33,7 @@
 
     <!-- Make sure it will get cleaned -->
     <CreateItem Include="$(FsLexOutputFolder)%(FsLex.Filename).fs">
+      <Output TaskParameter="Include" ItemName="FsGeneratedSource"/>
       <Output TaskParameter="Include" ItemName="FileWrites"/>
     </CreateItem>
   </Target>
@@ -58,6 +59,7 @@
 
     <!-- Make sure it will get cleaned -->
     <CreateItem Include="$(FsYaccOutputFolder)%(FsYacc.Filename).fs">
+      <Output TaskParameter="Include" ItemName="FsGeneratedSource"/>
       <Output TaskParameter="Include" ItemName="FileWrites"/>
     </CreateItem>
   </Target>
