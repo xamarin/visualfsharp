@@ -4,8 +4,9 @@ module FSharp.Core.UnitTests.LibraryTestFx
 
 open System
 open System.Collections.Generic
-
-open NUnit.Framework
+open System.IO
+open System.Reflection
+open Xunit
 
 // Workaround for bug 3601, we are issuing an unnecessary warning
 #nowarn "0004"
@@ -66,14 +67,14 @@ module SurfaceArea =
 
     // gets string form of public surface area for the currently-loaded FSharp.Core
     let private getActual () =
+
         // get current FSharp.Core
-        let asm = typeof<int list>.GetTypeInfo().Assembly
+        let asm = typeof<int list>.Assembly
         let fsCoreFullName = asm.FullName
 
         // public types only
         let types = asm.ExportedTypes |> Seq.filter (fun ty -> let ti = ty.GetTypeInfo() in ti.IsPublic || ti.IsNestedPublic) |> Array.ofSeq
 
-        let typenames = new System.Collections.Generic.List<string>()
         // extract canonical string form for every public member of every type
         let getTypeMemberStrings (t : Type) =
             // for System.Runtime-based profiles, need to do lots of manual work
@@ -97,7 +98,7 @@ module SurfaceArea =
         let actual =
             types |> Array.collect getTypeMemberStrings
 
-        asm,actual
+        asm, actual
 
     // verify public surface area matches expected
     let verify expected platform (fileName : string) =
@@ -107,7 +108,7 @@ module SurfaceArea =
 
         let asm, actualNotNormalized = getActual ()
         let actual = actualNotNormalized |> Seq.map normalize |> Seq.filter (String.IsNullOrWhiteSpace >> not) |> set
-
+        
         let expected =
             // Split the "expected" string into individual lines, then normalize it.
             (normalize expected).Split([|"\r\n"; "\n"; "\r"|], StringSplitOptions.RemoveEmptyEntries)
@@ -126,37 +127,38 @@ module SurfaceArea =
         // If both sets are empty, the surface areas match so allow the test to pass.
         if Set.isEmpty unexpectedlyMissing
           && Set.isEmpty unexpectedlyPresent then
-            Assert.Pass ()
+            // pass
+            ()
+        else
 
-        let logFile =
-            let workDir = TestContext.CurrentContext.WorkDirectory
-            sprintf "%s\\FSharp.Core.SurfaceArea.%s.txt" workDir platform
-        printfn "logFile: %s" logFile
-        System.IO.File.WriteAllText(logFile, String.Join("\r\n", actual))
+            let logFile =
+                let workDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)
+                sprintf "%s\\FSharp.Core.SurfaceArea.%s.txt" workDir platform
+            System.IO.File.WriteAllText(logFile, String.Join("\r\n", actual))
 
-        // The surface areas don't match; prepare an easily-readable output message.
-        let msg =
-            let inline newLine (sb : System.Text.StringBuilder) = sb.AppendLine () |> ignore
-            let sb = System.Text.StringBuilder ()
-            Printf.bprintf sb "Assembly: %A" asm
-            newLine sb
-            sb.AppendLine "Expected and actual surface area don't match. To see the delta, run:" |> ignore
-            Printf.bprintf sb "    windiff %s %s" fileName logFile
-            newLine sb
-            newLine sb
-            sb.Append "Unexpectedly missing (expected, not actual):" |> ignore
-            for s in unexpectedlyMissing do
+            // The surface areas don't match; prepare an easily-readable output message.
+            let msg =
+                let inline newLine (sb : System.Text.StringBuilder) = sb.AppendLine () |> ignore
+                let sb = System.Text.StringBuilder ()
+                Printf.bprintf sb "Assembly: %A" asm
                 newLine sb
-                sb.Append "    " |> ignore
-                sb.Append s |> ignore
-            newLine sb
-            newLine sb
-            sb.Append "Unexpectedly present (actual, not expected):" |> ignore
-            for s in unexpectedlyPresent do
+                sb.AppendLine "Expected and actual surface area don't match. To see the delta, run:" |> ignore
+                Printf.bprintf sb "    windiff %s %s" fileName logFile
                 newLine sb
-                sb.Append "    " |> ignore
-                sb.Append s |> ignore
-            newLine sb
-            sb.ToString ()
+                newLine sb
+                sb.Append "Unexpectedly missing (expected, not actual):" |> ignore
+                for s in unexpectedlyMissing do
+                    newLine sb
+                    sb.Append "    " |> ignore
+                    sb.Append s |> ignore
+                newLine sb
+                newLine sb
+                sb.Append "Unexpectedly present (actual, not expected):" |> ignore
+                for s in unexpectedlyPresent do
+                    newLine sb
+                    sb.Append "    " |> ignore
+                    sb.Append s |> ignore
+                newLine sb
+                sb.ToString ()
 
-        Assert.Fail msg
+            failwith msg
