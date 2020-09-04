@@ -26,9 +26,8 @@
     <Compile Include="CompilerAssert.fs" />
     <Compile Include="Assert.fs" />
     <Compile Include="Compiler.fs" />
+    <Compile Include="Xunit\Attributes\DirectoryAttribute.fs" />
   </ItemGroup>
-
-  <ItemGroup />
 
   <ItemGroup>
     <!-- CompilerAssert dependencies.
@@ -41,6 +40,7 @@
 
   <ItemGroup>
     <PackageReference Include="NUnit" Version="$(NUnitVersion)" /> <!-- TODO: This should be removed once all NUnit frameworks are migrated to xUnit -->
+    <PackageReference Include="xunit" Version="$(XUnitVersion)" />
     <PackageReference Include="FluentAssertions" Version="$(FluentAssertionsVersion)" />
   </ItemGroup>
   <ItemGroup>
@@ -79,4 +79,5 @@
                 <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </EmbeddedResource>
   </ItemGroup>
+  <ItemGroup />
 </Project>
