@@ -256,7 +256,7 @@
       <ReferenceSourceTarget></ReferenceSourceTarget>
       <Private>False</Private>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\..\vs-editor-core\src\Editor\Core\Def\CoreUtility.csproj">
+    <ProjectReference Include="..\..\..\..\VS-Platform\src\Editor\Core\Def\CoreUtility.csproj">
       <Project>{D6B7E899-542A-4EAB-8F06-E737657B29DE}</Project>
       <Aliases>CoreUtility</Aliases>
       <Name>CoreUtility</Name>
