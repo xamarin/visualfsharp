@@ -5,7 +5,7 @@
     <TargetFramework>net472</TargetFramework>
     <TargetFramework>netcoreapp3.0</TargetFramework>
     <TargetFramework>netcoreapp3.1</TargetFramework>
-    <DefineConstants>INTERNALIZED_FSLEXYACC_RUNTIME;$(DefineConstant)</DefineConstants>
+    <DefineConstants>INTERNALIZED_FSLEXYACC_RUNTIME;$(DefineConstants)</DefineConstants>
     <DisableImplicitFSharpCoreReference>true</DisableImplicitFSharpCoreReference>
   </PropertyGroup>
 
