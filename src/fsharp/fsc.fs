@@ -60,6 +60,8 @@ open Microsoft.DotNet.DependencyManager
 
 open FSharp.Compiler.AbstractIL.Internal.StrongNameSign
 
+open FSharp.Compiler.AbstractIL.Internal.StrongNameSign
+
 #if !NO_EXTENSIONTYPING
 open FSharp.Compiler.ExtensionTyping
 #endif
