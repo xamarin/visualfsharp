@@ -15,6 +15,7 @@
     <DefineConstants Condition="'$(MonoPackaging)' == 'true'">BUILD_FROM_SOURCE;$(DefineConstants)</DefineConstants>
     <OtherFlags>$(OtherFlags) --warnon:1182 --compiling-fslib --compiling-fslib-40 --maxerrors:20 --extraoptimizationloops:1</OtherFlags>
     <OtherFlags>$(OtherFlags) --warnon:1182 --compiling-fslib --compiling-fslib-40 --maxerrors:20 --extraoptimizationloops:1 --nowarn:57</OtherFlags>
+    <OtherFlags>$(OtherFlags) --warnon:1182 --warnon:3390 --compiling-fslib --compiling-fslib-40 --maxerrors:100 --extraoptimizationloops:1 --nowarn:57</OtherFlags>
     <Tailcalls>true</Tailcalls> <!-- .tail annotations always emitted for this binary, even in debug mode -->
     <NGenBinary>true</NGenBinary>
 
