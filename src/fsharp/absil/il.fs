@@ -12,7 +12,6 @@ open System.IO
 open System.Collections
 open System.Collections.Generic
 open System.Collections.Concurrent
-open System.Collections.ObjectModel
 open System.Reflection
 open System.Text
 open System.Threading
@@ -464,6 +463,9 @@ type ILAssemblyRef(data) =
                 add ", Retargetable=Yes"
         b.ToString()
 
+    member x.ToAssemblyName() = AssemblyName(x.QualifiedName)
+
+
 [<StructuralEquality; StructuralComparison>]
 type ILModuleRef =
     { name: string
@@ -579,11 +581,8 @@ type ILTypeRef =
       hashCode : int
       mutable asBoxedType: ILType }
 
-    static member ComputeHash(scope, enclosing, name) =
-        hash scope * 17 ^^^ (hash enclosing * 101 <<< 1) ^^^ (hash name * 47 <<< 2)
-
     static member Create (scope, enclosing, name) =
-        let hashCode = ILTypeRef.ComputeHash(scope, enclosing, name)
+        let hashCode = hash scope * 17 ^^^ (hash enclosing * 101 <<< 1) ^^^ (hash name * 47 <<< 2)
         { trefScope=scope
           trefEnclosing=enclosing
           trefName=name
@@ -613,31 +612,11 @@ type ILTypeRef =
     override x.GetHashCode() = x.hashCode
 
     override x.Equals yobj =
-        let y = (yobj :?> ILTypeRef)
-        (x.ApproxId = y.ApproxId) &&
-        (x.Scope = y.Scope) &&
-        (x.Name = y.Name) &&
-        (x.Enclosing = y.Enclosing)
-
-    member x.EqualsWithPrimaryScopeRef(primaryScopeRef:ILScopeRef, yobj:obj) =
-        let y = (yobj :?> ILTypeRef)
-        let isPrimary (v:ILTypeRef) =
-            match v.Scope with
-            | ILScopeRef.PrimaryAssembly -> true
-            | _ -> false
-
-        // Since we can remap the scope, we need to recompute hash ... this is not an expensive operation
-        let isPrimaryX = isPrimary x
-        let isPrimaryY = isPrimary y
-        let xApproxId = if isPrimaryX && not(isPrimaryY) then ILTypeRef.ComputeHash(primaryScopeRef, x.Enclosing, x.Name) else x.ApproxId
-        let yApproxId = if isPrimaryY && not(isPrimaryX) then ILTypeRef.ComputeHash(primaryScopeRef, y.Enclosing, y.Name) else y.ApproxId
-        let xScope = if isPrimaryX then primaryScopeRef else x.Scope
-        let yScope = if isPrimaryY then primaryScopeRef else y.Scope
-
-        (xApproxId = yApproxId) &&
-        (xScope = yScope) &&
-        (x.Name = y.Name) &&
-        (x.Enclosing = y.Enclosing)
+         let y = (yobj :?> ILTypeRef)
+         (x.ApproxId = y.ApproxId) &&
+         (x.Scope = y.Scope) &&
+         (x.Name = y.Name) &&
+         (x.Enclosing = y.Enclosing)
 
     interface IComparable with
 
@@ -687,7 +666,7 @@ and [<StructuralEquality; StructuralComparison; StructuredFormatDisplay("{DebugT
 
     member x.GenericArgs=x.tspecInst
 
-    static member Create (typeRef, instantiation) = { tspecTypeRef =typeRef; tspecInst=instantiation }
+    static member Create (tref, inst) = { tspecTypeRef =tref; tspecInst=inst }
 
     member x.BasicQualifiedName =
         let tc = x.TypeRef.BasicQualifiedName
@@ -704,10 +683,6 @@ and [<StructuralEquality; StructuralComparison; StructuredFormatDisplay("{DebugT
     /// For debugging
     [<DebuggerBrowsable(DebuggerBrowsableState.Never)>]
     member x.DebugText = x.ToString()
-
-    member x.EqualsWithPrimaryScopeRef(primaryScopeRef:ILScopeRef, yobj:obj) =
-        let y = (yobj :?> ILTypeSpec)
-        x.tspecTypeRef.EqualsWithPrimaryScopeRef(primaryScopeRef, y.TypeRef) && (x.GenericArgs = y.GenericArgs)
 
     override x.ToString() = x.TypeRef.ToString() + if isNil x.GenericArgs then "" else "<...>"
 
@@ -823,13 +798,8 @@ type ILMethodRef =
 
     member x.CallingSignature = mkILCallSig (x.CallingConv, x.ArgTypes, x.ReturnType)
 
-    static member Create (enclosingTypeRef, callingConv, name, genericArity, argTypes, returnType) =
-        { mrefParent=enclosingTypeRef
-          mrefCallconv=callingConv
-          mrefName=name
-          mrefGenericArity=genericArity
-          mrefArgs=argTypes
-          mrefReturn=returnType }
+    static member Create (a, b, c, d, e, f) =
+        { mrefParent=a; mrefCallconv=b; mrefName=c; mrefGenericArity=d; mrefArgs=e; mrefReturn=f }
 
     /// For debugging
     [<DebuggerBrowsable(DebuggerBrowsableState.Never)>]
@@ -915,10 +885,10 @@ type ILSourceDocument =
       sourceDocType: ILGuid option
       sourceFile: string }
 
-    static member Create (language, vendor, documentType, file) =
+    static member Create (language, vendor, docType, file) =
         { sourceLanguage=language
           sourceVendor=vendor
-          sourceDocType=documentType
+          sourceDocType=docType
           sourceFile=file }
 
     member x.Language=x.sourceLanguage
@@ -1227,7 +1197,7 @@ type ILInstr =
 type ILExceptionClause =
     | Finally of (ILCodeLabel * ILCodeLabel)
     | Fault of (ILCodeLabel * ILCodeLabel)
-    | FilterCatch of filterRange: (ILCodeLabel * ILCodeLabel) * handlerRange: (ILCodeLabel * ILCodeLabel)
+    | FilterCatch of (ILCodeLabel * ILCodeLabel) * (ILCodeLabel * ILCodeLabel)
     | TypeCatch of ILType * (ILCodeLabel * ILCodeLabel)
 
 [<RequireQualifiedAccess; NoEquality; NoComparison>]
@@ -1300,33 +1270,16 @@ type ILFieldInit =
     | Double of double
     | Null
 
-    member x.AsObject() =
-        match x with 
-        | ILFieldInit.String s -> box s
-        | ILFieldInit.Bool bool -> box bool   
-        | ILFieldInit.Char u16 -> box (char (int u16))  
-        | ILFieldInit.Int8 i8 -> box i8     
-        | ILFieldInit.Int16 i16 -> box i16    
-        | ILFieldInit.Int32 i32 -> box i32    
-        | ILFieldInit.Int64 i64 -> box i64    
-        | ILFieldInit.UInt8 u8 -> box u8     
-        | ILFieldInit.UInt16 u16 -> box u16    
-        | ILFieldInit.UInt32 u32 -> box u32    
-        | ILFieldInit.UInt64 u64 -> box u64    
-        | ILFieldInit.Single ieee32 -> box ieee32 
-        | ILFieldInit.Double ieee64 -> box ieee64 
-        | ILFieldInit.Null -> (null :> Object)
-
 // --------------------------------------------------------------------
 // Native Types, for marshalling to the native C interface.
 // These are taken directly from the ILASM syntax, and don't really
-// correspond yet to the CLI ECMA-335 Spec (Partition II, 7.4).
+// correspond yet to the ECMA Spec (Partition II, 7.4).
 // --------------------------------------------------------------------
 
 [<RequireQualifiedAccess; StructuralEquality; StructuralComparison>]
 type ILNativeType =
     | Empty
-    | Custom of ILGuid * nativeTypeName: string * custMarshallerName: string * cookieString: byte[]
+    | Custom of ILGuid * string * string * byte[] (* guid, nativeTypeName, custMarshallerName, cookieString *)
     | FixedSysString of int32
     | FixedArray of int32
     | Currency
@@ -2152,7 +2105,7 @@ and [<Sealed>] ILTypeDefs(f : unit -> ILPreTypeDef[]) =
         for pre in arr do
             let key = pre.Namespace, pre.Name
             t.[key] <- pre
-        ReadOnlyDictionary t)
+        t)
 
     member x.AsArray = [| for pre in array.Value -> pre.GetTypeDef() |]
 
@@ -2250,9 +2203,9 @@ type ILResourceAccess =
     | Public
     | Private
 
-[<RequireQualifiedAccess;NoEquality;NoComparison>]
+[<RequireQualifiedAccess>]
 type ILResourceLocation =
-    | Local of ByteStorage
+    | Local of ReadOnlyByteMemory
     | File of ILModuleRef * int32
     | Assembly of ILAssemblyRef
 
@@ -2266,7 +2219,7 @@ type ILResource =
     /// Read the bytes from a resource local to an assembly
     member r.GetBytes() =
         match r.Location with
-        | ILResourceLocation.Local bytes -> bytes.GetByteMemory()
+        | ILResourceLocation.Local bytes -> bytes
         | _ -> failwith "GetBytes"
 
     member x.CustomAttrs = x.CustomAttrsStored.GetCustomAttrs x.MetadataIndex
@@ -2466,6 +2419,7 @@ let mkILFieldSpec (tref, ty) = { FieldRef= tref; DeclaringType=ty }
 
 let mkILFieldSpecInTy (ty: ILType, nm, fty) =
     mkILFieldSpec (mkILFieldRef (ty.TypeRef, nm, fty), ty)
+
 
 let andTailness x y =
   match x with Tailcall when y -> Tailcall | _ -> Normalcall
@@ -2934,8 +2888,8 @@ type ILFieldSpec with
 // Make a method mbody
 // --------------------------------------------------------------------
 
-let mkILMethodBody (initlocals, locals, maxstack, code, tag) : ILMethodBody =
-    { IsZeroInit=initlocals
+let mkILMethodBody (zeroinit, locals, maxstack, code, tag) : ILMethodBody =
+    { IsZeroInit=zeroinit
       MaxStack=maxstack
       NoInlining=false
       AggressiveInlining=false
@@ -3170,10 +3124,10 @@ let mkILLiteralField (nm, ty, init, at, access) = mkILField (true, nm, ty, Some 
 // Scopes for allocating new temporary variables.
 // --------------------------------------------------------------------
 
-type ILLocalsAllocator (preAlloc: int) =
+type ILLocalsAllocator (numPrealloc: int) =
     let newLocals = ResizeArray<ILLocal>()
     member tmps.AllocLocal loc =
-        let locn = uint16 (preAlloc + newLocals.Count)
+        let locn = uint16 (numPrealloc + newLocals.Count)
         newLocals.Add loc
         locn
 
@@ -3315,7 +3269,7 @@ let destTypeDefsWithGlobalFunctionsFirst ilg (tdefs: ILTypeDefs) =
   let top2 = if isNil top then [ mkILTypeDefForGlobalFunctions ilg (emptyILMethods, emptyILFields) ] else top
   top2@nontop
 
-let mkILSimpleModule assemblyName moduleName dll subsystemVersion useHighEntropyVA tdefs hashalg locale flags exportedTypes metadataVersion =
+let mkILSimpleModule assemblyName modname dll subsystemVersion useHighEntropyVA tdefs hashalg locale flags exportedTypes metadataVersion =
     let manifest =
         { Name=assemblyName
           AuxModuleHashAlgorithm= match hashalg with | Some alg -> alg | _ -> 0x8004 // SHA1
@@ -3334,7 +3288,7 @@ let mkILSimpleModule assemblyName moduleName dll subsystemVersion useHighEntropy
           MetadataIndex = NoMetadataIdx }
     { Manifest= Some manifest
       CustomAttrsStored=storeILCustomAttrs emptyILCustomAttrs
-      Name=moduleName
+      Name=modname
       NativeResources=[]
       TypeDefs=tdefs
       SubsystemVersion = subsystemVersion

@@ -3,48 +3,90 @@
 // Functions to retrieve framework dependencies
 module internal FSharp.Compiler.DotNetFrameworkDependencies
 
-    open System
-    open System.Collections.Generic
-    open System.Diagnostics
-    open System.Globalization
-    open System.IO
-    open System.Reflection
-    open System.Runtime.InteropServices
-    open Internal.Utilities
-    open Internal.Utilities.FSharpEnvironment
+open System
+open System.Collections.Generic
+open System.Diagnostics
+open System.Globalization
+open System.IO
+open System.Reflection
+open System.Runtime.InteropServices
+open Internal.Utilities
+open Internal.Utilities.FSharpEnvironment
+open FSharp.Compiler.AbstractIL.ILBinaryReader
 
-    type private TypeInThisAssembly = class end
+type private TypeInThisAssembly = class end
 
-    let fSharpCompilerLocation =
-        let location = Path.GetDirectoryName(typeof<TypeInThisAssembly>.Assembly.Location)
-        match FSharpEnvironment.BinFolderOfDefaultFSharpCompiler (Some location) with
-        | Some path -> path
-        | None ->
+let fsharpCoreLibraryName = "FSharp.Core"
+let fsiLibraryName = "FSharp.Compiler.Interactive.Settings"
+
+let fsharpCompilerLocation =
+    let location = Path.GetDirectoryName(typeof<TypeInThisAssembly>.Assembly.Location)
+    match FSharpEnvironment.BinFolderOfDefaultFSharpCompiler (Some location) with
+    | Some path -> path
+    | None ->
 #if DEBUG
-            Debug.Print(sprintf """FSharpEnvironment.BinFolderOfDefaultFSharpCompiler (Some '%s') returned None Location
-                customized incorrectly: algorithm here: https://github.com/dotnet/fsharp/blob/03f3f1c35f82af26593d025dabca57a6ef3ea9a1/src/utils/CompilerLocationUtils.fs#L171"""
-                location)
+        Debug.Print(sprintf """FSharpEnvironment.BinFolderOfDefaultFSharpCompiler (Some '%s') returned None Location
+            customized incorrectly: algorithm here: https://github.com/dotnet/fsharp/blob/03f3f1c35f82af26593d025dabca57a6ef3ea9a1/src/utils/CompilerLocationUtils.fs#L171"""
+            location)
 #endif
-            // Use the location of this dll
-            location
+        // Use the location of this dll
+        location
 
-    let inline ifEmptyUse alternative filename = if String.IsNullOrWhiteSpace filename then alternative else filename
+let getDefaultFSharpCoreLocation() = Path.Combine(fsharpCompilerLocation, fsharpCoreLibraryName + ".dll")
+let getDefaultFsiLibraryLocation() = Path.Combine(fsharpCompilerLocation, fsiLibraryName + ".dll")
 
-    let getFSharpCoreLibraryName = "FSharp.Core"
-    let getFsiLibraryName = "FSharp.Compiler.Interactive.Settings"
-    let getDefaultFSharpCoreLocation = Path.Combine(fSharpCompilerLocation, getFSharpCoreLibraryName + ".dll")
-    let getDefaultFsiLibraryLocation = Path.Combine(fSharpCompilerLocation, getFsiLibraryName + ".dll")
-    let implementationAssemblyDir = Path.GetDirectoryName(typeof<obj>.Assembly.Location) |> ifEmptyUse fSharpCompilerLocation
+/// Resolves the references for a chosen or currently-executing framework, for
+///   - script execution
+///   - script editing
+///   - script compilation
+///   - out-of-project sources editing
+///   - default references for fsc.exe
+type FxResolver(_reduceMemoryUsage, _tryGetMetadataSnapshot, preInferredUseDotNetFramework) =
+    let sdkDir, rid =
+        match preInferredUseDotNetFramework with 
+        | None -> None, None
+        | Some useDotNetFramework ->
+            FxResolver.TryGetDefaultSdkDirAndRid(useDotNetFramework)
+
+    let ifEmptyUse alternative filename = if String.IsNullOrWhiteSpace filename then alternative else filename
+    
+    let getRunningImplementationAssemblyDir() =
+        Path.GetDirectoryName(typeof<obj>.Assembly.Location) |> ifEmptyUse fsharpCompilerLocation
+
+    let chosenRuntimeVersion, chosenRuntimeDir =
+        match sdkDir with 
+        | Some dir -> 
+            let dotnetConfigFile = Path.Combine(dir, "dotnet.runtimeconfig.json")
+            let dotnetConfig = File.ReadAllText(dotnetConfigFile)
+            let pattern = "\"version\": \""
+            let startPos = dotnetConfig.IndexOf(pattern, StringComparison.OrdinalIgnoreCase) + pattern.Length
+            let endPos = dotnetConfig.IndexOf("\"", startPos)
+            let ver = dotnetConfig.[startPos..endPos-1]
+            let path = Path.GetFullPath(Path.Combine(dir, "..", "..", "shared", "Microsoft.NETCore.App", ver))
+            if Directory.Exists(path) then
+                ver, path
+            else
+                failwithf "runtime for sdk '%s' not found" dir
+        | None ->
+            let path = getRunningImplementationAssemblyDir()
+            let ver = DirectoryInfo(path).Name
+            ver, path
 
     // Use the ValueTuple that is executing with the compiler if it is from System.ValueTuple
     // or the System.ValueTuple.dll that sits alongside the compiler.  (Note we always ship one with the compiler)
     let getDefaultSystemValueTupleReference () =
+        let probeFile = Path.Combine(chosenRuntimeDir, "System.ValueTuple.dll")
+        match sdkDir with 
+        | Some _ when File.Exists(probeFile) ->
+            Some probeFile
+        | _ -> 
+            
         try
             let asm = typeof<System.ValueTuple<int, int>>.Assembly
             if asm.FullName.StartsWith("System.ValueTuple", StringComparison.OrdinalIgnoreCase) then
                 Some asm.Location
             else
-                let valueTuplePath = Path.Combine(fSharpCompilerLocation, "System.ValueTuple.dll")
+                let valueTuplePath = Path.Combine(fsharpCompilerLocation, "System.ValueTuple.dll")
                 if File.Exists(valueTuplePath) then
                     Some valueTuplePath
                 else
@@ -62,32 +104,19 @@ module internal FSharp.Compiler.DotNetFrameworkDependencies
     //          packs\Microsoft.NETCore.App.Ref\sdk-version\netcoreappn.n
     //     we will rely on the sdk-version match on the two paths to ensure that we get the product that ships with the
     //     version of the runtime we are executing on
-    //     Use the reference assemblies for the highest netcoreapp tfm that we find in that location that is 
-    //     lower than or equal to the implementation version.
-    let zeroVersion = Version("0.0.0.0")
-    let version, frameworkRefsPackDirectoryRoot =
+    //     Use the reference assemblies for the highest netcoreapp tfm that we find in that location.
+    let tryGetNetCoreFrameworkRefsPackDirectoryRoot() =
         try
-            let computeVersion version =
-                match Version.TryParse(version) with
-                | true, v -> v
-                | false, _ -> zeroVersion
-
-            let version = computeVersion (DirectoryInfo(implementationAssemblyDir).Name)
-            let microsoftNETCoreAppRef = Path.Combine(implementationAssemblyDir, "../../../packs/Microsoft.NETCore.App.Ref")
+            let microsoftNETCoreAppRef = Path.Combine(chosenRuntimeDir, "../../../packs/Microsoft.NETCore.App.Ref")
             if Directory.Exists(microsoftNETCoreAppRef) then
-                let directory = DirectoryInfo(microsoftNETCoreAppRef).GetDirectories()
-                                |> Array.map (fun di -> computeVersion di.Name)
-                                |> Array.sort
-                                |> Array.filter(fun v -> v <= version)
-                                |> Array.last
-                Some (directory.ToString()), Some microsoftNETCoreAppRef
+                Some chosenRuntimeVersion, Some microsoftNETCoreAppRef
             else
-               None,  None
+               Some chosenRuntimeVersion,  None
         with | _ -> None, None
 
     // Tries to figure out the tfm for the compiler instance.
     // On coreclr it uses the deps.json file
-    let netcoreTfm =
+    let tryGetRunningTfm() =
         let file =
             try
                 let asm = Assembly.GetEntryAssembly()
@@ -116,7 +145,7 @@ module internal FSharp.Compiler.DotNetFrameworkDependencies
         | -1, _
         | _, -1 ->
             if isRunningOnCoreClr then
-                // Running on coreclr but no deps.json was deployed with the host so default to 3.0
+                // Running on coreclr but no deps.json was deployed with the host so default to 3.1
                 Some "netcoreapp3.1"
             else
                 // Running on desktop
@@ -174,8 +203,19 @@ module internal FSharp.Compiler.DotNetFrameworkDependencies
             "net48"
 
     /// Gets the tfm E.g netcore3.0, net472
-    let executionTfm =
-        match netcoreTfm with
+    let getChosenTfm() =
+        match sdkDir with 
+        | Some dir -> 
+            let dotnetConfigFile = Path.Combine(dir, "dotnet.runtimeconfig.json")
+            let dotnetConfig = File.ReadAllText(dotnetConfigFile)
+            let pattern = "\"tfm\": \""
+            let startPos = dotnetConfig.IndexOf(pattern, StringComparison.OrdinalIgnoreCase) + pattern.Length
+            let endPos = dotnetConfig.IndexOf("\"", startPos)
+            let tfm = dotnetConfig.[startPos..endPos-1]
+            printfn "getChosenTfm(), tfm = '%s'" tfm
+            tfm
+        | None ->
+        match tryGetRunningTfm() with
         | Some tfm -> tfm
         | _ -> getWindowsDesktopTfm ()
 
@@ -183,7 +223,10 @@ module internal FSharp.Compiler.DotNetFrameworkDependencies
     //      https://docs.microsoft.com/en-us/dotnet/core/rid-catalog
     //
     // Where rid is: win, win-x64, win-x86, osx-x64, linux-x64 etc ...
-    let executionRid =
+    let getChosenRid() =
+        match rid with 
+        | Some v -> v
+        | None ->
         let processArchitecture = RuntimeInformation.ProcessArchitecture
         let baseRid =
             if RuntimeInformation.IsOSPlatform(OSPlatform.Windows) then "win"
@@ -197,14 +240,7 @@ module internal FSharp.Compiler.DotNetFrameworkDependencies
             | _ -> baseRid + "-arm"
         platformRid
 
-    let isInReferenceAssemblyPackDirectory filename =
-        match frameworkRefsPackDirectoryRoot with
-        | Some root ->
-            let path = Path.GetDirectoryName(filename)
-            path.StartsWith(root, StringComparison.OrdinalIgnoreCase)
-        | _ -> false
-
-    let frameworkRefsPackDirectory =
+    let tryGetFrameworkRefsPackDirectory() =
         let tfmPrefix = "netcoreapp"
         let tfmCompare c1 c2 =
             let deconstructTfmApp (netcoreApp: DirectoryInfo) =
@@ -224,7 +260,7 @@ module internal FSharp.Compiler.DotNetFrameworkDependencies
                 | Some _, None -> 1
                 | _ -> 0
 
-        match version, frameworkRefsPackDirectoryRoot with
+        match tryGetNetCoreFrameworkRefsPackDirectoryRoot() with
         | Some version, Some root ->
             try
                 let ref = Path.Combine(root, version, "ref")
@@ -243,7 +279,7 @@ module internal FSharp.Compiler.DotNetFrameworkDependencies
 
         // Identify path to a dll in the framework directory from a simple name
         let frameworkPathFromSimpleName simpleName =
-            let root = Path.Combine(implementationAssemblyDir, simpleName)
+            let root = Path.Combine(chosenRuntimeDir, simpleName)
             let pathOpt =
                 [| ""; ".dll"; ".exe" |]
                 |> Seq.tryPick(fun ext ->
@@ -289,14 +325,22 @@ module internal FSharp.Compiler.DotNetFrameworkDependencies
                             assemblies.Add(referenceName, path)
                         | _ ->
                             try
-                                let asm = System.Reflection.Assembly.LoadFrom(path)
-                                assemblies.Add(referenceName, path)
-                                for reference in asm.GetReferencedAssemblies() do
-                                    traverseDependencies reference.Name
-                            with e -> ()
-                with e -> ()
+                                let opts = 
+                                    { metadataOnly = MetadataOnlyFlag.Yes // turn this off here as we need the actual IL code
+                                      reduceMemoryUsage = ReduceMemoryFlag.Yes
+                                      pdbDirPath = None
+                                      tryGetMetadataSnapshot = (fun _ -> None) (* tryGetMetadataSnapshot *) } 
 
-        assemblyReferences |> List.iter(traverseDependencies)
+                                let reader = OpenILModuleReader path opts
+                                assemblies.Add(referenceName, path)
+                                for reference in reader.ILAssemblyRefs do
+                                    traverseDependencies reference.Name
+
+                            // There are many native assemblies which can't be cracked, raising exceptions
+                            with _ -> ()
+                with _ -> ()
+
+        assemblyReferences |> List.iter traverseDependencies
         assemblies
 
     // This list is the default set of references for "non-project" files. 
@@ -315,8 +359,8 @@ module internal FSharp.Compiler.DotNetFrameworkDependencies
         yield "System.Drawing"
         yield "System.Core"
 
-        yield getFSharpCoreLibraryName
-        if useFsiAuxLib then yield getFsiLibraryName
+        yield fsharpCoreLibraryName
+        if useFsiAuxLib then yield fsiLibraryName
 
         // always include a default reference to System.ValueTuple.dll in scripts and out-of-project sources 
         match getDefaultSystemValueTupleReference () with
@@ -343,27 +387,27 @@ module internal FSharp.Compiler.DotNetFrameworkDependencies
         yield "System.Numerics"
     ]
 
-    let fetchPathsForDefaultReferencesForScriptsAndOutOfProjectSources useFsiAuxLib useSdkRefs assumeDotNetFramework =
+    let fetchPathsForDefaultReferencesForScriptsAndOutOfProjectSources useFsiAuxLib useSdkRefs useDotNetFramework =
         let results =
-            if assumeDotNetFramework then
+            if useDotNetFramework then
                 getDesktopDefaultReferences useFsiAuxLib
             else
                 let dependencies =
                     let getImplementationReferences () =
                         // Coreclr supports netstandard assemblies only for now
                         (getDependenciesOf [
-                            yield! Directory.GetFiles(implementationAssemblyDir, "*.dll")
-                            yield getDefaultFSharpCoreLocation
-                            if useFsiAuxLib then yield getDefaultFsiLibraryLocation
+                            yield! Directory.GetFiles(chosenRuntimeDir, "*.dll")
+                            yield getDefaultFSharpCoreLocation()
+                            if useFsiAuxLib then yield getDefaultFsiLibraryLocation()
                         ]).Values |> Seq.toList
 
                     if useSdkRefs then
                         // Go fetch references
-                        match frameworkRefsPackDirectory with
+                        match tryGetFrameworkRefsPackDirectory() with
                         | Some path ->
                             try [ yield! Directory.GetFiles(path, "*.dll")
-                                  yield getDefaultFSharpCoreLocation
-                                  if useFsiAuxLib then yield getDefaultFsiLibraryLocation
+                                  yield getDefaultFSharpCoreLocation()
+                                  if useFsiAuxLib then yield getDefaultFsiLibraryLocation()
                                 ]
                             with | _ -> List.empty<string>
                         | None ->
@@ -373,140 +417,96 @@ module internal FSharp.Compiler.DotNetFrameworkDependencies
                 dependencies
         results
 
-    let defaultReferencesForScriptsAndOutOfProjectSources useFsiAuxLib assumeDotNetFramework useSdkRefs =
-        fetchPathsForDefaultReferencesForScriptsAndOutOfProjectSources useFsiAuxLib useSdkRefs assumeDotNetFramework
-
     // A set of assemblies to always consider to be system assemblies.  A common set of these can be used a shared 
     // resources between projects in the compiler services.  Also all assemblies where well-known system types exist
     // referenced from TcGlobals must be listed here.
     let systemAssemblies =
         HashSet [
-            // NOTE: duplicates are ok in this list
-
-            // .NET Framework list
             yield "mscorlib"
             yield "netstandard"
+            yield "System.Runtime"
+            yield fsharpCoreLibraryName
+
             yield "System"
-            yield getFSharpCoreLibraryName
-            yield "FSharp.Compiler.Interactive.Settings"
-            yield "Microsoft.CSharp"
-            yield "Microsoft.VisualBasic"
-            yield "Microsoft.VisualBasic.Core"
-            yield "Microsoft.Win32.Primitives"
-            yield "Microsoft.Win32.Registry"
-            yield "System.AppContext"
-            yield "System.Buffers"
-            yield "System.Collections"
-            yield "System.Collections.Concurrent"
-            yield "System.Collections.Immutable"
-            yield "System.Collections.NonGeneric"
-            yield "System.Collections.Specialized"
-            yield "System.ComponentModel"
-            yield "System.ComponentModel.Annotations"
-            yield "System.ComponentModel.DataAnnotations"
-            yield "System.ComponentModel.EventBasedAsync"
-            yield "System.ComponentModel.Primitives"
-            yield "System.ComponentModel.TypeConverter"
-            yield "System.Configuration"
-            yield "System.Console"
-            yield "System.Core"
+            yield "System.Xml" 
+            yield "System.Runtime.Remoting"
+            yield "System.Runtime.Serialization.Formatters.Soap"
             yield "System.Data"
-            yield "System.Data.Common"
-            yield "System.Data.DataSetExtensions"
             yield "System.Deployment"
             yield "System.Design"
-            yield "System.Diagnostics.Contracts"
-            yield "System.Diagnostics.Debug"
-            yield "System.Diagnostics.DiagnosticSource"
-            yield "System.Diagnostics.FileVersionInfo"
-            yield "System.Diagnostics.Process"
-            yield "System.Diagnostics.StackTrace"
-            yield "System.Diagnostics.TextWriterTraceListener"
-            yield "System.Diagnostics.Tools"
-            yield "System.Diagnostics.TraceSource"
-            yield "System.Diagnostics.Tracing"
+            yield "System.Messaging"
             yield "System.Drawing"
-            yield "System.Drawing.Primitives"
-            yield "System.Dynamic.Runtime"
-            yield "System.Formats.Asn1"
+            yield "System.Net"
+            yield "System.Web"
+            yield "System.Web.Services"
+            yield "System.Windows.Forms"
+            yield "System.Core"
+            yield "System.Runtime"
+            yield "System.Observable"
+            yield "System.Numerics"
+            yield "System.ValueTuple"
+
+            // Additions for coreclr and portable profiles
+            yield "System.Collections"
+            yield "System.Collections.Concurrent"
+            yield "System.Console"
+            yield "System.Diagnostics.Debug"
+            yield "System.Diagnostics.Tools"
             yield "System.Globalization"
-            yield "System.Globalization.Calendars"
-            yield "System.Globalization.Extensions"
             yield "System.IO"
-            yield "System.IO.Compression"
-            yield "System.IO.Compression.Brotli"
-            yield "System.IO.Compression.FileSystem"
-            yield "System.IO.Compression.ZipFile"
-            yield "System.IO.FileSystem"
-            yield "System.IO.FileSystem.DriveInfo"
-            yield "System.IO.FileSystem.Primitives"
-            yield "System.IO.FileSystem.Watcher"
-            yield "System.IO.IsolatedStorage"
-            yield "System.IO.MemoryMappedFiles"
-            yield "System.IO.Pipes"
-            yield "System.IO.UnmanagedMemoryStream"
             yield "System.Linq"
             yield "System.Linq.Expressions"
-            yield "System.Linq.Expressions"
-            yield "System.Linq.Parallel"
             yield "System.Linq.Queryable"
-            yield "System.Memory"
-            yield "System.Messaging"
-            yield "System.Net"
-            yield "System.Net.Http"
-            yield "System.Net.Http.Json"
-            yield "System.Net.HttpListener"
-            yield "System.Net.Mail"
-            yield "System.Net.NameResolution"
-            yield "System.Net.NetworkInformation"
-            yield "System.Net.Ping"
-            yield "System.Net.Primitives"
             yield "System.Net.Requests"
-            yield "System.Net.Security"
-            yield "System.Net.ServicePoint"
-            yield "System.Net.Sockets"
-            yield "System.Net.WebClient"
-            yield "System.Net.WebHeaderCollection"
-            yield "System.Net.WebProxy"
-            yield "System.Net.WebSockets"
-            yield "System.Net.WebSockets.Client"
-            yield "System.Numerics"
-            yield "System.Numerics.Vectors"
-            yield "System.ObjectModel"
-            yield "System.Observable"
-            yield "System.Private.Uri"
             yield "System.Reflection"
-            yield "System.Reflection.DispatchProxy"
             yield "System.Reflection.Emit"
             yield "System.Reflection.Emit.ILGeneration"
-            yield "System.Reflection.Emit.Lightweight"
             yield "System.Reflection.Extensions"
-            yield "System.Reflection.Metadata"
-            yield "System.Reflection.Primitives"
-            yield "System.Reflection.TypeExtensions"
-            yield "System.Resources.Reader"
             yield "System.Resources.ResourceManager"
-            yield "System.Resources.Writer"
-            yield "System.Runtime"
-            yield "System.Runtime.CompilerServices.Unsafe"
-            yield "System.Runtime.CompilerServices.VisualC"
             yield "System.Runtime.Extensions"
-            yield "System.Runtime.Handles"
             yield "System.Runtime.InteropServices"
             yield "System.Runtime.InteropServices.PInvoke"
-            yield "System.Runtime.InteropServices.RuntimeInformation"
-            yield "System.Runtime.InteropServices.WindowsRuntime"
-            yield "System.Runtime.Intrinsics"
-            yield "System.Runtime.Loader"
             yield "System.Runtime.Numerics"
-            yield "System.Runtime.Remoting"
-            yield "System.Runtime.Serialization"
-            yield "System.Runtime.Serialization.Formatters"
-            yield "System.Runtime.Serialization.Formatters.Soap"
-            yield "System.Runtime.Serialization.Json"
-            yield "System.Runtime.Serialization.Primitives"
-            yield "System.Runtime.Serialization.Xml"
-            yield "System.Security"
+            yield "System.Text.Encoding"
+            yield "System.Text.Encoding.Extensions"
+            yield "System.Text.RegularExpressions"
+            yield "System.Threading"
+            yield "System.Threading.Tasks"
+            yield "System.Threading.Tasks.Parallel"
+            yield "System.Threading.Thread"
+            yield "System.Threading.ThreadPool"
+            yield "System.Threading.Timer"
+
+            yield "FSharp.Compiler.Interactive.Settings"
+            yield "Microsoft.Win32.Registry"
+            yield "System.Diagnostics.Tracing"
+            yield "System.Globalization.Calendars"
+            yield "System.Reflection.Primitives"
+            yield "System.Runtime.Handles"
+            yield "Microsoft.Win32.Primitives"
+            yield "System.IO.FileSystem"
+            yield "System.Net.Primitives"
+            yield "System.Net.Sockets"
+            yield "System.Private.Uri"
+            yield "System.AppContext"
+            yield "System.Buffers"
+            yield "System.Collections.Immutable"
+            yield "System.Diagnostics.DiagnosticSource"
+            yield "System.Diagnostics.Process"
+            yield "System.Diagnostics.TraceSource"
+            yield "System.Globalization.Extensions"
+            yield "System.IO.Compression"
+            yield "System.IO.Compression.ZipFile"
+            yield "System.IO.FileSystem.Primitives"
+            yield "System.Net.Http"
+            yield "System.Net.NameResolution"
+            yield "System.Net.WebHeaderCollection"
+            yield "System.ObjectModel"
+            yield "System.Reflection.Emit.Lightweight"
+            yield "System.Reflection.Metadata"
+            yield "System.Reflection.TypeExtensions"
+            yield "System.Runtime.InteropServices.RuntimeInformation"
+            yield "System.Runtime.Loader"
             yield "System.Security.Claims"
             yield "System.Security.Cryptography.Algorithms"
             yield "System.Security.Cryptography.Cng"
@@ -517,45 +517,48 @@ module internal FSharp.Compiler.DotNetFrameworkDependencies
             yield "System.Security.Cryptography.X509Certificates"
             yield "System.Security.Principal"
             yield "System.Security.Principal.Windows"
-            yield "System.Security.SecureString"
-            yield "System.ServiceModel.Web"
-            yield "System.ServiceProcess"
-            yield "System.Text.Encoding"
-            yield "System.Text.Encoding.CodePages"
-            yield "System.Text.Encoding.Extensions"
-            yield "System.Text.Encodings.Web"
-            yield "System.Text.Json"
-            yield "System.Text.RegularExpressions"
-            yield "System.Threading"
-            yield "System.Threading.Channels"
             yield "System.Threading.Overlapped"
-            yield "System.Threading.Tasks"
-            yield "System.Threading.Tasks.Dataflow"
             yield "System.Threading.Tasks.Extensions"
-            yield "System.Threading.Tasks.Parallel"
-            yield "System.Threading.Thread"
-            yield "System.Threading.ThreadPool"
-            yield "System.Threading.Timer"
-            yield "System.Transactions"
-            yield "System.Transactions.Local"
-            yield "System.ValueTuple"
-            yield "System.Web"
-            yield "System.Web.HttpUtility"
-            yield "System.Web.Services"
-            yield "System.Windows"
-            yield "System.Windows.Forms"
-            yield "System.Xml"
-            yield "System.Xml.Linq"
             yield "System.Xml.ReaderWriter"
-            yield "System.Xml.Serialization"
             yield "System.Xml.XDocument"
-            yield "System.Xml.XmlDocument"
-            yield "System.Xml.XmlSerializer"
-            yield "System.Xml.XPath"
-            yield "System.Xml.XPath.XDocument"
-            yield "WindowsBase"
         ]
 
+    member _.GetDefaultReferencesForScriptsAndOutOfProjectSources (useFsiAuxLib, useDotNetFramework, useSdkRefs) =
+        fetchPathsForDefaultReferencesForScriptsAndOutOfProjectSources useFsiAuxLib useSdkRefs useDotNetFramework
+
+    member _.GetSystemAssemblies() = systemAssemblies
+
     // The set of references entered into the TcConfigBuilder for scripts prior to computing the load closure. 
-    let basicReferencesForScriptLoadClosure useFsiAuxLib useSdkRefs assumeDotNetFramework =
-        fetchPathsForDefaultReferencesForScriptsAndOutOfProjectSources useFsiAuxLib useSdkRefs assumeDotNetFramework
+    member _.GetBasicReferencesForScriptLoadClosure useFsiAuxLib useSdkRefs useDotNetFramework =
+        fetchPathsForDefaultReferencesForScriptsAndOutOfProjectSources useFsiAuxLib useSdkRefs useDotNetFramework
+
+    member _.IsInReferenceAssemblyPackDirectory filename =
+        match tryGetNetCoreFrameworkRefsPackDirectoryRoot() with
+        | _, Some root ->
+            let path = Path.GetDirectoryName(filename)
+            path.StartsWith(root, StringComparison.OrdinalIgnoreCase)
+        | _ -> false
+
+    member _.GetTfm() = getChosenTfm()
+
+    member _.GetRid() = getChosenRid()
+
+    member _.GetFrameworkRefsPackDirectory() = tryGetFrameworkRefsPackDirectory()
+
+    // Try and get a useful default .NET Core SDK directory from which to infer the target framework assemblies.
+    // If running on .NET Core we just use defaults implied by the currenly executing tooling.
+    static member TryGetDefaultSdkDirAndRid(useDotNetFramework) =
+        if useDotNetFramework || FSharpEnvironment.isRunningOnCoreClr || not (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) then
+            // We currently always use the contents inferred from where we are runing
+            None, None
+        else
+            // Running on .NET Framework 32 bit windows (e.g. devenv.exe), need to find a .NET SDK
+            let sdks = @"C:\Program Files\dotnet\sdk"  // TODO - correct this technique assuming this is devenv.exe
+            let sdk =
+                DirectoryInfo(sdks).GetDirectories()
+                |> Array.filter (fun di -> di.Name |> Seq.forall (fun c -> Char.IsDigit(c) || c = '.'))
+                |> Array.sortBy (fun di -> di.FullName)
+                |> Array.tryLast
+                |> Option.map (fun di -> di.FullName)
+            let rid = Some "win-x64"
+            sdk, rid
