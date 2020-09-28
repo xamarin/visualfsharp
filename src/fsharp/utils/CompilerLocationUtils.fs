@@ -343,7 +343,7 @@ module internal FSharpEnvironment =
     let getCompilerToolsDesignTimeAssemblyPaths compilerToolPaths = 
         searchToolPaths None compilerToolPaths
 
-    let fsharpCoreLibraryName = "FSharp.Core"
+    let getFSharpCoreLibraryName = "FSharp.Core"
     let fsiLibraryName = "FSharp.Compiler.Interactive.Settings"
 
     let getFSharpCompilerLocation() =
@@ -359,6 +359,6 @@ module internal FSharpEnvironment =
             // Use the location of this dll
             location
 
-    let getDefaultFSharpCoreLocation() = Path.Combine(getFSharpCompilerLocation(), fsharpCoreLibraryName + ".dll")
+    let getDefaultFSharpCoreLocation() = Path.Combine(getFSharpCompilerLocation(), getFSharpCoreLibraryName + ".dll")
     let getDefaultFsiLibraryLocation() = Path.Combine(getFSharpCompilerLocation(), fsiLibraryName + ".dll")
 
