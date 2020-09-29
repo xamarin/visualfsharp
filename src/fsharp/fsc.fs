@@ -217,6 +217,14 @@ let AdjustForScriptCompile(ctok, tcConfigB: TcConfigBuilder, defaultToDotNetFram
         commandLineSourceFiles 
         |> List.map combineFilePath
         
+    // Script compilation is active if the last item being compiled is a script and --noframework has not been specified
+    let isScriptCompilation = 
+        let lastIsScript =
+            match List.tryLast commandLineSourceFiles with 
+            | Some f -> IsScript f
+            | _ -> false
+        lastIsScript && tcConfigB.framework
+
     let mutable allSources = []       
     
     let AddIfNotPresent(filename: string) =
@@ -224,7 +232,7 @@ let AdjustForScriptCompile(ctok, tcConfigB: TcConfigBuilder, defaultToDotNetFram
             allSources <- filename :: allSources
     
     let AppendClosureInformation filename =
-        if IsScript filename then 
+        if isScriptCompilation && IsScript filename then 
 
             // Pre-infer the target framework from the script
             let sourceText = File.ReadAllText filename
