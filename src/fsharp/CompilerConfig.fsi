@@ -16,7 +16,7 @@ open FSharp.Compiler.AbstractIL.Internal.Library
 open FSharp.Compiler.ErrorLogger
 open FSharp.Compiler.Features
 open FSharp.Compiler.Range
-open FSharp.Compiler.SourceCodeServices
+open FSharp.Compiler.Text
 
 open Microsoft.DotNet.DependencyManager
 
@@ -93,6 +93,14 @@ type AssemblyReference =
 
 type UnresolvedAssemblyReference = UnresolvedAssemblyReference of string * AssemblyReference list
 
+/// The thread in which compilation calls will be enqueued and done work on.
+/// Note: This is currently only used when disposing of type providers and will be extended to all the other type provider calls when compilations can be done in parallel.
+///       Right now all calls in FCS to type providers are single-threaded through use of the reactor thread. 
+type ICompilationThread =
+
+    /// Enqueue work to be done on a compilation thread.
+    abstract EnqueueWork: (CompilationThreadToken -> unit) -> unit
+
 [<RequireQualifiedAccess>]
 type CompilerTarget = 
     | WinExe 
@@ -131,6 +139,37 @@ type PackageManagerLine =
     static member SetLinesAsProcessed: string -> Map<string, PackageManagerLine list> -> Map<string, PackageManagerLine list>
     static member StripDependencyManagerKey: string -> string -> string
 
+/// A target profile option specified on the command line
+/// Valid values are "mscorlib", "netcore" or "netstandard"
+type TargetProfileCommandLineOption = TargetProfileCommandLineOption of string
+
+/// A target framework option specified in a script
+/// Current valid values are "netcore", "netfx" 
+type TargetFrameworkForScripts =
+    | TargetFrameworkForScripts of string
+
+    /// The string for the inferred target framework
+    member Value: string
+
+    /// The kind of primary assembly associated with the compilation
+    member PrimaryAssembly: PrimaryAssembly
+
+    /// Indicates if the target framework is a .NET Framework target
+    member UseDotNetFramework: bool
+
+/// Indicates the inferred or declared target framework for a script
+type InferredTargetFrameworkForScripts =
+    { 
+      /// The inferred framework
+      InferredFramework: TargetFrameworkForScripts
+
+      /// The source location of the explicit declaration from which the framework was inferred, if anywhere
+      WhereInferred: range option 
+    }
+
+    /// Indicates if the inferred target framework is a .NET Framework target
+    member UseDotNetFramework: bool
+
 [<NoEquality; NoComparison>]
 type TcConfigBuilder =
     { mutable primaryAssembly: PrimaryAssembly
@@ -144,6 +183,7 @@ type TcConfigBuilder =
       mutable includes: string list
       mutable implicitOpens: string list
       mutable useFsiAuxLib: bool
+      mutable inferredTargetFrameworkForScripts : InferredTargetFrameworkForScripts option
       mutable framework: bool
       mutable resolutionEnvironment: ReferenceResolver.ResolutionEnvironment
       mutable implicitlyResolveAssemblies: bool
@@ -162,7 +202,7 @@ type TcConfigBuilder =
       mutable useHighEntropyVA: bool
       mutable inputCodePage: int option
       mutable embedResources: string list
-      mutable errorSeverityOptions: FSharpDiagnosticOptions
+      mutable errorSeverityOptions: FSharpErrorSeverityOptions
       mutable mlCompatibility:bool
       mutable checkOverflow:bool
       mutable showReferenceResolutions:bool
@@ -214,6 +254,7 @@ type TcConfigBuilder =
       mutable includewin32manifest: bool
       mutable linkResources: string list
       mutable legacyReferenceResolver: ReferenceResolver.Resolver 
+      mutable fxResolver: FxResolver
       mutable showFullPaths: bool
       mutable errorStyle: ErrorStyle
       mutable utf8output: bool
@@ -244,6 +285,7 @@ type TcConfigBuilder =
 #if !NO_EXTENSIONTYPING
       mutable showExtensionTypeMessages: bool
 #endif
+      mutable compilationThread: ICompilationThread
       mutable pause: bool 
       mutable alwaysCallVirt: bool
       mutable noDebugData: bool
@@ -276,13 +318,15 @@ type TcConfigBuilder =
 
     static member CreateNew: 
         legacyReferenceResolver: ReferenceResolver.Resolver *
+        fxResolver: FxResolver *
         defaultFSharpBinariesDir: string * 
         reduceMemoryUsage: ReduceMemoryFlag * 
         implicitIncludeDir: string * 
         isInteractive: bool * 
         isInvalidationSupported: bool *
         defaultCopyFSharpCore: CopyFSharpCoreFlag *
-        tryGetMetadataSnapshot: ILReaderTryGetMetadataSnapshot
+        tryGetMetadataSnapshot: ILReaderTryGetMetadataSnapshot *
+        inferredTargetFrameworkForScripts: InferredTargetFrameworkForScripts option
           -> TcConfigBuilder
 
     member DecideNames: string list -> outfile: string * pdbfile: string option * assemblyName: string 
@@ -290,6 +334,8 @@ type TcConfigBuilder =
     member TurnWarningOff: range * string -> unit
 
     member TurnWarningOn: range * string -> unit
+
+    member CheckExplicitFrameworkDirective: fx: TargetFrameworkForScripts * m: range -> unit
 
     member AddIncludePath: range * string * string -> unit
 
@@ -328,6 +374,7 @@ type TcConfig =
     member includes: string list
     member implicitOpens: string list
     member useFsiAuxLib: bool
+    member inferredTargetFrameworkForScripts: InferredTargetFrameworkForScripts option
     member framework: bool
     member implicitlyResolveAssemblies: bool
     /// Set if the user has explicitly turned indentation-aware syntax on/off
@@ -340,7 +387,7 @@ type TcConfig =
     member reduceMemoryUsage: ReduceMemoryFlag
     member inputCodePage: int option
     member embedResources: string list
-    member errorSeverityOptions: FSharpDiagnosticOptions
+    member errorSeverityOptions: FSharpErrorSeverityOptions
     member mlCompatibility:bool
     member checkOverflow:bool
     member showReferenceResolutions:bool
@@ -421,6 +468,7 @@ type TcConfig =
 #if !NO_EXTENSIONTYPING
     member showExtensionTypeMessages: bool
 #endif
+    member compilationThread: ICompilationThread
     member pause: bool 
     member alwaysCallVirt: bool
     member noDebugData: bool
@@ -428,6 +476,8 @@ type TcConfig =
     /// If true, indicates all type checking and code generation is in the context of fsi.exe
     member isInteractive: bool
     member isInvalidationSupported: bool 
+
+    member FxResolver: FxResolver
 
     member ComputeLightSyntaxInitialStatus: string -> bool
 
@@ -486,12 +536,6 @@ type TcConfig =
 
     /// Allow forking and subsuequent modification of the TcConfig via a new TcConfigBuilder
     member CloneToBuilder: unit -> TcConfigBuilder
-
-    /// Indicates if the compilation will result in F# signature data resource in the generated binary
-    member GenerateSignatureData: bool 
-
-    /// Indicates if the compilation will result in an F# optimization data resource in the generated binary
-    member GenerateOptimizationData: bool
 
 /// Represents a computation to return a TcConfig. Normally this is just a constant immutable TcConfig,
 /// but for F# Interactive it may be based on an underlying mutable TcConfigBuilder.

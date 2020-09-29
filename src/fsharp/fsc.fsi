@@ -2,12 +2,13 @@
 
 module internal FSharp.Compiler.Driver 
 
-open FSharp.Compiler.AbstractIL
 open FSharp.Compiler.AbstractIL.IL
 open FSharp.Compiler.AbstractIL.ILBinaryReader
 open FSharp.Compiler.AbstractIL.Internal.Library
 open FSharp.Compiler.AbstractIL.Internal.StrongNameSign
-open FSharp.Compiler.CompileOps
+open FSharp.Compiler.CompilerConfig
+open FSharp.Compiler.CompilerDiagnostics
+open FSharp.Compiler.CompilerImports
 open FSharp.Compiler.ErrorLogger
 open FSharp.Compiler.SyntaxTree
 open FSharp.Compiler.TcGlobals
@@ -20,37 +21,35 @@ type ErrorLoggerProvider =
     new : unit -> ErrorLoggerProvider
     abstract CreateErrorLoggerUpToMaxErrors : tcConfigBuilder : TcConfigBuilder * exiter : Exiter -> ErrorLogger
 
-/// The default ErrorLoggerProvider implementation, reporting messages to the Console up to the maxerrors maximum
-type ConsoleLoggerProvider = 
-    new : unit -> ConsoleLoggerProvider
-    inherit ErrorLoggerProvider
+type StrongNameSigningInfo 
 
-/// Encode the F# interface data into a set of IL attributes and resources
-val EncodeSignatureData:
-    tcConfig:TcConfig *
-    tcGlobals:TcGlobals *
-    exportRemapping:Remap *
-    generatedCcu: CcuThunk *
-    outfile: string *
-    isIncrementalBuild: bool
-      -> ILAttribute list * ILResource list
+val EncodeInterfaceData: tcConfig:TcConfig * tcGlobals:TcGlobals * exportRemapping:Remap * generatedCcu: CcuThunk * outfile: string * isIncrementalBuild: bool -> ILAttribute list * ILResource list
 
-/// The main (non-incremental) compilation entry point used by fsc.exe
-val mainCompile: 
+val ValidateKeySigningAttributes : tcConfig:TcConfig * tcGlobals:TcGlobals * TopAttribs -> StrongNameSigningInfo
+
+val GetStrongNameSigner : StrongNameSigningInfo -> ILStrongNameSigner option
+
+/// Process the given set of command line arguments
+val internal ProcessCommandLineFlags : TcConfigBuilder * setProcessThreadLocals:(TcConfigBuilder -> unit) * lcidFromCodePage : int option * argv:string[] -> string list
+
+//---------------------------------------------------------------------------
+// The entry point used by fsc.exe
+
+val mainCompile : 
     ctok: CompilationThreadToken *
     argv: string[] * 
     legacyReferenceResolver: ReferenceResolver.Resolver * 
     bannerAlreadyPrinted: bool * 
     reduceMemoryUsage: ReduceMemoryFlag * 
     defaultCopyFSharpCore: CopyFSharpCoreFlag * 
+    defaultToDotNetFramework: bool option *
     exiter: Exiter * 
     loggerProvider: ErrorLoggerProvider * 
     tcImportsCapture: (TcImports -> unit) option *
-    dynamicAssemblyCreator: (TcConfig * TcGlobals * string * ILModuleDef -> unit) option
+    dynamicAssemblyCreator: (TcGlobals * string * ILModuleDef -> unit) option
       -> unit
 
-/// An additional compilation entry point used by FSharp.Compiler.Service taking syntax trees as input
-val compileOfAst: 
+val compileOfAst : 
     ctok: CompilationThreadToken *
     legacyReferenceResolver: ReferenceResolver.Resolver * 
     reduceMemoryUsage: ReduceMemoryFlag * 
@@ -64,7 +63,7 @@ val compileOfAst:
     loggerProvider: ErrorLoggerProvider * 
     inputs:ParsedInput list *
     tcImportsCapture : (TcImports -> unit) option *
-    dynamicAssemblyCreator: (TcConfig * TcGlobals * string * ILModuleDef -> unit) option
+    dynamicAssemblyCreator: (TcGlobals * string * ILModuleDef -> unit) option
       -> unit
 
 /// Part of LegacyHostedCompilerForTesting
@@ -74,3 +73,14 @@ type InProcErrorLoggerProvider =
     member CapturedWarnings : Diagnostic[]
     member CapturedErrors : Diagnostic[]
 
+/// The default ErrorLogger implementation, reporting messages to the Console up to the maxerrors maximum
+type ConsoleLoggerProvider = 
+    new : unit -> ConsoleLoggerProvider
+    inherit ErrorLoggerProvider
+
+// For unit testing
+module internal MainModuleBuilder =
+    
+    val fileVersion: findStringAttr: (string -> string option) -> assemblyVersion: ILVersionInfo -> ILVersionInfo
+    val productVersion: findStringAttr: (string -> string option) -> fileVersion: ILVersionInfo -> string
+    val productVersionToILVersionInfo: string -> ILVersionInfo

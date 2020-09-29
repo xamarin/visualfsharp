@@ -204,7 +204,7 @@ let TypeCheck (ctok, tcConfig, tcImports, tcGlobals, errorLogger: ErrorLogger, a
         exiter.Exit 1
 
 /// Check for .fsx and, if present, compute the load closure for of #loaded files.
-let AdjustForScriptCompile(ctok, tcConfigB: TcConfigBuilder, commandLineSourceFiles, dependencyProvider) =
+let AdjustForScriptCompile(ctok, tcConfigB: TcConfigBuilder, defaultToDotNetFramework, commandLineSourceFiles, dependencyProvider) =
 
     let combineFilePath file =
         try
@@ -229,7 +229,11 @@ let AdjustForScriptCompile(ctok, tcConfigB: TcConfigBuilder, commandLineSourceFi
             // Pre-infer the target framework from the script
             let sourceText = File.ReadAllText filename
             let source = SourceText.ofString sourceText
-            let defaultToDotNetFramework = true
+
+            // Do we assume .NET Framework references for scripts? In the absence of either explicit argument
+            // or an explicit #targetfx declaration, then for compilation and analysis the default
+            // depends on the toolchain the tooling is are running on.
+            let defaultToDotNetFramework = defaultArg defaultToDotNetFramework (not FSharpEnvironment.isRunningOnCoreClr)
 
             let loadClosure = 
                 LoadClosure.ComputeClosureOfScriptText(ctok, tcConfigB.legacyReferenceResolver, 
@@ -1726,7 +1730,9 @@ type Args<'T> = Args  of 'T
 
 let main0(ctok, argv, legacyReferenceResolver, bannerAlreadyPrinted, 
           reduceMemoryUsage: ReduceMemoryFlag, defaultCopyFSharpCore: CopyFSharpCoreFlag, 
-          exiter: Exiter, errorLoggerProvider : ErrorLoggerProvider, disposables : DisposablesTracker) = 
+          exiter: Exiter, errorLoggerProvider : ErrorLoggerProvider,
+          defaultToDotNetFramework: bool option,
+          disposables : DisposablesTracker) = 
 
     // See Bug 735819 
     let lcidFromCodePage =
@@ -1789,7 +1795,7 @@ let main0(ctok, argv, legacyReferenceResolver, bannerAlreadyPrinted,
         try 
             let sourceFiles = 
                 let files = ProcessCommandLineFlags (tcConfigB, setProcessThreadLocals, lcidFromCodePage, argv)
-                AdjustForScriptCompile(ctok, tcConfigB, files, dependencyProvider)
+                AdjustForScriptCompile(ctok, tcConfigB, defaultToDotNetFramework, files, dependencyProvider)
             sourceFiles
 
         with e -> 
@@ -2222,10 +2228,18 @@ let main4 dynamicAssemblyCreator (Args (ctok, tcConfig,  tcImports: TcImports, t
 // Entry points to compilation
 //-----------------------------------------------------------------------------
 
-/// Entry point typecheckAndCompile
-let typecheckAndCompile 
-       (ctok, argv, legacyReferenceResolver, bannerAlreadyPrinted, reduceMemoryUsage, 
-        defaultCopyFSharpCore, exiter: Exiter, errorLoggerProvider, tcImportsCapture, dynamicAssemblyCreator) =
+let mainCompile 
+        (ctok,
+         argv,
+         legacyReferenceResolver,
+         bannerAlreadyPrinted,
+         reduceMemoryUsage, 
+         defaultCopyFSharpCore,
+         defaultToDotNetFramework,
+         exiter: Exiter,
+         errorLoggerProvider,
+         tcImportsCapture,
+         dynamicAssemblyCreator) =
 
     use d = new DisposablesTracker()
     let savedOut = System.Console.Out
@@ -2236,7 +2250,7 @@ let typecheckAndCompile
                     System.Console.SetOut(savedOut)
                 with _ -> ()}
 
-    main0(ctok, argv, legacyReferenceResolver, bannerAlreadyPrinted, reduceMemoryUsage, defaultCopyFSharpCore, exiter, errorLoggerProvider, d)
+    main0(ctok, argv, legacyReferenceResolver, bannerAlreadyPrinted, reduceMemoryUsage, defaultCopyFSharpCore, exiter, errorLoggerProvider, defaultToDotNetFramework, d)
     |> main1
     |> main2a
     |> main2b (tcImportsCapture,dynamicAssemblyCreator)
@@ -2256,12 +2270,4 @@ let compileOfAst
     |> main2b (tcImportsCapture, dynamicAssemblyCreator)
     |> main3
     |> main4 dynamicAssemblyCreator
-
-let mainCompile 
-        (ctok, argv, legacyReferenceResolver, bannerAlreadyPrinted, reduceMemoryUsage, 
-         defaultCopyFSharpCore, exiter, errorLoggerProvider, tcImportsCapture, dynamicAssemblyCreator) = 
-
-    typecheckAndCompile
-       (ctok, argv, legacyReferenceResolver, bannerAlreadyPrinted, reduceMemoryUsage, 
-        defaultCopyFSharpCore, exiter, errorLoggerProvider, tcImportsCapture, dynamicAssemblyCreator)
 
