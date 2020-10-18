@@ -355,37 +355,28 @@ type BackgroundCompiler(legacyReferenceResolver, projectCacheSize, keepAssemblyC
     // 
     /// Cache of builds keyed by options.        
     let incrementalBuildersCache = 
-        MruCache<AnyCallerThreadToken, FSharpProjectOptions, (IncrementalBuilder option * FSharpErrorInfo[])>
+        MruCache<CompilationThreadToken, FSharpProjectOptions, (IncrementalBuilder option * FSharpErrorInfo[])>
                 (keepStrongly=projectCacheSize, keepMax=projectCacheSize, 
                  areSame =  FSharpProjectOptions.AreSameForChecking, 
                  areSimilar =  FSharpProjectOptions.UseSameProject)
 
-    let tryGetBuilder options =
-        incrementalBuildersCache.TryGet (AssumeAnyCallerThreadWithoutEvidence(), options)
-
-    let tryGetSimilarBuilder options =
-        incrementalBuildersCache.TryGetSimilar (AssumeAnyCallerThreadWithoutEvidence(), options)
-
-    let tryGetAnyBuilder options =
-        incrementalBuildersCache.TryGetAny (AssumeAnyCallerThreadWithoutEvidence(), options)
-
     let getOrCreateBuilder (ctok, options, userOpName) =
       cancellable {
           RequireCompilationThread ctok
-          match tryGetBuilder options with
+          match incrementalBuildersCache.TryGet (ctok, options) with
           | Some (builderOpt,creationErrors) -> 
               Logger.Log LogCompilerFunctionId.Service_IncrementalBuildersCache_GettingCache
               return builderOpt,creationErrors
           | None -> 
               Logger.Log LogCompilerFunctionId.Service_IncrementalBuildersCache_BuildingNewCache
               let! (builderOpt,creationErrors) as info = CreateOneIncrementalBuilder (ctok, options, userOpName)
-              incrementalBuildersCache.Set (AssumeAnyCallerThreadWithoutEvidence(), options, info)
+              incrementalBuildersCache.Set (ctok, options, info)
               return builderOpt, creationErrors
       }
 
     let getSimilarOrCreateBuilder (ctok, options, userOpName) =
         RequireCompilationThread ctok
-        match tryGetSimilarBuilder options with
+        match incrementalBuildersCache.TryGetSimilar (ctok, options) with
         | Some res -> Cancellable.ret res
         // The builder does not exist at all. Create it.
         | None -> getOrCreateBuilder (ctok, options, userOpName)
@@ -599,7 +590,7 @@ type BackgroundCompiler(legacyReferenceResolver, projectCacheSize, keepAssemblyC
                    cancellable {
                     let! _builderOpt,_creationErrors = getOrCreateBuilder (ctok, options, userOpName)
 
-                    match tryGetAnyBuilder options with
+                    match incrementalBuildersCache.TryGetAny (ctok, options) with
                     | Some (Some builder, creationErrors) ->
                         match bc.GetCachedCheckFileResult(builder, filename, sourceText, options) with
                         | Some (_, checkResults) -> return Some (builder, creationErrors, Some (FSharpCheckFileAnswer.Succeeded checkResults))
@@ -929,40 +920,39 @@ type BackgroundCompiler(legacyReferenceResolver, projectCacheSize, keepAssemblyC
             
     member bc.InvalidateConfiguration(options : FSharpProjectOptions, startBackgroundCompileIfAlreadySeen, userOpName) =
         let startBackgroundCompileIfAlreadySeen = defaultArg startBackgroundCompileIfAlreadySeen implicitlyStartBackgroundWork
-
         // This operation can't currently be cancelled nor awaited
         reactor.EnqueueOp(userOpName, "InvalidateConfiguration: Stamp(" + (options.Stamp |> Option.defaultValue 0L).ToString() + ")", options.ProjectFileName, fun ctok -> 
             // If there was a similar entry then re-establish an empty builder .  This is a somewhat arbitrary choice - it
             // will have the effect of releasing memory associated with the previous builder, but costs some time.
-            if incrementalBuildersCache.ContainsSimilarKey (AssumeAnyCallerThreadWithoutEvidence(), options) then
+            if incrementalBuildersCache.ContainsSimilarKey (ctok, options) then
+
                 // We do not need to decrement here - the onDiscard function is called each time an entry is pushed out of the build cache,
                 // including by incrementalBuildersCache.Set.
                 let newBuilderInfo = CreateOneIncrementalBuilder (ctok, options, userOpName) |> Cancellable.runWithoutCancellation
-                incrementalBuildersCache.Set(AssumeAnyCallerThreadWithoutEvidence(), options, newBuilderInfo)
+                incrementalBuildersCache.Set(ctok, options, newBuilderInfo)
 
                 // Start working on the project.  Also a somewhat arbitrary choice
                 if startBackgroundCompileIfAlreadySeen then 
-                    bc.CheckProjectInBackground(options, userOpName + ".StartBackgroundCompile"))
+                   bc.CheckProjectInBackground(options, userOpName + ".StartBackgroundCompile"))
 
     member bc.ClearCache(options : FSharpProjectOptions seq, userOpName) =
         // This operation can't currently be cancelled nor awaited
-        reactor.EnqueueOp(userOpName, "ClearCache", String.Empty, fun _ ->
-            let ctok = AssumeAnyCallerThreadWithoutEvidence()
+        reactor.EnqueueOp(userOpName, "ClearCache", String.Empty, fun ctok -> 
             options
             |> Seq.iter (fun options -> incrementalBuildersCache.RemoveAnySimilar(ctok, options)))
 
     member __.NotifyProjectCleaned (options : FSharpProjectOptions, userOpName) =
         reactor.EnqueueAndAwaitOpAsync(userOpName, "NotifyProjectCleaned", options.ProjectFileName, fun ctok -> 
-            cancellable {
-                // If there was a similar entry (as there normally will have been) then re-establish an empty builder .  This 
-                // is a somewhat arbitrary choice - it will have the effect of releasing memory associated with the previous 
-                // builder, but costs some time.
-                if incrementalBuildersCache.ContainsSimilarKey (AssumeAnyCallerThreadWithoutEvidence(), options) then
-                    // We do not need to decrement here - the onDiscard function is called each time an entry is pushed out of the build cache,
-                    // including by incrementalBuildersCache.Set.
-                    let! newBuilderInfo = CreateOneIncrementalBuilder (ctok, options, userOpName) 
-                    incrementalBuildersCache.Set(AssumeAnyCallerThreadWithoutEvidence(), options, newBuilderInfo)
-            })
+         cancellable {
+            // If there was a similar entry (as there normally will have been) then re-establish an empty builder .  This 
+            // is a somewhat arbitrary choice - it will have the effect of releasing memory associated with the previous 
+            // builder, but costs some time.
+            if incrementalBuildersCache.ContainsSimilarKey (ctok, options) then
+                // We do not need to decrement here - the onDiscard function is called each time an entry is pushed out of the build cache,
+                // including by incrementalBuildersCache.Set.
+                let! newBuilderInfo = CreateOneIncrementalBuilder (ctok, options, userOpName) 
+                incrementalBuildersCache.Set(ctok, options, newBuilderInfo)
+          })
 
     member __.CheckProjectInBackground (options, userOpName) =
         reactor.SetBackgroundOp (Some (userOpName, "CheckProjectInBackground", options.ProjectFileName, (fun ctok ct -> 
@@ -1007,7 +997,7 @@ type BackgroundCompiler(legacyReferenceResolver, projectCacheSize, keepAssemblyC
                 checkFileInProjectCachePossiblyStale.Clear ltok
                 checkFileInProjectCache.Clear ltok
                 parseFileCache.Clear(ltok))
-            incrementalBuildersCache.Clear(AssumeAnyCallerThreadWithoutEvidence())
+            incrementalBuildersCache.Clear ctok
             frameworkTcImportsCache.Clear ctok
             scriptClosureCacheLock.AcquireLock (fun ltok -> scriptClosureCache.Clear ltok)
             cancellable.Return ())
@@ -1015,12 +1005,12 @@ type BackgroundCompiler(legacyReferenceResolver, projectCacheSize, keepAssemblyC
     member __.DownsizeCaches(userOpName) =
         reactor.EnqueueAndAwaitOpAsync (userOpName, "DownsizeCaches", "", fun ctok -> 
             parseCacheLock.AcquireLock (fun ltok -> 
-                checkFileInProjectCachePossiblyStale.Resize(ltok, keepStrongly=1)
-                checkFileInProjectCache.Resize(ltok, keepStrongly=1)
-                parseFileCache.Resize(ltok, keepStrongly=1))
-            incrementalBuildersCache.Resize(AssumeAnyCallerThreadWithoutEvidence(), keepStrongly=1, keepMax=1)
+                checkFileInProjectCachePossiblyStale.Resize(ltok, newKeepStrongly=1)
+                checkFileInProjectCache.Resize(ltok, newKeepStrongly=1)
+                parseFileCache.Resize(ltok, newKeepStrongly=1))
+            incrementalBuildersCache.Resize(ctok, newKeepStrongly=1, newKeepMax=1)
             frameworkTcImportsCache.Downsize(ctok)
-            scriptClosureCacheLock.AcquireLock (fun ltok -> scriptClosureCache.Resize(ltok,keepStrongly=1, keepMax=1))
+            scriptClosureCacheLock.AcquireLock (fun ltok -> scriptClosureCache.Resize(ltok,newKeepStrongly=1, newKeepMax=1))
             cancellable.Return ())
          
     member __.FrameworkImportsCache = frameworkTcImportsCache
@@ -1178,7 +1168,7 @@ type FSharpChecker(legacyReferenceResolver,
        }
       )
 
-    member __.CompileToDynamicAssembly (asts:ParsedInput list, assemblyName:string, dependencies:string list, execute: (TextWriter * TextWriter) option, ?debug:bool, ?noframework:bool, ?userOpName: string) =
+    member __.CompileToDynamicAssembly (ast:ParsedInput list, assemblyName:string, dependencies:string list, execute: (TextWriter * TextWriter) option, ?debug:bool, ?noframework:bool, ?userOpName: string) =
       let userOpName = defaultArg userOpName "Unknown"
       backgroundCompiler.Reactor.EnqueueAndAwaitOpAsync (userOpName, "CompileToDynamicAssembly", assemblyName, fun ctok -> 
        cancellable {
@@ -1201,7 +1191,7 @@ type FSharpChecker(legacyReferenceResolver,
 
         // Perform the compilation, given the above capturing function.
         let errorsAndWarnings, result = 
-            CompileHelpers.compileFromAsts (ctok, legacyReferenceResolver, asts, assemblyName, outFile, dependencies, noframework, None, Some execute.IsSome, tcImportsCapture, dynamicAssemblyCreator)
+            CompileHelpers.compileFromAsts (ctok, legacyReferenceResolver, ast, assemblyName, outFile, dependencies, noframework, None, Some execute.IsSome, tcImportsCapture, dynamicAssemblyCreator)
 
         // Retrieve and return the results
         let assemblyOpt = 
@@ -1235,7 +1225,7 @@ type FSharpChecker(legacyReferenceResolver,
             let userOpName = "MaxMemoryReached"
             backgroundCompiler.CompleteAllQueuedOps()
             maxMemoryReached <- true
-            braceMatchCache.Resize(AssumeAnyCallerThreadWithoutEvidence(), keepStrongly=10)
+            braceMatchCache.Resize(AssumeAnyCallerThreadWithoutEvidence(), newKeepStrongly=10)
             backgroundCompiler.DownsizeCaches(userOpName) |> Async.RunSynchronously
             maxMemEvent.Trigger( () )
 
@@ -1319,13 +1309,13 @@ type FSharpChecker(legacyReferenceResolver,
           ExtraProjectInfo=extraProjectInfo
           Stamp = None }
 
-    member __.GetParsingOptionsFromCommandLineArgs(initialSourceFiles, argv, ?isInteractive) =
+    member __.GetParsingOptionsFromCommandLineArgs(sourceFiles, argv, ?isInteractive) =
         let isInteractive = defaultArg isInteractive false
         use errorScope = new ErrorScope()
         let tcConfigBuilder = TcConfigBuilder.Initial
 
         // Apply command-line arguments and collect more source files if they are in the arguments
-        let sourceFilesNew = ApplyCommandLineArgs(tcConfigBuilder, initialSourceFiles, argv)
+        let sourceFilesNew = ApplyCommandLineArgs(tcConfigBuilder, sourceFiles, argv)
         FSharpParsingOptions.FromTcConfigBuilder(tcConfigBuilder, Array.ofList sourceFilesNew, isInteractive), errorScope.Diagnostics
 
     member ic.GetParsingOptionsFromCommandLineArgs(argv, ?isInteractive: bool) =
