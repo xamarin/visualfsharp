@@ -2092,6 +2092,12 @@ type IncrementalBuilder(tcGlobals, frameworkTcImports, nonFrameworkAssemblyInput
                             Reactor.Singleton.EnqueueOp ("Unknown", "ICompilationThread.EnqueueWork", "work", fun ctok ->
                                 work ctok
                             )
+                        member __.EnqueueWorkAndWait work =
+                            Reactor.Singleton.EnqueueAndAwaitOpAsync("Unknown", "ICompilationThread.EnqueueWorkAndWait", "work", fun ctok ->
+                                cancellable {
+                                    return work ctok
+                                }
+                            ) |> Async.RunSynchronously
                     }
 
                 tcConfigB, sourceFilesNew
