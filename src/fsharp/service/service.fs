@@ -1010,7 +1010,7 @@ type BackgroundCompiler(legacyReferenceResolver, projectCacheSize, keepAssemblyC
                 parseFileCache.Resize(ltok, newKeepStrongly=1))
             incrementalBuildersCache.Resize(ctok, newKeepStrongly=1, newKeepMax=1)
             frameworkTcImportsCache.Downsize(ctok)
-            scriptClosureCacheLock.AcquireLock (fun ltok -> scriptClosureCache.Resize(ltok,newKeepStrongly=1, newKeepMax=1))
+            scriptClosureCache.Resize(AnyCallerThread,newKeepStrongly=1, newKeepMax=1)
             cancellable.Return ())
          
     member __.FrameworkImportsCache = frameworkTcImportsCache
