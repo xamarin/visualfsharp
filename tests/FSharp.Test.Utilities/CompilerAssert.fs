@@ -137,9 +137,7 @@ let main argv = 0"""
         let mutable output = ""
         let mutable errors = ""
         let mutable cleanUp = true
-        let pathToArtifacts = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "../../../.."))
-        if Path.GetFileName(pathToArtifacts) <> "artifacts" then failwith "CompilerAssert did not find artifacts directory --- has the location changed????"
-        let pathToTemp = Path.Combine(pathToArtifacts, "Temp")
+        let pathToTemp = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "../../../../Temp"))
         let projectDirectory = Path.Combine(pathToTemp, "CompilerAssert", Path.GetRandomFileName())
         let pathToFSharpCore = typeof<RequireQualifiedAccessAttribute>.Assembly.Location
         try
@@ -462,7 +460,7 @@ let main argv = 0"""
         "tfm": "netcoreapp3.1",
         "framework": {
             "name": "Microsoft.NETCore.App",
-            "version": "5.0.0"
+            "version": "3.1.0"
         }
     }
 }"""
