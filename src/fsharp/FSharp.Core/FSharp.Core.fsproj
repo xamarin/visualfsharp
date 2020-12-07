@@ -256,6 +256,13 @@
     </ItemGroup>
     <Copy SourceFiles="$(IntermediateOutputPath)\FSharp.Core.sigdata" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />
     <Copy SourceFiles="$(IntermediateOutputPath)\FSharp.Core.optdata" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />
+  <Target Name="CopyToBuiltBin" BeforeTargets="BuiltProjectOutputGroup" AfterTargets="CoreCompile">
+    <PropertyGroup>
+      <BuildOutputGroupLocation>$(BaseOutputPath)\$(Configuration)\$(TargetFramework)</BuildOutputGroupLocation>
+    </PropertyGroup>
+    <ItemGroup>
+      <BuiltProjectOutputGroupKeyOutput Include="$(BuildOutputGroupLocation)\FSharp.Core.xml" />
+    </ItemGroup>
   </Target>
 
 </Project>
