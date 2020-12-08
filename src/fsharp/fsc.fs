@@ -1763,8 +1763,7 @@ type Args<'T> = Args  of 'T
 
 let main0(ctok, argv, legacyReferenceResolver, bannerAlreadyPrinted, 
           reduceMemoryUsage: ReduceMemoryFlag, defaultCopyFSharpCore: CopyFSharpCoreFlag, 
-          exiter: Exiter, errorLoggerProvider : ErrorLoggerProvider,
-          disposables : DisposablesTracker) = 
+          exiter: Exiter, errorLoggerProvider : ErrorLoggerProvider, disposables : DisposablesTracker) = 
 
     // See Bug 735819 
     let lcidFromCodePage =
