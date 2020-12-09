@@ -3,13 +3,11 @@
 namespace Microsoft.VisualStudio.FSharp.Editor
 
 open System
-open System.Collections.Immutable
 open System.Collections.Generic
 open System.Threading
 open System.Threading.Tasks
 open Microsoft.CodeAnalysis
 open Microsoft.CodeAnalysis.Text
-open Microsoft.CodeAnalysis.Diagnostics
 open FSharp.Compiler
 open FSharp.Compiler.Layout
 open FSharp.Compiler.SourceCodeServices
@@ -18,7 +16,12 @@ open Microsoft.VisualStudio.FSharp.Editor.Logging
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Diagnostics
 
 [<RequireQualifiedAccess>]
-module RoslynHelpers =
+module internal RoslynHelpers =
+    let joinWithLineBreaks segments =
+        let lineBreak = TaggedTextOps.Literals.lineBreak
+        match segments |> List.filter (Seq.isEmpty >> not) with
+        | [] -> Seq.empty
+        | xs -> xs |> List.reduce (fun acc elem -> seq { yield! acc; yield lineBreak; yield! elem })
 
     let FSharpRangeToTextSpan(sourceText: SourceText, range: range) =
         // Roslyn TextLineCollection is zero-based, F# range lines are one-based
@@ -46,8 +49,6 @@ module RoslynHelpers =
         else
             Assert.Exception(task.Exception.GetBaseException())
             raise(task.Exception.GetBaseException())
-
-
 
     /// maps from `LayoutTag` of the F# Compiler to Roslyn `TextTags` for use in tooltips
     let roslynTag = function
@@ -118,7 +119,6 @@ module RoslynHelpers =
                           tcs.TrySetCanceled(cancellationToken)  |> ignore
                       | exn ->
                           System.Diagnostics.Trace.WriteLine("Visual F# Tools: exception swallowed and not passed to Roslyn: {0}", exn.Message)
-                          System.Diagnostics.Trace.WriteLine(exn.StackTrace)
                           let res = Unchecked.defaultof<_>
                           tcs.TrySetResult(res) |> ignore
                   ),
@@ -215,4 +215,3 @@ module internal OpenDeclarationHelper =
             else sourceText
 
         sourceText, minPos |> Option.defaultValue 0
-
