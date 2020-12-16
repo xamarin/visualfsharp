@@ -41,6 +41,7 @@ open FSharp.Compiler.Features
 open FSharp.Compiler.IlxGen
 open FSharp.Compiler.InfoReader
 open FSharp.Compiler.NameResolution
+open FSharp.Compiler.Layout
 open FSharp.Compiler.Lexhelp
 open FSharp.Compiler.Lib
 open FSharp.Compiler.ParseAndCheckInputs
@@ -52,15 +53,14 @@ open FSharp.Compiler.ScriptClosure
 open FSharp.Compiler.SourceCodeServices
 open FSharp.Compiler.SyntaxTree
 open FSharp.Compiler.SyntaxTreeOps
-open FSharp.Compiler.TextLayout
-open FSharp.Compiler.TextLayout.Layout
-open FSharp.Compiler.TextLayout.LayoutRender
 open FSharp.Compiler.TypedTree
 open FSharp.Compiler.TypedTreeOps
 open FSharp.Compiler.TcGlobals
 open FSharp.Compiler.Text
 open FSharp.Compiler.XmlDoc
+
 open Internal.Utilities
+open Internal.Utilities.StructuredFormat
 
 open Microsoft.DotNet.DependencyManager
 
@@ -84,13 +84,13 @@ type FsiBoundValue(name: string, value: FsiValue) =
 [<AutoOpen>]
 module internal Utilities = 
     type IAnyToLayoutCall = 
-        abstract AnyToLayout : FormatOptions * obj * Type -> Layout
-        abstract FsiAnyToLayout : FormatOptions * obj * Type -> Layout
+        abstract AnyToLayout : FormatOptions * obj * Type -> Internal.Utilities.StructuredFormat.Layout
+        abstract FsiAnyToLayout : FormatOptions * obj * Type -> Internal.Utilities.StructuredFormat.Layout
 
     type private AnyToLayoutSpecialization<'T>() = 
         interface IAnyToLayoutCall with
-            member this.AnyToLayout(options, o : obj, ty : Type) = Display.any_to_layout options ((Unchecked.unbox o : 'T), ty)
-            member this.FsiAnyToLayout(options, o : obj, ty : Type) = Display.fsi_any_to_layout options ((Unchecked.unbox o : 'T), ty)
+            member this.AnyToLayout(options, o : obj, ty : Type) = Internal.Utilities.StructuredFormat.Display.any_to_layout options ((Unchecked.unbox o : 'T), ty)
+            member this.FsiAnyToLayout(options, o : obj, ty : Type) = Internal.Utilities.StructuredFormat.Display.fsi_any_to_layout options ((Unchecked.unbox o : 'T), ty)
     
     let getAnyToLayoutCall ty = 
         let specialized = typedefof<AnyToLayoutSpecialization<_>>.MakeGenericType [| ty |]
@@ -181,8 +181,8 @@ module internal Utilities =
             }
 
         layout
-        |> Display.squash_layout opts
-        |> LayoutRender.renderL renderer
+        |> Internal.Utilities.StructuredFormat.Display.squash_layout opts
+        |> Layout.renderL renderer
         |> ignore
 
         outWriter.WriteLine()
@@ -311,17 +311,17 @@ type FsiEvaluationSessionHostConfig () =
 
 /// Used to print value signatures along with their values, according to the current
 /// set of pretty printers installed in the system, and default printing rules.
-type internal FsiValuePrinter(fsi: FsiEvaluationSessionHostConfig, tcConfigB: TcConfigBuilder, g: TcGlobals, generateDebugInfo, resolveAssemblyRef, outWriter: TextWriter) = 
+type internal FsiValuePrinter(fsi: FsiEvaluationSessionHostConfig, g: TcGlobals, generateDebugInfo, resolveAssemblyRef, outWriter: TextWriter) = 
 
     /// This printer is used by F# Interactive if no other printers apply.
-    let DefaultPrintingIntercept (ienv: IEnvironment) (obj:obj) = 
+    let DefaultPrintingIntercept (ienv: Internal.Utilities.StructuredFormat.IEnvironment) (obj:obj) = 
        match obj with 
        | null -> None 
        | :? System.Collections.IDictionary as ie ->
           let it = ie.GetEnumerator() 
           try 
               let itemLs = 
-                  Layout.unfoldL // the function to layout each object in the unfold
+                  Internal.Utilities.StructuredFormat.LayoutOps.unfoldL // the function to layout each object in the unfold
                           (fun obj -> ienv.GetLayout obj) 
                           // the function to call at each step of the unfold
                           (fun () -> 
@@ -331,10 +331,10 @@ type internal FsiValuePrinter(fsi: FsiEvaluationSessionHostConfig, tcConfigB: Tc
                           // the maximum length
                           (1+fsi.PrintLength/3) 
               let makeListL itemLs =
-                (leftL (TaggedText.tagText "[")) ^^
-                sepListL (rightL (TaggedText.tagText ";")) itemLs ^^
-                (rightL (TaggedText.tagText "]"))
-              Some(wordL (TaggedText.tagText "dict") --- makeListL itemLs)
+                (leftL (TaggedTextOps.tagText "[")) ^^
+                sepListL (rightL (TaggedTextOps.tagText ";")) itemLs ^^
+                (rightL (TaggedTextOps.tagText "]"))
+              Some(wordL (TaggedTextOps.tagText "dict") --- makeListL itemLs)
           finally
              match it with 
              | :? System.IDisposable as d -> d.Dispose()
@@ -345,7 +345,7 @@ type internal FsiValuePrinter(fsi: FsiEvaluationSessionHostConfig, tcConfigB: Tc
 
     /// Get the print options used when formatting output using the structured printer.
     member __.GetFsiPrintOptions() = 
-        { FormatOptions.Default with 
+        { Internal.Utilities.StructuredFormat.FormatOptions.Default with 
               FormatProvider = fsi.FormatProvider;
               PrintIntercepts = 
                   // The fsi object supports the addition of two kinds of printers, one which converts to a string
@@ -360,7 +360,7 @@ type internal FsiValuePrinter(fsi: FsiEvaluationSessionHostConfig, tcConfigB: Tc
                                    | _ when aty.IsAssignableFrom(obj.GetType())  ->  
                                        match printer obj with 
                                        | null -> None
-                                       | s -> Some (wordL (TaggedText.tagText s)) 
+                                       | s -> Some (wordL (TaggedTextOps.tagText s)) 
                                    | _ -> None)
                                    
                          | Choice2Of2 (aty: System.Type, converter) -> 
@@ -383,7 +383,7 @@ type internal FsiValuePrinter(fsi: FsiEvaluationSessionHostConfig, tcConfigB: Tc
 
     /// Get the evaluation context used when inverting the storage mapping of the ILRuntimeWriter.
     member __.GetEvaluationContext emEnv = 
-        let cenv = { ilg = g.ilg ; emitTailcalls= tcConfigB.emitTailcalls; generatePdb = generateDebugInfo; resolveAssemblyRef=resolveAssemblyRef; tryFindSysILTypeRef=g.TryFindSysILTypeRef }
+        let cenv = { ilg = g.ilg ; generatePdb = generateDebugInfo; resolveAssemblyRef=resolveAssemblyRef; tryFindSysILTypeRef=g.TryFindSysILTypeRef }
         { LookupFieldRef = ILRuntimeWriter.LookupFieldRef emEnv >> Option.get
           LookupMethodRef = ILRuntimeWriter.LookupMethodRef emEnv >> Option.get
           LookupTypeRef = ILRuntimeWriter.LookupTypeRef cenv emEnv 
@@ -414,13 +414,13 @@ type internal FsiValuePrinter(fsi: FsiEvaluationSessionHostConfig, tcConfigB: Tc
               | PrintExpr -> 
                   anyToLayoutCall.AnyToLayout(opts, x, ty)
         with 
-        | :? ThreadAbortException -> Layout.wordL (TaggedText.tagText "")
+        | :? ThreadAbortException -> Layout.wordL (TaggedTextOps.tagText "")
         | e ->
 #if DEBUG
           printf "\n\nPrintValue: x = %+A and ty=%s\n" x (ty.FullName)
 #endif
           printf "%s" (FSIstrings.SR.fsiExceptionDuringPrettyPrinting(e.ToString())); 
-          Layout.wordL (TaggedText.tagText "")
+          Layout.wordL (TaggedTextOps.tagText "")
             
     /// Display the signature of an F# value declaration, along with its actual value.
     member valuePrinter.InvokeDeclLayout (emEnv, ilxGenerator: IlxAssemblyGenerator, v:Val) =
@@ -467,7 +467,7 @@ type internal FsiValuePrinter(fsi: FsiEvaluationSessionHostConfig, tcConfigB: Tc
     member valuePrinter.FormatValue (obj:obj, objTy) = 
         let opts        = valuePrinter.GetFsiPrintOptions()
         let lay = valuePrinter.PrintValue (FsiValuePrinterMode.PrintExpr, opts, obj, objTy)
-        Display.layout_to_string opts lay
+        Internal.Utilities.StructuredFormat.Display.layout_to_string opts lay
     
     /// Fetch the saved value of an expression out of the 'it' register and show it.
     member valuePrinter.InvokeExprPrinter (denv, emEnv, ilxGenerator: IlxAssemblyGenerator, vref) = 
@@ -484,7 +484,7 @@ type internal FsiValuePrinter(fsi: FsiEvaluationSessionHostConfig, tcConfigB: Tc
             if Option.isNone rhsL || isEmptyL rhsL.Value then
                 NicePrint.prettyLayoutOfValOrMemberNoInst denv vref (* the rhs was suppressed by the printer, so no value to print *)
             else
-                (NicePrint.prettyLayoutOfValOrMemberNoInst denv vref ++ wordL (TaggedText.tagText "=")) --- rhsL.Value
+                (NicePrint.prettyLayoutOfValOrMemberNoInst denv vref ++ wordL (TaggedTextOps.tagText "=")) --- rhsL.Value
 
         Utilities.colorPrintL outWriter opts fullL
 
@@ -1102,7 +1102,7 @@ type internal FsiDynamicCompiler
 
     let generateDebugInfo = tcConfigB.debuginfo
 
-    let valuePrinter = FsiValuePrinter(fsi, tcConfigB, tcGlobals, generateDebugInfo, resolveAssemblyRef, outWriter)
+    let valuePrinter = FsiValuePrinter(fsi, tcGlobals, generateDebugInfo, resolveAssemblyRef, outWriter)
 
     let assemblyBuilder,moduleBuilder = ILRuntimeWriter.mkDynamicAssemblyAndModule (assemblyName, tcConfigB.optSettings.localOpt(), generateDebugInfo, fsiCollectible)
 
@@ -1153,14 +1153,14 @@ type internal FsiDynamicCompiler
 
         ReportTime tcConfig "Reflection.Emit";
 
-        let emEnv,execs = ILRuntimeWriter.emitModuleFragment(ilGlobals, tcConfig.emitTailcalls, emEnv, assemblyBuilder, moduleBuilder, mainmod3, generateDebugInfo, resolveAssemblyRef, tcGlobals.TryFindSysILTypeRef)
+        let emEnv,execs = ILRuntimeWriter.emitModuleFragment(ilGlobals, emEnv, assemblyBuilder, moduleBuilder, mainmod3, generateDebugInfo, resolveAssemblyRef, tcGlobals.TryFindSysILTypeRef)
 
         errorLogger.AbortOnError(fsiConsoleOutput);
 
         // Explicitly register the resources with the QuotationPickler module 
         // We would save them as resources into the dynamic assembly but there is missing 
         // functionality System.Reflection for dynamic modules that means they can't be read back out 
-        let cenv = { ilg = ilGlobals ; emitTailcalls = tcConfig.emitTailcalls; generatePdb = generateDebugInfo; resolveAssemblyRef=resolveAssemblyRef; tryFindSysILTypeRef=tcGlobals.TryFindSysILTypeRef }
+        let cenv = { ilg = ilGlobals ; generatePdb = generateDebugInfo; resolveAssemblyRef=resolveAssemblyRef; tryFindSysILTypeRef=tcGlobals.TryFindSysILTypeRef }
         for (referencedTypeDefs, bytes) in codegenResults.quotationResourceInfo do 
             let referencedTypes = 
                 [| for tref in referencedTypeDefs do 
@@ -1203,7 +1203,7 @@ type internal FsiDynamicCompiler
 
             for (TImplFile (_qname,_,mexpr,_,_,_)) in declaredImpls do
                 let responseL = NicePrint.layoutInferredSigOfModuleExpr false denv infoReader AccessibleFromSomewhere rangeStdin mexpr 
-                if not (isEmptyL responseL) then
+                if not (Layout.isEmptyL responseL) then
                     let opts = valuePrinter.GetFsiPrintOptions()
                     Utilities.colorPrintL outWriter opts responseL |> ignore
 
@@ -1525,7 +1525,6 @@ type internal FsiDynamicCompiler
            (fun () ->
                ProcessMetaCommandsFromInput 
                    ((fun st (m,nm) -> tcConfigB.TurnWarningOff(m,nm); st),
-                    (fun st (m,nm) -> tcConfigB.CheckExplicitFrameworkDirective(nm, m); st),
                     (fun st (m, path, directive) -> 
 
                         let dm = tcImports.DependencyProvider.TryFindDependencyManagerInPath(tcConfigB.compilerToolPaths, getOutputDir tcConfigB, reportError m, path)
@@ -1630,7 +1629,7 @@ type internal FsiDynamicCompiler
                 invalidArg "name" "Name cannot be null or white-space."
 
             // Verify that the name is a valid identifier for a value.
-            SourceCodeServices.FSharpLexer.Lex(SourceText.ofString name, 
+            SourceCodeServices.Lexer.FSharpLexer.Lex(SourceText.ofString name, 
                 let mutable foundOne = false
                 fun t -> 
                     if not t.IsIdentifier || foundOne then
@@ -2013,7 +2012,7 @@ type internal FsiStdinLexerProvider
     // Reading stdin as a lex stream
     //----------------------------------------------------------------------------
 
-    let removeZeroCharsFromString (str:string) = (* bug:/4466 *)
+    let removeZeroCharsFromString (str:string) = (* bug://4466 *)
         if str<>null && str.Contains("\000") then
           System.String(str |> Seq.filter (fun c -> c<>'\000') |> Seq.toArray)
         else
@@ -2217,18 +2216,6 @@ type internal FsiInteractionProcessor
 
             | IHash (ParsedHashDirective("i", [path], m), _) -> 
                 packageManagerDirective Directive.Include path m
-
-            | IHash (ParsedHashDirective("targetfx", [fx], m), _) -> 
-                match fx with 
-                | "netfx" -> 
-                    if FSharpEnvironment.isRunningOnCoreClr then
-                        warning(Error(FSComp.SR.fsiWrongFrameworkNetCore(), m))
-                | "netcore" -> 
-                    if not FSharpEnvironment.isRunningOnCoreClr then
-                        warning(Error(FSComp.SR.fsiWrongFrameworkNetFx(), m))
-                | _ -> 
-                   errorR(Error(FSComp.SR.buildInvalidHashtimeDirective(), m))
-                istate,Completed None
 
             | IHash (ParsedHashDirective("I", [path], m), _) -> 
                 tcConfigB.AddIncludePath (m, path, tcConfig.implicitIncludeDir)
@@ -2722,7 +2709,7 @@ let internal DriveFsiEventLoop (fsi: FsiEvaluationSessionHostConfig, fsiConsoleO
     runLoop();
 
 /// Thrown when there was an error compiling the given code in FSI.
-type FsiCompilationException(message: string, errorInfos: FSharpDiagnostic[] option) =
+type FsiCompilationException(message: string, errorInfos: FSharpErrorInfo[] option) =
     inherit System.Exception(message)
     member __.ErrorInfos = errorInfos
 
@@ -2766,11 +2753,10 @@ type FsiEvaluationSession (fsi: FsiEvaluationSessionHostConfig, argv:string[], i
         | Some rr -> rr
 
     // We know the target framework up front
-    let inferredTargetFramework =
-        { InferredFramework = TargetFrameworkForScripts (if FSharpEnvironment.isRunningOnCoreClr then "netcore" else "netfx")
-          WhereInferred = None }
+    let targetFramework =
+        TargetFrameworkForScripts (if FSharpEnvironment.isRunningOnCoreClr then PrimaryAssembly.System_Runtime else PrimaryAssembly.Mscorlib)
 
-    let fxResolver = FxResolver(ReduceMemoryFlag.Yes, tryGetMetadataSnapshot, Some inferredTargetFramework.UseDotNetFramework)
+    let fxResolver = FxResolver(Some targetFramework.UseDotNetFramework)
 
     let tcConfigB =
         TcConfigBuilder.CreateNew(legacyReferenceResolver, 
@@ -2782,7 +2768,7 @@ type FsiEvaluationSession (fsi: FsiEvaluationSessionHostConfig, argv:string[], i
             isInvalidationSupported=false, 
             defaultCopyFSharpCore=CopyFSharpCoreFlag.No, 
             tryGetMetadataSnapshot=tryGetMetadataSnapshot,
-            inferredTargetFrameworkForScripts=Some inferredTargetFramework
+            targetFrameworkForScripts=Some targetFramework
          )
 
     let tcConfigP = TcConfigProvider.BasedOnMutableBuilder(tcConfigB)

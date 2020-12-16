@@ -21,14 +21,12 @@ open FSharp.Compiler.CompilerGlobalState
 open FSharp.Compiler.CompilerConfig
 open FSharp.Compiler.CompilerDiagnostics
 open FSharp.Compiler.CompilerImports
-open FSharp.Compiler.DotNetFrameworkDependencies
 open FSharp.Compiler.ErrorLogger
 open FSharp.Compiler.Lexhelp
 open FSharp.Compiler.Lib
 open FSharp.Compiler.NameResolution
 open FSharp.Compiler.ParseHelpers
 open FSharp.Compiler.PrettyNaming
-open FSharp.Compiler.SourceCodeServices
 open FSharp.Compiler.SyntaxTree
 open FSharp.Compiler.SyntaxTreeOps
 open FSharp.Compiler.Range
@@ -441,6 +439,7 @@ let ProcessMetaCommandsFromInput
                | _ -> 
                    errorR(Error(FSComp.SR.buildInvalidHashIDirective(), m))
                    state
+
             | ParsedHashDirective("nowarn",numbers,m) ->
                List.fold (fun state d -> nowarnF state (m,d)) state numbers
 
@@ -526,21 +525,21 @@ let ApplyNoWarnsToTcConfig (tcConfig: TcConfig, inp: ParsedInput, pathOfMetaComm
     // Clone
     let tcConfigB = tcConfig.CloneToBuilder() 
     let addNoWarn = fun () (m,s) -> tcConfigB.TurnWarningOff(m, s)
-    let addReference = fun () (_m, _s, _) -> ()
+    let addReferenceDirective = fun () (_m, _s, _) -> ()
     let addLoadedSource = fun () (_m, _s) -> ()
     ProcessMetaCommandsFromInput
-        (addNoWarn, addReference, addLoadedSource)
+        (addNoWarn, addReferenceDirective, addLoadedSource)
         (tcConfigB, inp, pathOfMetaCommandSource, ())
     TcConfig.Create(tcConfigB, validate=false)
 
 let ApplyMetaCommandsFromInputToTcConfig (tcConfig: TcConfig, inp: ParsedInput, pathOfMetaCommandSource, dependencyProvider) = 
     // Clone
     let tcConfigB = tcConfig.CloneToBuilder()
-    let getWarningNumber = fun () _ -> () 
-    let addReferenceDirective = fun () (m, path, directive) -> tcConfigB.AddReferenceDirective(dependencyProvider, m, path, directive)
-    let addLoadedSource = fun () (m,s) -> tcConfigB.AddLoadedSource(m,s,pathOfMetaCommandSource)
+    let addNoWarn () _ = () 
+    let addReferenceDirective () (m, path, directive) = tcConfigB.AddReferenceDirective(dependencyProvider, m, path, directive)
+    let addLoadedSource () (m,s) = tcConfigB.AddLoadedSource(m,s,pathOfMetaCommandSource)
     ProcessMetaCommandsFromInput
-        (getWarningNumber, addReferenceDirective, addLoadedSource)
+        (addNoWarn, addReferenceDirective, addLoadedSource)
         (tcConfigB, inp, pathOfMetaCommandSource, ())
     TcConfig.Create(tcConfigB, validate=false)
 

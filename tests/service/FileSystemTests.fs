@@ -105,7 +105,6 @@ let ``FileSystem compilation test``() =
           UseScriptResolutionRules = true 
           LoadTime = System.DateTime.Now // Not 'now', we don't want to force reloading
           UnresolvedReferences = None 
-          InferredTargetFrameworkForScripts = None
           OriginalLoadReferences = []
           ExtraProjectInfo = None 
           Stamp = None }
