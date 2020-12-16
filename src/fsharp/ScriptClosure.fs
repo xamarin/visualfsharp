@@ -135,7 +135,7 @@ module ScriptPreprocessClosure =
         let isInteractive = (codeContext = CodeContext.CompilationAndEvaluation)
         let isInvalidationSupported = (codeContext = CodeContext.Editing)
 
-        let fxResolver = FxResolver(reduceMemoryUsage, tryGetMetadataSnapshot, Some inferredTargetFramework.UseDotNetFramework)
+        let fxResolver = FxResolver(Some inferredTargetFramework.UseDotNetFramework)
 
         let tcConfigB = 
             TcConfigBuilder.CreateNew
@@ -404,8 +404,8 @@ module ScriptPreprocessClosure =
 
         result
 
-    let InferTargetFrameworkForScript (_fileName, defaultToDotNetFramework: bool) =
-        TargetFrameworkForScripts (if defaultToDotNetFramework then PrimaryAssembly.Mscorlib else PrimaryAssembly.System_Runtime)
+    let InferTargetFrameworkForScript (_fileName, useDotNetFramework: bool) =
+        TargetFrameworkForScripts (if useDotNetFramework then PrimaryAssembly.Mscorlib else PrimaryAssembly.System_Runtime)
 
     /// Given source text, find the full load closure. Used from service.fs, when editing a script file
     let GetFullClosureOfScriptText
@@ -413,7 +413,7 @@ module ScriptPreprocessClosure =
             filename, sourceText: ISourceText, codeContext, 
             useSimpleResolution, useFsiAuxLib, useSdkRefs,
             lexResourceManager: Lexhelp.LexResourceManager, 
-            applyCommandLineArgs, defaultToDotNetFramework,
+            applyCommandLineArgs, useDotNetFramework,
             tryGetMetadataSnapshot, reduceMemoryUsage, dependencyProvider) =
 
         // Resolve the basic references such as FSharp.Core.dll first, before processing any #I directives in the script
@@ -422,7 +422,7 @@ module ScriptPreprocessClosure =
         // first, then #I and other directives are processed.
         //
         // We first infer the explicit framework from the root script.
-        let inferredTargetFramework = InferTargetFrameworkForScript (filename, defaultToDotNetFramework)
+        let inferredTargetFramework = InferTargetFrameworkForScript (filename, useDotNetFramework)
 
         let useDotNetFramework = inferredTargetFramework.UseDotNetFramework
 
@@ -468,21 +468,21 @@ type LoadClosure with
     /// same arguments as the rest of the application.
     static member ComputeClosureOfScriptText
                      (ctok, legacyReferenceResolver, defaultFSharpBinariesDir, 
-                      filename: string, sourceText: ISourceText, codeContext, useSimpleResolution: bool, 
+                      filename: string, sourceText: ISourceText, implicitDefines, useSimpleResolution: bool, 
                       useFsiAuxLib, useSdkRefs, lexResourceManager: Lexhelp.LexResourceManager, 
-                      applyCommandLineArgs, defaultToDotNetFramework, tryGetMetadataSnapshot,
+                      applyCompilerOptions, useDotNetFramework, tryGetMetadataSnapshot,
                       reduceMemoryUsage, dependencyProvider) = 
 
         use unwindBuildPhase = PushThreadBuildPhaseUntilUnwind BuildPhase.Parse
         ScriptPreprocessClosure.GetFullClosureOfScriptText
             (ctok, legacyReferenceResolver, defaultFSharpBinariesDir, filename, sourceText, 
-             codeContext, useSimpleResolution, useFsiAuxLib, useSdkRefs, lexResourceManager, 
-             applyCommandLineArgs, defaultToDotNetFramework, tryGetMetadataSnapshot, reduceMemoryUsage, dependencyProvider)
+             implicitDefines, useSimpleResolution, useFsiAuxLib, useSdkRefs, lexResourceManager, 
+             applyCompilerOptions, useDotNetFramework, tryGetMetadataSnapshot, reduceMemoryUsage, dependencyProvider)
 
     /// Analyze a set of script files and find the closure of their references.
     static member ComputeClosureOfScriptFiles
-                     (ctok, tcConfig: TcConfig, files:(string*range) list, codeContext,
+                     (ctok, tcConfig: TcConfig, files:(string*range) list, implicitDefines,
                       lexResourceManager: Lexhelp.LexResourceManager, dependencyProvider) =
 
         use unwindBuildPhase = PushThreadBuildPhaseUntilUnwind BuildPhase.Parse
-        ScriptPreprocessClosure.GetFullClosureOfScriptFiles (ctok, tcConfig, files, codeContext, lexResourceManager, dependencyProvider)
+        ScriptPreprocessClosure.GetFullClosureOfScriptFiles (ctok, tcConfig, files, implicitDefines, lexResourceManager, dependencyProvider)
