@@ -93,14 +93,6 @@ type AssemblyReference =
 
 type UnresolvedAssemblyReference = UnresolvedAssemblyReference of string * AssemblyReference list
 
-/// The thread in which compilation calls will be enqueued and done work on.
-/// Note: This is currently only used when disposing of type providers and will be extended to all the other type provider calls when compilations can be done in parallel.
-///       Right now all calls in FCS to type providers are single-threaded through use of the reactor thread. 
-type ICompilationThread =
-
-    /// Enqueue work to be done on a compilation thread.
-    abstract EnqueueWork: (CompilationThreadToken -> unit) -> unit
-
 [<RequireQualifiedAccess>]
 type CompilerTarget = 
     | WinExe 
@@ -139,16 +131,6 @@ type PackageManagerLine =
     static member SetLinesAsProcessed: string -> Map<string, PackageManagerLine list> -> Map<string, PackageManagerLine list>
     static member StripDependencyManagerKey: string -> string -> string
 
-/// A target framework option specified in a script
-type TargetFrameworkForScripts =
-    | TargetFrameworkForScripts of PrimaryAssembly
-
-    /// The kind of primary assembly associated with the compilation
-    member PrimaryAssembly: PrimaryAssembly
-
-    /// Indicates if the target framework is a .NET Framework target
-    member UseDotNetFramework: bool
-
 [<NoEquality; NoComparison>]
 type TcConfigBuilder =
     { mutable primaryAssembly: PrimaryAssembly
@@ -162,7 +144,6 @@ type TcConfigBuilder =
       mutable includes: string list
       mutable implicitOpens: string list
       mutable useFsiAuxLib: bool
-      mutable targetFrameworkForScripts : TargetFrameworkForScripts option
       mutable framework: bool
       mutable resolutionEnvironment: ReferenceResolver.ResolutionEnvironment
       mutable implicitlyResolveAssemblies: bool
@@ -264,7 +245,6 @@ type TcConfigBuilder =
 #if !NO_EXTENSIONTYPING
       mutable showExtensionTypeMessages: bool
 #endif
-      mutable compilationThread: ICompilationThread
       mutable pause: bool 
       mutable alwaysCallVirt: bool
       mutable noDebugData: bool
@@ -304,8 +284,7 @@ type TcConfigBuilder =
         isInteractive: bool * 
         isInvalidationSupported: bool *
         defaultCopyFSharpCore: CopyFSharpCoreFlag *
-        tryGetMetadataSnapshot: ILReaderTryGetMetadataSnapshot *
-        targetFrameworkForScripts: TargetFrameworkForScripts option
+        tryGetMetadataSnapshot: ILReaderTryGetMetadataSnapshot
           -> TcConfigBuilder
 
     member DecideNames: string list -> outfile: string * pdbfile: string option * assemblyName: string 
@@ -351,7 +330,6 @@ type TcConfig =
     member includes: string list
     member implicitOpens: string list
     member useFsiAuxLib: bool
-    member targetFrameworkForScripts: TargetFrameworkForScripts option
     member framework: bool
     member implicitlyResolveAssemblies: bool
     /// Set if the user has explicitly turned indentation-aware syntax on/off
@@ -445,7 +423,6 @@ type TcConfig =
 #if !NO_EXTENSIONTYPING
     member showExtensionTypeMessages: bool
 #endif
-    member compilationThread: ICompilationThread
     member pause: bool 
     member alwaysCallVirt: bool
     member noDebugData: bool
@@ -513,6 +490,15 @@ type TcConfig =
 
     /// Allow forking and subsuequent modification of the TcConfig via a new TcConfigBuilder
     member CloneToBuilder: unit -> TcConfigBuilder
+
+    /// Indicates if the compilation will result in F# signature data resource in the generated binary
+    member GenerateSignatureData: bool 
+
+    /// Indicates if the compilation will result in an F# optimization data resource in the generated binary
+    member GenerateOptimizationData: bool
+
+    /// Check if the primary assembly is mscorlib
+    member useDotNetFramework: bool
 
 /// Represents a computation to return a TcConfig. Normally this is just a constant immutable TcConfig,
 /// but for F# Interactive it may be based on an underlying mutable TcConfigBuilder.

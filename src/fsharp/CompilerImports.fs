@@ -12,6 +12,7 @@ open System.IO
 
 open Internal.Utilities
 open Internal.Utilities.Collections
+open Internal.Utilities.FSharpEnvironment
 
 open FSharp.Compiler
 open FSharp.Compiler.AbstractIL
@@ -24,12 +25,10 @@ open FSharp.Compiler.AbstractIL.Diagnostics
 open FSharp.Compiler.CheckDeclarations
 open FSharp.Compiler.CompilerGlobalState
 open FSharp.Compiler.CompilerConfig
-open FSharp.Compiler.DotNetFrameworkDependencies
 open FSharp.Compiler.ErrorLogger
 open FSharp.Compiler.Import
 open FSharp.Compiler.Lib
 open FSharp.Compiler.PrettyNaming
-open FSharp.Compiler.SourceCodeServices
 open FSharp.Compiler.SyntaxTreeOps
 open FSharp.Compiler.Range
 open FSharp.Compiler.ReferenceResolver
@@ -535,11 +534,11 @@ type TcAssemblyResolutions(tcConfig: TcConfig, results: AssemblyResolution list,
     static member GetAllDllReferences (tcConfig: TcConfig) = [
             let primaryReference = tcConfig.PrimaryAssemblyDllReference()
 
-            let assumeDotNetFramework = primaryReference.SimpleAssemblyNameIs("mscorlib")
+            let useDotNetFramework = primaryReference.SimpleAssemblyNameIs("mscorlib")
 
             if not tcConfig.compilingFslib then 
                 yield tcConfig.CoreLibraryDllReference()
-                if assumeDotNetFramework then
+                if useDotNetFramework then
                     // When building desktop then we need these additional dependencies
                     yield AssemblyReference(rangeStartup, "System.Numerics.dll", None)
                     yield AssemblyReference(rangeStartup, "System.dll", None)
@@ -555,7 +554,8 @@ type TcAssemblyResolutions(tcConfig: TcConfig, results: AssemblyResolution list,
                     if found then yield asm
 
             if tcConfig.framework then
-                for s in defaultReferencesForScriptsAndOutOfProjectSources tcConfig.useFsiAuxLib assumeDotNetFramework tcConfig.useSdkRefs do
+                let references, _useDotNetFramework = tcConfig.FxResolver.GetDefaultReferences(tcConfig.useFsiAuxLib, useDotNetFramework, tcConfig.useSdkRefs)
+                for s in references do
                     yield AssemblyReference(rangeStartup, (if s.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) then s else s+".dll"), None)
 
             yield! tcConfig.referencedDLLs
@@ -686,7 +686,7 @@ type RawFSharpAssemblyDataBackedByFileOnDisk (ilModule: ILModuleDef, ilAssemblyR
 
          member __.HasMatchingFSharpSignatureDataAttribute ilg = 
             let attrs = GetCustomAttributesOfILModule ilModule
-            List.exists (IsMatchingSignatureDataVersionAttr ilg (IL.parseILVersion Internal.Utilities.FSharpEnvironment.FSharpBinaryMetadataFormatRevision)) attrs
+            List.exists (IsMatchingSignatureDataVersionAttr ilg (IL.parseILVersion FSharpBinaryMetadataFormatRevision)) attrs
 
 //----------------------------------------------------------------------------
 // TcImports
@@ -1835,7 +1835,3 @@ let RequireDLL (ctok, tcImports: TcImports, tcEnv, thisAssemblyName, referenceRa
         AddCcuToTcEnv(g, amap, referenceRange, tcEnv, thisAssemblyName, asm.FSharpViewOfMetadata, asm.AssemblyAutoOpenAttributes, asm.AssemblyInternalsVisibleToAttributes)
     let tcEnv = (tcEnv, asms) ||> List.fold buildTcEnv
     tcEnv, (dllinfos, asms)
-
-// Existing public APIs delegate to newer implementations
-let DefaultReferencesForScriptsAndOutOfProjectSources assumeDotNetFramework =
-    defaultReferencesForScriptsAndOutOfProjectSources (*useFsiAuxLib*)false assumeDotNetFramework (*useSdkRefs*)false

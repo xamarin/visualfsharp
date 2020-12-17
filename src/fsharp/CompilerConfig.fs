@@ -5,6 +5,7 @@ module internal FSharp.Compiler.CompilerConfig
 
 open System
 open System.Collections.Generic
+open System.Collections.Concurrent
 open System.Diagnostics
 open System.IO
 open System.Text
@@ -26,7 +27,6 @@ open FSharp.Compiler.Features
 open FSharp.Compiler.Lib
 open FSharp.Compiler.Range
 open FSharp.Compiler.ReferenceResolver
-open FSharp.Compiler.Text
 open FSharp.Compiler.TypedTree
 
 open Microsoft.DotNet.DependencyManager
@@ -34,7 +34,6 @@ open Microsoft.DotNet.DependencyManager
 #if !NO_EXTENSIONTYPING
 open FSharp.Compiler.ExtensionTyping
 open Microsoft.FSharp.Core.CompilerServices
-
 #endif
 
 let (++) x s = x @ [s]
@@ -179,8 +178,8 @@ type IRawFSharpAssemblyData =
 
 /// Cache of time stamps as we traverse a project description
 type TimeStampCache(defaultTimeStamp: DateTime) = 
-    let files = Dictionary<string, DateTime>()
-    let projects = Dictionary<IProjectReference, DateTime>(HashIdentity.Reference)
+    let files = ConcurrentDictionary<string, DateTime>()
+    let projects = ConcurrentDictionary<IProjectReference, DateTime>(HashIdentity.Reference)
     member cache.GetFileTimeStamp fileName = 
         let ok, v = files.TryGetValue fileName
         if ok then v else
@@ -239,14 +238,6 @@ type UnresolvedAssemblyReference = UnresolvedAssemblyReference of string * Assem
 #if !NO_EXTENSIONTYPING
 type ResolvedExtensionReference = ResolvedExtensionReference of string * AssemblyReference list * Tainted<ITypeProvider> list
 #endif
-
-/// The thread in which compilation calls will be enqueued and done work on.
-/// Note: This is currently only used when disposing of type providers and will be extended to all the other type provider calls when compilations can be done in parallel.
-///       Right now all calls in FCS to type providers are single-threaded through use of the reactor thread. 
-type ICompilationThread =
-
-    /// Enqueue work to be done on a compilation thread.
-    abstract EnqueueWork: (CompilationThreadToken -> unit) -> unit
 
 type ImportedAssembly =
     { ILScopeRef: ILScopeRef 
@@ -322,14 +313,6 @@ type PackageManagerLine =
     static member StripDependencyManagerKey (packageKey: string) (line: string): string =
         line.Substring(packageKey.Length + 1).Trim()
 
-/// A target framework option specified in a script
-type TargetFrameworkForScripts =
-    | TargetFrameworkForScripts of PrimaryAssembly
-
-    member fx.PrimaryAssembly =  (let (TargetFrameworkForScripts v) = fx in v)
-
-    member fx.UseDotNetFramework = (fx.PrimaryAssembly = PrimaryAssembly.Mscorlib)
-
 [<NoEquality; NoComparison>]
 type TcConfigBuilder =
     { mutable primaryAssembly: PrimaryAssembly
@@ -343,7 +326,6 @@ type TcConfigBuilder =
       mutable includes: string list
       mutable implicitOpens: string list
       mutable useFsiAuxLib: bool
-      mutable targetFrameworkForScripts: TargetFrameworkForScripts option
       mutable framework: bool
       mutable resolutionEnvironment: ReferenceResolver.ResolutionEnvironment
       mutable implicitlyResolveAssemblies: bool
@@ -454,7 +436,6 @@ type TcConfigBuilder =
       /// show messages about extension type resolution?
       mutable showExtensionTypeMessages: bool
 #endif
-      mutable compilationThread: ICompilationThread
 
       /// pause between passes? 
       mutable pause: bool
@@ -509,7 +490,6 @@ type TcConfigBuilder =
           compilingFslib = false
           useIncrementalBuilder = false
           useFsiAuxLib = false
-          targetFrameworkForScripts = None
           implicitOpens = []
           includes = []
           resolutionEnvironment = ResolutionEnvironment.EditingOrCompilation false
@@ -617,9 +597,6 @@ type TcConfigBuilder =
 #if !NO_EXTENSIONTYPING
           showExtensionTypeMessages = false
 #endif
-          compilationThread = 
-                let ctok = CompilationThreadToken ()
-                { new ICompilationThread with member __.EnqueueWork work = work ctok }
           pause = false 
           alwaysCallVirt = true
           noDebugData = false
@@ -664,8 +641,7 @@ type TcConfigBuilder =
         isInteractive,
         isInvalidationSupported,
         defaultCopyFSharpCore,
-        tryGetMetadataSnapshot,
-        targetFrameworkForScripts) =
+        tryGetMetadataSnapshot) =
 
         Debug.Assert(FileSystem.IsPathRootedShim implicitIncludeDir, sprintf "implicitIncludeDir should be absolute: '%s'" implicitIncludeDir)
 
@@ -684,7 +660,6 @@ type TcConfigBuilder =
                 copyFSharpCore = defaultCopyFSharpCore
                 tryGetMetadataSnapshot = tryGetMetadataSnapshot
                 useFsiAuxLib = isInteractive
-                targetFrameworkForScripts = targetFrameworkForScripts
             }
         tcConfigBuilder
 
@@ -926,7 +901,6 @@ type TcConfig private (data: TcConfigBuilder, validate: bool) =
     member x.includes = data.includes
     member x.implicitOpens = data.implicitOpens
     member x.useFsiAuxLib = data.useFsiAuxLib
-    member x.targetFrameworkForScripts = data.targetFrameworkForScripts
     member x.framework = data.framework
     member x.implicitlyResolveAssemblies = data.implicitlyResolveAssemblies
     member x.resolutionEnvironment = data.resolutionEnvironment
@@ -1026,7 +1000,6 @@ type TcConfig private (data: TcConfigBuilder, validate: bool) =
 #if !NO_EXTENSIONTYPING
     member x.showExtensionTypeMessages = data.showExtensionTypeMessages
 #endif
-    member x.compilationThread = data.compilationThread
     member x.pause = data.pause
     member x.alwaysCallVirt = data.alwaysCallVirt
     member x.noDebugData = data.noDebugData
@@ -1172,8 +1145,8 @@ type TcConfig private (data: TcConfigBuilder, validate: bool) =
         let result = ComputeMakePathAbsolute tcConfig.implicitIncludeDir path
         result
 
-    member _.ResolveSourceFile(m, nm, pathLoadedFrom) = 
-        data.ResolveSourceFile(m, nm, pathLoadedFrom)
+    member _.ResolveSourceFile(m, filename, pathLoadedFrom) = 
+        data.ResolveSourceFile(m, filename, pathLoadedFrom)
 
     member _.PrimaryAssemblyDllReference() = primaryAssemblyReference
 
@@ -1198,6 +1171,15 @@ type TcConfig private (data: TcConfigBuilder, validate: bool) =
              tcConfig.FxResolver.IsInReferenceAssemblyPackDirectory filename)
         with _ ->
             false
+
+    member tcConfig.GenerateSignatureData = 
+        not tcConfig.standalone && not tcConfig.noSignatureData 
+
+    member tcConfig.GenerateOptimizationData = 
+        tcConfig.GenerateSignatureData
+
+    member tcConfig.useDotNetFramework = 
+        tcConfig.primaryAssembly = PrimaryAssembly.Mscorlib
 
 /// Represents a computation to return a TcConfig. Normally this is just a constant immutable TcConfig, 
 /// but for F# Interactive it may be based on an underlying mutable TcConfigBuilder.
