@@ -12,34 +12,29 @@
   <!-- Version number computation -->
   <PropertyGroup>
     <PreReleaseVersionLabel>beta</PreReleaseVersionLabel>
-    <!-- F# Version components -->
     <FSMajorVersion>5</FSMajorVersion>
     <FSMinorVersion>0</FSMinorVersion>
-    <FSBuildVersion>1</FSBuildVersion>
+    <FSBuildVersion>0</FSBuildVersion>
     <FSRevisionVersion>0</FSRevisionVersion>
-    <!-- F# Language version -->
     <FSLanguageVersion>$(FSMajorVersion).$(FSMinorVersion)</FSLanguageVersion>
     <FSLanguageReleaseNotesVersion>$(FSMajorVersion)-$(FSMinorVersion)</FSLanguageReleaseNotesVersion>
-    <!-- FSharp.Core version -->
     <FSCoreProductVersion>$(FSMajorVersion).$(FSMinorVersion)</FSCoreProductVersion>
     <FSCorePackageVersion>$(FSMajorVersion).$(FSMinorVersion).$(FSBuildVersion)</FSCorePackageVersion>
     <FSCoreReleaseNotesVersion>$(FSMajorVersion)-$(FSMinorVersion)-$(FSBuildVersion)</FSCoreReleaseNotesVersion>
     <FSCoreVersionPrefix>$(FSMajorVersion).$(FSMinorVersion).$(FSBuildVersion)</FSCoreVersionPrefix>
-    <FSCoreVersion>$(FSMajorVersion).$(FSMinorVersion).0.0</FSCoreVersion>
-    <!-- FSharp.Compiler.Service version -->
+    <FSCoreVersion>$(FSMajorVersion).$(FSMinorVersion).$(FSBuildVersion).$(FSRevisionVersion)</FSCoreVersion>
     <FCSMajorVersion>38</FCSMajorVersion>
-    <FCSMinorVersion>$(FSMinorVersion)</FCSMinorVersion>
-    <FCSBuildVersion>$(FSBuildVersion)</FCSBuildVersion>
+    <FCSMinorVersion>0</FCSMinorVersion>
+    <FCSBuildVersion>2</FCSBuildVersion>
     <FCSRevisionVersion>$(FSRevisionVersion)</FCSRevisionVersion>
     <FSharpCompilerServicePackageVersion>$(FCSMajorVersion).$(FCSMinorVersion).$(FCSBuildVersion)</FSharpCompilerServicePackageVersion>
-    <FSharpCompilerServiceReleaseNotesVersion>$(FCSMajorVersion)-$(FCSMinorVersion)-$(FCSBuildVersion)</FSharpCompilerServiceReleaseNotesVersion>
+    <FSharpCompilerServiceReleaseNotesVersion>$(FCSMajorVersion)$(FCSMinorVersion)$(FCSBuildVersion)</FSharpCompilerServiceReleaseNotesVersion>
     <!-- The current published nuget package -->
     <FSharpCoreShippedPackageVersion>4.7.2</FSharpCoreShippedPackageVersion>
     <!-- The pattern for specifying the preview package -->
     <FSharpCorePreviewPackageVersion>$(FSCorePackageVersion)-$(PreReleaseVersionLabel).*</FSharpCorePreviewPackageVersion>
     <FSToolsMajorVersion>11</FSToolsMajorVersion>
     <FSToolsMinorVersion>$(FSMinorVersion)</FSToolsMinorVersion>
-    <!-- maintaining this version number because it's the regular flow of things, even though it's immediately overridden on the next line -->
     <FSToolsBuildVersion>$(FSBuildVersion)</FSToolsBuildVersion>
     <FSToolsRevisionVersion>$(FSRevisionVersion)</FSToolsRevisionVersion>
     <FSProductVersionPrefix>$(FSToolsMajorVersion).$(FSToolsMinorVersion).$(FSToolsBuildVersion)</FSProductVersionPrefix>
@@ -48,22 +43,19 @@
   </PropertyGroup>
   <PropertyGroup>
     <VSMajorVersion>16</VSMajorVersion>
-    <VSMinorVersion>9</VSMinorVersion>
+    <VSMinorVersion>8</VSMinorVersion>
     <VSGeneralVersion>$(VSMajorVersion).0</VSGeneralVersion>
     <VSAssemblyVersionPrefix>$(VSMajorVersion).$(VSMinorVersion).0</VSAssemblyVersionPrefix>
     <VSAssemblyVersion>$(VSAssemblyVersionPrefix).0</VSAssemblyVersion>
   </PropertyGroup>
   <!-- version number assignment -->
-  <PropertyGroup Condition="'$(UseFSharpPackageVersion)' == 'true'">
+  <PropertyGroup>
     <VersionPrefix>$(FSCoreVersionPrefix)</VersionPrefix>
-    <AssemblyVersion>$(FSCoreVersion)</AssemblyVersion>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(UseFSharpPackageVersion)' != 'true'">
-    <VersionPrefix>$(FSCoreVersionPrefix)</VersionPrefix>
+    <VersionPrefix Condition="'$(UseFSharpPackageVersion)' == 'true'">$(FSCorePackageVersion)</VersionPrefix>
     <VersionPrefix Condition="'$(UseFSharpProductVersion)' == 'true'">$(FSProductVersionPrefix)</VersionPrefix>
     <VersionPrefix Condition="'$(UseVsMicroBuildAssemblyVersion)' == 'true'">$(VSAssemblyVersionPrefix)</VersionPrefix>
     <VersionPrefix Condition="'$(UseFSharpCompilerServiceVersion)' == 'true'">$(FSharpCompilerServicePackageVersion)</VersionPrefix>
-    <AssemblyVersion>$(VersionPrefix).0</AssemblyVersion>
+    <AssemblyVersion Condition="'$(OfficialBuildId)' == ''">$(VersionPrefix).0</AssemblyVersion>
     <!-- PR builds should explicitly specify a version number -->
   </PropertyGroup>
   <PropertyGroup>
