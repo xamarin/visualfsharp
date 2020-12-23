@@ -22,7 +22,6 @@ open System.Threading
 
 open Internal.Utilities
 open Internal.Utilities.Filename
-open Internal.Utilities.StructuredFormat
 
 open FSharp.Compiler
 open FSharp.Compiler.AbstractIL
@@ -43,11 +42,14 @@ open FSharp.Compiler.IlxGen
 open FSharp.Compiler.InfoReader
 open FSharp.Compiler.Lib
 open FSharp.Compiler.ParseAndCheckInputs
-open FSharp.Compiler.PrettyNaming
+open FSharp.Compiler.SourceCodeServices.PrettyNaming
 open FSharp.Compiler.OptimizeInputs
 open FSharp.Compiler.ScriptClosure
+open FSharp.Compiler.SourceCodeServices
 open FSharp.Compiler.SyntaxTree
-open FSharp.Compiler.Range
+open FSharp.Compiler.Text
+open FSharp.Compiler.Text.Range
+open FSharp.Compiler.TextLayout
 open FSharp.Compiler.TypedTree
 open FSharp.Compiler.TypedTreeOps
 open FSharp.Compiler.TcGlobals
@@ -98,10 +100,10 @@ type ErrorLoggerUpToMaxErrors(tcConfigB: TcConfigBuilder, exiter: Exiter, nameFo
 let ConsoleErrorLoggerUpToMaxErrors (tcConfigB: TcConfigBuilder, exiter : Exiter) = 
     { new ErrorLoggerUpToMaxErrors(tcConfigB, exiter, "ConsoleErrorLoggerUpToMaxErrors") with
             
-            member __.HandleTooManyErrors(text : string) = 
+            member _.HandleTooManyErrors(text : string) = 
                 DoWithErrorColor false (fun () -> Printf.eprintfn "%s" text)
 
-            member __.HandleIssue(tcConfigB, err, isError) =
+            member _.HandleIssue(tcConfigB, err, isError) =
                 DoWithErrorColor isError (fun () -> 
                     let diag = OutputDiagnostic (tcConfigB.implicitIncludeDir, tcConfigB.showFullPaths, tcConfigB.flatErrors, tcConfigB.errorStyle, isError)
                     writeViaBuffer stderr diag err
@@ -132,7 +134,7 @@ type InProcErrorLoggerProvider() =
     let errors = ResizeArray()
     let warnings = ResizeArray()
 
-    member __.Provider = 
+    member _.Provider = 
         { new ErrorLoggerProvider() with
 
             member log.CreateErrorLoggerUpToMaxErrors(tcConfigBuilder, exiter) =
@@ -151,9 +153,9 @@ type InProcErrorLoggerProvider() =
                         container.AddRange(errs) }
                 :> ErrorLogger }
 
-    member __.CapturedErrors = errors.ToArray()
+    member _.CapturedErrors = errors.ToArray()
 
-    member __.CapturedWarnings = warnings.ToArray()
+    member _.CapturedWarnings = warnings.ToArray()
 
 /// The default ErrorLogger implementation, reporting messages to the Console up to the maxerrors maximum
 type ConsoleLoggerProvider() = 
@@ -365,7 +367,7 @@ module InterfaceFileWriter =
         for (TImplFile (_, _, mexpr, _, _, _)) in declaredImpls do
             let denv = BuildInitialDisplayEnvForSigFileGeneration tcGlobals
             writeViaBuffer os (fun os s -> Printf.bprintf os "%s\n\n" s)
-              (NicePrint.layoutInferredSigOfModuleExpr true { denv with shrinkOverloads = false; printVerboseSignatures = true } infoReader AccessibleFromSomewhere range0 mexpr |> Display.squashTo 80 |> Layout.showL)
+              (NicePrint.layoutInferredSigOfModuleExpr true { denv with shrinkOverloads = false; printVerboseSignatures = true } infoReader AccessibleFromSomewhere range0 mexpr |> Display.squashTo 80 |> LayoutRender.showL)
        
         if tcConfig.printSignatureFile <> "" then os.Dispose()
 
@@ -564,17 +566,17 @@ let main1(ctok, argv, legacyReferenceResolver, bannerAlreadyPrinted,
             let inputT, stateT = DeduplicateParsedInputModuleName state input 
             (inputT, x), stateT)
 
-    if tcConfig.parseOnly then exiter.Exit 0 
-
-    if not tcConfig.continueAfterParseFailure then 
-        AbortOnError(errorLogger, exiter)
-
     // Print the AST if requested
     if tcConfig.printAst then                
         for (input, _filename) in inputs do 
             printf "AST:\n"
             printfn "%+A" input
             printf "\n"
+
+    if tcConfig.parseOnly then exiter.Exit 0 
+
+    if not tcConfig.continueAfterParseFailure then 
+        AbortOnError(errorLogger, exiter)
 
     // Apply any nowarn flags
     let tcConfig =
@@ -947,7 +949,7 @@ let main6 dynamicAssemblyCreator (Args (ctok, tcConfig,  tcImports: TcImports, t
         with e -> 
             errorRecoveryNoRange e
             exiter.Exit 1 
-    | Some da -> da (tcGlobals,outfile,ilxMainModule)
+    | Some da -> da (tcConfig, tcGlobals, outfile, ilxMainModule)
 
     AbortOnError(errorLogger, exiter)
 
@@ -966,7 +968,7 @@ let mainCompile
     let savedOut = System.Console.Out
     use __ =
         { new IDisposable with
-            member __.Dispose() = 
+            member _.Dispose() = 
                 try 
                     System.Console.SetOut(savedOut)
                 with _ -> ()}

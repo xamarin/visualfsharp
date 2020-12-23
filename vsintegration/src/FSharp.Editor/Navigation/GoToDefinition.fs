@@ -16,8 +16,10 @@ open Microsoft.CodeAnalysis.Text
 open Microsoft.CodeAnalysis.Navigation
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Navigation
 
-open FSharp.Compiler.Range
+open Microsoft.VisualStudio.Shell.Interop
+
 open FSharp.Compiler.SourceCodeServices
+open FSharp.Compiler.Text
 
 module private Symbol =
     let fullName (root: ISymbol) : string =
@@ -105,22 +107,40 @@ module private ExternalSymbol =
         | _ -> []
 
 // TODO: Uncomment code when VS has a fix for updating the status bar.
-type internal StatusBar() =
-    let clear() =
-        MonoDevelop.Ide.IdeApp.Workbench.StatusBar.ShowReady()
+type internal StatusBar(statusBar: IVsStatusbar) =
+    let mutable _searchIcon = int16 Microsoft.VisualStudio.Shell.Interop.Constants.SBAI_Find :> obj
 
-    member __.Message(msg: string) =
-        MonoDevelop.Ide.IdeApp.Workbench.StatusBar.ShowMessage(msg)
+    let _clear() =
+        // unfreeze the statusbar
+        statusBar.FreezeOutput 0 |> ignore  
+        statusBar.Clear() |> ignore
+        
+    member _.Message(_msg: string) =
+        ()
+        //let _, frozen = statusBar.IsFrozen()
+        //// unfreeze the status bar
+        //if frozen <> 0 then statusBar.FreezeOutput 0 |> ignore
+        //statusBar.SetText msg |> ignore
+        //// freeze the status bar
+        //statusBar.FreezeOutput 1 |> ignore
 
-    member this.TempMessage(msg: string) =
-        this.Message(msg)
-
-    member __.Clear() = clear()
+    member this.TempMessage(_msg: string) =
+        ()
+        //this.Message msg
+        //async {
+        //    do! Async.Sleep 4000
+        //    match statusBar.GetText() with
+        //    | 0, currentText when currentText <> msg -> ()
+        //    | _ -> clear()
+        //}|> Async.Start
+    
+    member _.Clear() = () //clear()
 
     /// Animated magnifying glass that displays on the status bar while a symbol search is in progress.
-    member __.Animate() : IDisposable = 
+    member _.Animate() : IDisposable = 
+        //statusBar.Animation (1, &searchIcon) |> ignore
         { new IDisposable with
-            member __.Dispose() = () } 
+            member _.Dispose() = () } //statusBar.Animation(0, &searchIcon) |> ignore }
 
 type internal FSharpGoToDefinitionNavigableItem(document, sourceSpan) =
     inherit FSharpNavigableItem(Glyph.BasicFile, ImmutableArray.Empty, document, sourceSpan)
@@ -146,7 +166,7 @@ type internal GoToDefinition(checker: FSharpChecker, projectInfoManager: FSharpP
         }
 
     /// Helper function that is used to determine the navigation strategy to apply, can be tuned towards signatures or implementation files.
-    member private __.FindSymbolHelper (originDocument: Document, originRange: range, sourceText: SourceText, preferSignature: bool) =
+    member private _.FindSymbolHelper (originDocument: Document, originRange: range, sourceText: SourceText, preferSignature: bool) =
         asyncMaybe {
             let! parsingOptions, projectOptions = projectInfoManager.TryGetOptionsForEditingDocumentOrProject(originDocument, CancellationToken.None, userOpName)
             let defines = CompilerEnvironment.GetCompilationDefinesForEditing parsingOptions
@@ -184,7 +204,7 @@ type internal GoToDefinition(checker: FSharpChecker, projectInfoManager: FSharpP
     /// if the symbol is defined in the given file, return its declaration location, otherwise use the targetSymbol to find the first 
     /// instance of its presence in the provided source file. The first case is needed to return proper declaration location for
     /// recursive type definitions, where the first its usage may not be the declaration.
-    member __.FindSymbolDeclarationInFile(targetSymbolUse: FSharpSymbolUse, filePath: string, sourceText: SourceText, options: FSharpProjectOptions, fileVersion:int) = 
+    member _.FindSymbolDeclarationInFile(targetSymbolUse: FSharpSymbolUse, filePath: string, sourceText: SourceText, options: FSharpProjectOptions, fileVersion:int) = 
         asyncMaybe {
             match targetSymbolUse.Symbol.DeclarationLocation with
             | Some decl when decl.FileName = filePath -> return decl
@@ -198,7 +218,7 @@ type internal GoToDefinition(checker: FSharpChecker, projectInfoManager: FSharpP
                     return implSymbol.RangeAlternate
         }
 
-    member this.FindDefinitionAtPosition(originDocument: Document, position: int) =
+    member private this.FindDefinitionAtPosition(originDocument: Document, position: int) =
         asyncMaybe {
             let! parsingOptions, projectOptions = projectInfoManager.TryGetOptionsForEditingDocumentOrProject(originDocument, CancellationToken.None, userOpName)
             let! sourceText = originDocument.GetTextAsync () |> liftTaskAsync
@@ -322,7 +342,7 @@ type internal GoToDefinition(checker: FSharpChecker, projectInfoManager: FSharpP
 
     /// Navigate to the positon of the textSpan in the provided document
     /// used by quickinfo link navigation when the tooltip contains the correct destination range.
-    member __.TryNavigateToTextSpan(document: Document, textSpan: TextSpan, statusBar: StatusBar) =
+    member _.TryNavigateToTextSpan(document: Document, textSpan: TextSpan, statusBar: StatusBar) =
         let navigableItem = FSharpGoToDefinitionNavigableItem(document, textSpan)
         let workspace = document.Project.Solution.Workspace
         let navigationService = workspace.Services.GetService<IFSharpDocumentNavigationService>()
@@ -332,7 +352,7 @@ type internal GoToDefinition(checker: FSharpChecker, projectInfoManager: FSharpP
         if not navigationSucceeded then 
             statusBar.TempMessage (SR.CannotNavigateUnknown())
 
-    member __.NavigateToItem(navigableItem: FSharpNavigableItem, statusBar: StatusBar) =
+    member _.NavigateToItem(navigableItem: FSharpNavigableItem, statusBar: StatusBar) =
         use __ = statusBar.Animate()
 
         statusBar.Message (SR.NavigatingTo())
