@@ -7612,11 +7612,6 @@
         <target state="translated">パッケージ マネージャー キー '{0}' は {1} に登録されていませんでした。現在登録済み: {2}</target>
         <note />
       </trans-unit>
-      <trans-unit id="packageManagerError">
-        <source>{0}</source>
-        <target state="translated">{0}</target>
-        <note />
-      </trans-unit>
       <trans-unit id="couldNotLoadDependencyManagerExtension">
         <source>The dependency manager extension {0} could not be loaded. Message: {1}</source>
         <target state="translated">依存関係マネージャーの拡張機能 {0} を読み込むことができませんでした。メッセージ: {1}</target>
