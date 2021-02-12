@@ -228,6 +228,12 @@ type internal FSharpPathedDocumentExtension(projectInfoManager: FSharpProjectOpt
     interface IPathedDocument with
         member x.CurrentPath = currentPath
 
+        member x.DataProviderForIndex(index) =
+            let path = (x :> IPathedDocument).CurrentPath
+            if path = null || index < 0 || index >= path.Length then null else
+                let tag = path.[index].Tag
+                FSharpDataProvider(x, tag, view) :> _
+
         member x.CreatePathWidget(index) =
             let path = (x :> IPathedDocument).CurrentPath
             if path = null || index < 0 || index >= path.Length then null else
