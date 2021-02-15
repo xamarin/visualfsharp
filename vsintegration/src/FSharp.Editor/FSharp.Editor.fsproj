@@ -218,7 +218,7 @@
       <Private>False</Private>
     </ProjectReference>
     <PackageReference Include="Microsoft.CodeAnalysis" Version="$(NuGetVersionRoslyn)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
-    <PackageReference Include="FSharp.Core" Version="$(NuGetFSharpCore)" />
+    <PackageReference Include="FSharp.Core" Version="$(NuGetVersionFSharpCore)" />
     <PackageReference Include="Microsoft.CodeAnalysis.Features" Version="$(NuGetVersionRoslyn)" />
     <ProjectReference Include="..\..\..\..\..\src\core\MonoDevelop.Ide\MonoDevelop.Ide.csproj">
       <Project>{27096E7F-C91C-4AC6-B289-6897A701DF21}</Project>
@@ -228,7 +228,7 @@
     </ProjectReference>
     <PackageReference Include="Microsoft.CodeAnalysis.EditorFeatures.Text" Version="$(NuGetVersionRoslyn)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
     <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" Version="$(NuGetVersionRoslyn)" PrivateAssets="all" ExcludeAssets="runtime;contentFiles;build;analyzers;native" />
-    <PackageReference Include="FSharp.Compiler.Service" Version="$(NuGetFSharpCompilerService)" />
+    <PackageReference Include="FSharp.Compiler.Service" Version="$(NuGetVersionFSharpCompilerService)" />
     <ProjectReference Include="..\..\..\..\..\src\addins\MonoDevelop.TextEditor\MonoDevelop.TextEditor\MonoDevelop.TextEditor.csproj">
       <Project>{3F5B5BDA-69D5-441A-8142-AA25C998A997}</Project>
       <Name>MonoDevelop.TextEditor</Name>
