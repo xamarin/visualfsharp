@@ -3,7 +3,6 @@
     <Runtime>
         <Import assembly="FSharp.Editor.dll" />
         <Import assembly="FSharpBinding.Gui.dll" />
-        <Import assembly="ExtCore.dll" />
 
         <Import file = "VSMac/templates/EmptyFSharpSource.xft.xml" />
         <Import file = "VSMac/templates/EmptyFSharpScript.xft.xml" />
@@ -21,7 +20,6 @@
         <!-- Code VSMac/templates -->
         <Import file = "VSMac/templates/FSharp-templates.xml" />
 
-        <ScanExclude path="ExtCore.dll" />
         <ScanExclude path="FSharp.Compiler.CodeDom.dll" />
         <ScanExclude path="FSharp.Compiler.Interactive.Settings.dll" />
         <ScanExclude path="FSharp.Core.dll" />
