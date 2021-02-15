@@ -76,11 +76,6 @@
       <HintPath>..\..\..\..\Xamarin.Mac.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="ExtCore">
-      <HintPath>..\..\..\..\fsharpbinding\packages\ExtCore\lib\net45\ExtCore.dll</HintPath>
-      <Private>True</Private>
-      <Paket>True</Paket>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\..\..\src\fsharp\FSharp.Compiler.LanguageServer\JsonOptionConverter.fs" />
