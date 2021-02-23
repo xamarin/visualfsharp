@@ -147,7 +147,7 @@ type internal FSharpCompletionProvider
                     | _, idents -> Array.last idents
 
                 let completionItem =
-                    let item = new Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion.Data.CompletionItem(name, completionSource, icon = image)
+                    let item = new Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion.Data.CompletionItem(declarationItem.Name, completionSource, icon = image)
                     item.Properties.AddProperty(IndexPropName, declarationItem)
                     item
 
