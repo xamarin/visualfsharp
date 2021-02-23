@@ -302,7 +302,10 @@ type FSharpInteractivePad() as this =
     static member Pad =
         try let pad = IdeApp.Workbench.GetPad<FSharpInteractivePad>()
             
-            if pad <> null then Some(pad)
+            if pad <> null then
+                pad.BringToFront(true)
+                FSharpInteractivePad.FocusEditor()
+                Some(pad)
             else
                 //*attempt* to add the pad manually this seems to fail sporadically on updates and reinstalls, returning null
                 let pad = IdeApp.Workbench.AddPad(new FSharpInteractivePad(),
@@ -310,8 +313,7 @@ type FSharpInteractivePad() as this =
                                                   "F# Interactive",
                                                   "Center Bottom",
                                                   IconId("md-fs-project"))
-                if pad <> null then Some(pad)
-                else None
+                Option.ofObj pad
         with exn -> None
 
     static member BringToFront(grabfocus) =
@@ -319,6 +321,11 @@ type FSharpInteractivePad() as this =
 
     static member Fsi =
         FSharpInteractivePad.Pad |> Option.bind (fun pad -> Some(pad.Content :?> FSharpInteractivePad))
+            
+    static member FocusEditor() =
+        IdeApp.Workbench.ActiveDocument.Select();
+        let editor = IdeApp.Workbench.ActiveDocument.Editor
+        editor |> Option.ofObj |> Option.iter(fun ed -> ed.StartCaretPulseAnimation())
 
     member x.LastOutputLine
         with get() = lastLineOutput
@@ -340,6 +347,7 @@ type FSharpInteractivePad() as this =
             let line = view.Caret.Position.BufferPosition.GetContainingLine();
             let text = line.GetText()
             x.SendCommand text
+            FSharpInteractivePad.FocusEditor()
 
     member x.SendFile() =
         let text = IdeApp.Workbench.ActiveDocument.TextBuffer.CurrentSnapshot.GetText()
