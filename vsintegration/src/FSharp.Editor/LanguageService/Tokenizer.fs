@@ -1,4 +1,4 @@
-namespace Microsoft.VisualStudio.FSharp.Editor
+﻿namespace Microsoft.VisualStudio.FSharp.Editor
 
 open System
 open System.Collections.Generic
@@ -13,14 +13,15 @@ open Microsoft.CodeAnalysis
 open Microsoft.CodeAnalysis.Classification
 open Microsoft.CodeAnalysis.Text
 
+open FSharp.Compiler
 open FSharp.Compiler.SourceCodeServices
 open FSharp.Compiler.SyntaxTree
-open FSharp.Compiler.Text
 
 open Microsoft.VisualStudio.Core.Imaging
 open Microsoft.VisualStudio.Imaging
 
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp
+open FSharp.Compiler.Range
 
 type private FSharpGlyph = FSharp.Compiler.SourceCodeServices.FSharpGlyph
 type private Glyph = Microsoft.CodeAnalysis.ExternalAccess.FSharp.FSharpGlyph
@@ -42,7 +43,7 @@ type internal LexerSymbol =
       Ident: Ident
       /// All parts of `LongIdent`
       FullIsland: string list }
-    member x.Range: Range = x.Ident.idRange
+    member x.Range: Range.range = x.Ident.idRange
 
 [<RequireQualifiedAccess>]
 type internal SymbolLookupKind =
@@ -723,8 +724,8 @@ module internal Tokenizer =
                     Ident(identStr, 
                         Range.mkRange 
                             fileName 
-                            (Pos.mkPos (linePos.Line + 1) token.LeftColumn)
-                            (Pos.mkPos (linePos.Line + 1) (token.RightColumn + 1))) 
+                            (Range.mkPos (linePos.Line + 1) token.LeftColumn)
+                            (Range.mkPos (linePos.Line + 1) (token.RightColumn + 1))) 
                 FullIsland = partialName.QualifyingIdents @ [identStr] })
 
     let private getCachedSourceLineData(documentKey: DocumentId, sourceText: SourceText, position: int, fileName: string, defines: string list) = 
@@ -827,7 +828,7 @@ module internal Tokenizer =
                         else PrettyNaming.IsIdentifierPartCharacter c) 
         
         let isFixableIdentifier (s: string) = 
-            not (String.IsNullOrEmpty s) && FSharpKeywords.NormalizeIdentifierBackticks s |> isIdentifier
+            not (String.IsNullOrEmpty s) && Keywords.NormalizeIdentifierBackticks s |> isIdentifier
         
         let forbiddenChars = [| '.'; '+'; '$'; '&'; '['; ']'; '/'; '\\'; '*'; '\"' |]
         

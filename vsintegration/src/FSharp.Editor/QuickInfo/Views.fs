@@ -3,11 +3,11 @@
 namespace Microsoft.VisualStudio.FSharp.Editor
 
 open System.Collections.Generic
-open FSharp.Compiler.TextLayout
 open Microsoft.CodeAnalysis.Classification
 open Microsoft.VisualStudio.Core.Imaging
 open Microsoft.VisualStudio.Language.StandardClassification
 open Microsoft.VisualStudio.Text.Adornments
+open FSharp.Compiler.Layout
 
 module internal QuickInfoViewProvider =
 
@@ -28,7 +28,7 @@ module internal QuickInfoViewProvider =
         | LayoutTag.Interface -> ClassificationTypeNames.InterfaceName
         | LayoutTag.Keyword -> ClassificationTypeNames.Keyword
         | LayoutTag.Member
-        | LayoutTag.Function
+        //| LayoutTag.Function
         | LayoutTag.Method -> ClassificationTypeNames.MethodName
         | LayoutTag.Property
         | LayoutTag.RecordField -> ClassificationTypeNames.PropertyName

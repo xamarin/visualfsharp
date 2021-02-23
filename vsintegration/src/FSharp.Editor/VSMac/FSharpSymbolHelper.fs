@@ -4,7 +4,7 @@ open System.Collections.Generic
 open System.Text
 open FSharp.Compiler
 open FSharp.Compiler.SourceCodeServices
-open Microsoft.VisualStudio.FSharp.Editor.Symbols
+open Microsoft.VisualStudio.FSharp.Editor.Extensions
 
 module Symbols =
     let getLocationFromSymbolUse (s: FSharpSymbolUse) =

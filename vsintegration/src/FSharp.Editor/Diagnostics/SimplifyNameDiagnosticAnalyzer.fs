@@ -13,6 +13,7 @@ open System.Runtime.Caching
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Diagnostics
 open FSharp.Compiler.SourceCodeServices
 open FSharp.Compiler.Text
+open FSharp.Compiler.Range
 
 type private PerDocumentSavedData = { Hash: int; Diagnostics: ImmutableArray<Diagnostic> }
 

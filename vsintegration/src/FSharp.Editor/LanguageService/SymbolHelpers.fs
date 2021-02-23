@@ -12,7 +12,7 @@ open Microsoft.CodeAnalysis.Text
 
 open FSharp.Compiler.SourceCodeServices
 open FSharp.Compiler.Text
-open FSharp.Compiler.Text.Range
+open FSharp.Compiler.Range
 open Microsoft.VisualStudio.FSharp.Editor.Symbols 
 
 module internal SymbolHelpers =
@@ -32,9 +32,8 @@ module internal SymbolHelpers =
             let settings = document.FSharpOptions
             let! _, _, checkFileResults = checker.ParseAndCheckDocument(document.FilePath, textVersionHash, sourceText, projectOptions, settings.LanguageServicePerformance, userOpName = userOpName) 
             let! symbolUse = checkFileResults.GetSymbolUseAtLocation(fcsTextLineNumber, symbol.Ident.idRange.EndColumn, textLine.ToString(), symbol.FullIsland)
-            let! ct = Async.CancellationToken |> liftAsync
-            let symbolUses = checkFileResults.GetUsesOfSymbolInFile(symbolUse.Symbol, cancellationToken=ct)
-            return symbolUses
+            let symbolUses = checkFileResults.GetUsesOfSymbolInFile(symbolUse.Symbol)
+            return! symbolUses |> liftAsync
         }
 
     let getSymbolUsesInProjects (symbol: FSharpSymbol, projectInfoManager: FSharpProjectOptionsManager, checker: FSharpChecker, projects: Project list, onFound: Document -> TextSpan -> range -> Async<unit>, userOpName) =
@@ -77,8 +76,7 @@ module internal SymbolHelpers =
 
             match declLoc with
             | SymbolDeclarationLocation.CurrentDocument ->
-                let! ct = Async.CancellationToken
-                let symbolUses = checkFileResults.GetUsesOfSymbolInFile(symbol, ct)
+                let! symbolUses = checkFileResults.GetUsesOfSymbolInFile(symbol)
                 return toDict (symbolUses |> Seq.map (fun symbolUse -> symbolUse.RangeAlternate))
             | SymbolDeclarationLocation.Projects (projects, isInternalToProject) -> 
                 let symbolUseRanges = ImmutableArray.CreateBuilder()

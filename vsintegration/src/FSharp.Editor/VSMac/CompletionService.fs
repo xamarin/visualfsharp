@@ -36,10 +36,10 @@ type internal FSharpInteractiveCompletionService
         ImmutableArray.Create<CompletionProvider>(
             FSharpCompletionProvider(workspace, (*serviceProvider,*) checkerProvider, projectInfoManager, assemblyContentProvider),
             FSharpCommonCompletionProvider.Create(
-                HashDirectiveCompletionProvider(workspace, projectInfoManager,
-                    [ Completion.Create("""\s*#load\s+(@?"*(?<literal>"[^"]*"?))""", [".fs"; ".fsx"], useIncludeDirectives = true)
-                      Completion.Create("""\s*#r\s+(@?"*(?<literal>"[^"]*"?))""", [".dll"; ".exe"], useIncludeDirectives = true)
-                      Completion.Create("""\s*#I\s+(@?"*(?<literal>"[^"]*"?))""", ["\x00"], useIncludeDirectives = false) ])))
+                HashDirectiveCompletionProvider.Create(workspace, projectInfoManager)))
+                    //[ Completion.Create("""\s*#load\s+(@?"*(?<literal>"[^"]*"?))""", [".fs"; ".fsx"], useIncludeDirectives = true)
+                    //  Completion.Create("""\s*#r\s+(@?"*(?<literal>"[^"]*"?))""", [".dll"; ".exe"], useIncludeDirectives = true)
+                    //  Completion.Create("""\s*#I\s+(@?"*(?<literal>"[^"]*"?))""", ["\x00"], useIncludeDirectives = false) ])))
 
     override this.Language = FSharpConstants.FSharpLanguageName
     override this.GetBuiltInProviders() = builtInProviders

@@ -2,17 +2,13 @@
 
 namespace Microsoft.VisualStudio.FSharp.Editor
 
-open System.Composition
 open System.Threading
-open System.Threading.Tasks
 
 open Microsoft.CodeAnalysis
-open Microsoft.CodeAnalysis.Editor
-open Microsoft.CodeAnalysis.Host.Mef
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Editor
 
-open Microsoft.VisualStudio.Shell
-open Microsoft.VisualStudio.Shell.Interop
+open System.ComponentModel.Composition;
+open System.Threading.Tasks
 open System
 
 [<Export(typeof<IFSharpGoToDefinitionService>)>]
@@ -25,7 +21,7 @@ type internal FSharpGoToDefinitionService
     ) =
 
     let gtd = GoToDefinition(checkerProvider.Checker, projectInfoManager)
-    let statusBar = StatusBar(ServiceProvider.GlobalProvider.GetService<SVsStatusbar,IVsStatusbar>())  
+    let statusBar = StatusBar()  
    
     interface IFSharpGoToDefinitionService with
         /// Invoked with Peek Definition.

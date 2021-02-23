@@ -14,6 +14,8 @@ open Microsoft.CodeAnalysis.CodeActions
 
 open FSharp.Compiler.SourceCodeServices
 open FSharp.Compiler.Text
+open FSharp.Compiler.Range
+open FSharp.Compiler
 
 [<ExportCodeFixProvider(FSharpConstants.FSharpLanguageName, Name = "AddOpen"); Shared>]
 type internal FSharpAddOpenCodeFixProvider
@@ -94,9 +96,9 @@ type internal FSharpAddOpenCodeFixProvider
             let defines = CompilerEnvironment.GetCompilationDefinesForEditing parsingOptions
             
             let! symbol = 
-                maybe {
+                asyncMaybe {
                     let! lexerSymbol = Tokenizer.getSymbolAtPosition(document.Id, sourceText, context.Span.End, document.FilePath, defines, SymbolLookupKind.Greedy, false, false)
-                    return checkResults.GetSymbolUseAtLocation(Line.fromZ linePos.Line, lexerSymbol.Ident.idRange.EndColumn, line.ToString(), lexerSymbol.FullIsland)
+                    return! checkResults.GetSymbolUseAtLocation(Line.fromZ linePos.Line, lexerSymbol.Ident.idRange.EndColumn, line.ToString(), lexerSymbol.FullIsland) |> liftAsync
                 }
 
             do! Option.guard symbol.IsNone

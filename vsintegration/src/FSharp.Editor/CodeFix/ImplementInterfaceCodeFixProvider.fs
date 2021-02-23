@@ -15,10 +15,11 @@ open Microsoft.CodeAnalysis.CodeActions
 open FSharp.Compiler.SourceCodeServices
 open FSharp.Compiler.SyntaxTree
 open FSharp.Compiler.Text
+open FSharp.Compiler.Range
 
 [<NoEquality; NoComparison>]
 type internal InterfaceState =
-    { InterfaceData: InterfaceData 
+    { InterfaceData: FSharp.Compiler.SourceCodeServices.InterfaceData 
       EndPosOfWith: pos option
       AppendBracketAt: int option
       Tokens: Tokenizer.SavedTokenInfo[] }
@@ -106,7 +107,7 @@ type internal FSharpImplementInterfaceCodeFixProvider
         else
             let membersAndRanges = InterfaceStubGenerator.getMemberNameAndRanges state.InterfaceData
             let interfaceMembers = InterfaceStubGenerator.getInterfaceMembers entity
-            let hasTypeCheckError = results.Errors |> Array.exists (fun e -> e.Severity = FSharpDiagnosticSeverity.Error)                
+            let hasTypeCheckError = results.Errors |> Array.exists (fun e -> e.Severity = FSharpErrorSeverity.Error)                
             // This comparison is a bit expensive
             if hasTypeCheckError && List.length membersAndRanges <> Seq.length interfaceMembers then    
                 let diagnostics = context.Diagnostics |> Seq.filter (fun x -> fixableDiagnosticIds |> List.contains x.Id) |> Seq.toImmutableArray
@@ -120,6 +121,7 @@ type internal FSharpImplementInterfaceCodeFixProvider
                                     let getMemberByLocation(name, range: range) =
                                         let lineStr = sourceText.Lines.[range.EndLine-1].ToString()
                                         results.GetSymbolUseAtLocation(range.EndLine, range.EndColumn, lineStr, [name])
+                                        |> Async.RunSynchronously
                                     let! implementedMemberSignatures =
                                         InterfaceStubGenerator.getImplementedMemberSignatures getMemberByLocation displayContext state.InterfaceData    
                                     let newSourceText = applyImplementInterface sourceText state displayContext implementedMemberSignatures entity indentSize verboseMode

@@ -19,7 +19,34 @@ open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Classification
 
 open Microsoft.CodeAnalysis
 open FSharp.Compiler.SourceCodeServices
+open FSharp.Compiler.Range
+
+open Microsoft.VisualStudio.Text.Classification
+open System.Windows.Media
+open MonoDevelop.Core
+open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Editor
+
+
+open System
+open System.Composition
+open System.Collections.Generic
+open System.Collections.Immutable
+open System.Diagnostics
+open System.Threading
+open System.Runtime.Caching
+
+open Microsoft.CodeAnalysis
+open Microsoft.CodeAnalysis.Classification
+open Microsoft.CodeAnalysis.Editor
+open Microsoft.CodeAnalysis.Host.Mef
+open Microsoft.CodeAnalysis.Text
+open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Classification
+
+open Microsoft.CodeAnalysis
+open FSharp.Compiler.SourceCodeServices
 open FSharp.Compiler.Text
+open FSharp.Compiler.SourceCodeServices.Lexer
+
 
 // IEditorClassificationService is marked as Obsolete, but is still supported. The replacement (IClassificationService)
 // is internal to Microsoft.CodeAnalysis.Workspaces which we don't have internals visible to. Rather than add yet another
@@ -28,7 +55,7 @@ open FSharp.Compiler.Text
 
 #nowarn "57"
 
-type SemanticClassificationData = (struct(Range * SemanticClassificationType)[])
+type SemanticClassificationData = (struct(range * SemanticClassificationType)[])
 type SemanticClassificationLookup = IReadOnlyDictionary<int, ResizeArray<struct(range * SemanticClassificationType)>>
 
 [<Sealed>]
@@ -64,6 +91,66 @@ type DocumentCache<'Value when 'Value : not struct>() =
 
         member _.Dispose() = cache.Dispose()
 
+[<RequireQualifiedAccess>]
+module internal FSharpClassificationTypes =
+    let [<Literal>] Function = ClassificationTypeNames.MethodName
+    let [<Literal>] MutableVar = "mutable name"
+    let [<Literal>] Printf = ClassificationTypeNames.MethodName
+    let [<Literal>] ReferenceType = ClassificationTypeNames.ClassName
+    let [<Literal>] Module = ClassificationTypeNames.ClassName
+    let [<Literal>] ValueType = ClassificationTypeNames.StructName
+    let [<Literal>] Keyword = ClassificationTypeNames.Keyword
+    let [<Literal>] Enum = ClassificationTypeNames.EnumName
+    let [<Literal>] Property = ClassificationTypeNames.PropertyName
+    let [<Literal>] Interface = ClassificationTypeNames.InterfaceName
+    let [<Literal>] TypeArgument = ClassificationTypeNames.TypeParameterName
+    let [<Literal>] Operator = ClassificationTypeNames.Operator
+    let [<Literal>] Disposable = ClassificationTypeNames.ClassName
+
+    let getClassificationTypeName = function
+        | SemanticClassificationType.MutableRecordField
+        | SemanticClassificationType.MutableVar ->
+            if PropertyService.Get("FSharpBinding.HighlightMutables", false) then
+                MutableVar
+            else
+                ClassificationTypeNames.LocalName
+        | SemanticClassificationType.DisposableType -> Disposable
+        | SemanticClassificationType.Namespace -> ClassificationTypeNames.NamespaceName
+        | SemanticClassificationType.Printf -> Printf
+        | SemanticClassificationType.Exception
+        | SemanticClassificationType.Module
+        | SemanticClassificationType.Type
+        | SemanticClassificationType.TypeDef
+        | SemanticClassificationType.ConstructorForReferenceType
+        | SemanticClassificationType.ReferenceType -> ClassificationTypeNames.ClassName
+        | SemanticClassificationType.ConstructorForValueType
+        | SemanticClassificationType.ValueType -> ClassificationTypeNames.StructName
+        | SemanticClassificationType.ComputationExpression
+        | SemanticClassificationType.IntrinsicFunction -> ClassificationTypeNames.Keyword
+        | SemanticClassificationType.UnionCase
+        | SemanticClassificationType.Enumeration -> ClassificationTypeNames.EnumName
+        | SemanticClassificationType.Field
+        | SemanticClassificationType.UnionCaseField -> ClassificationTypeNames.FieldName
+        | SemanticClassificationType.Interface -> ClassificationTypeNames.InterfaceName
+        | SemanticClassificationType.TypeArgument -> ClassificationTypeNames.TypeParameterName
+        | SemanticClassificationType.Operator -> ClassificationTypeNames.Operator
+        | SemanticClassificationType.Function -> Function
+        | SemanticClassificationType.Method -> ClassificationTypeNames.MethodName
+        | SemanticClassificationType.ExtensionMethod -> ClassificationTypeNames.ExtensionMethodName
+        | SemanticClassificationType.Literal -> ClassificationTypeNames.ConstantName
+        | SemanticClassificationType.Property
+        | SemanticClassificationType.RecordFieldAsFunction
+        | SemanticClassificationType.RecordField -> ClassificationTypeNames.PropertyName // TODO - maybe pick something that isn't white by default like Property?
+        | SemanticClassificationType.NamedArgument -> ClassificationTypeNames.LabelName
+        | SemanticClassificationType.Event -> ClassificationTypeNames.EventName
+        | SemanticClassificationType.Delegate -> ClassificationTypeNames.DelegateName
+        | SemanticClassificationType.DisposableTopLevelValue
+        | SemanticClassificationType.Value -> ClassificationTypeNames.Identifier
+        | SemanticClassificationType.DisposableLocalValue
+        | SemanticClassificationType.LocalValue -> ClassificationTypeNames.LocalName
+        | SemanticClassificationType.Plaintext -> ClassificationTypeNames.Text
+        | _ -> failwith "Compiler Bug: Unknown classification type"
+
 [<Export(typeof<IFSharpClassificationService>)>]
 type internal FSharpClassificationService
     [<ImportingConstructor>]
@@ -77,7 +164,7 @@ type internal FSharpClassificationService
         let text = text.GetSubText(textSpan)
         let result = ImmutableArray.CreateBuilder()
         let tokenCallback =
-            fun (tok: FSharpToken) ->
+            fun (tok: FSharpSyntaxToken) ->
                 let spanKind =
                     if tok.IsKeyword then
                         ClassificationTypeNames.Keyword
@@ -118,7 +205,7 @@ type internal FSharpClassificationService
             | _ -> ()
 
     static let toSemanticClassificationLookup (data: SemanticClassificationData) =
-        let lookup = System.Collections.Generic.Dictionary<int, ResizeArray<struct(Range * SemanticClassificationType)>>()
+        let lookup = System.Collections.Generic.Dictionary<int, ResizeArray<struct(range * SemanticClassificationType)>>()
         for i = 0 to data.Length - 1 do
             let (struct(r, _) as dataItem) = data.[i]
             let items =
@@ -134,8 +221,8 @@ type internal FSharpClassificationService
     let semanticClassificationCache = new DocumentCache<SemanticClassificationLookup>()
 
     interface IFSharpClassificationService with
-        // Do not perform classification if we don't have project options (#defines matter)
-        member _.AddLexicalClassifications(_: SourceText, _: TextSpan, _: List<ClassifiedSpan>, _: CancellationToken) = ()
+        member __.AddLexicalClassifications(sourceText: SourceText, textSpan: TextSpan, result: List<ClassifiedSpan>, cancellationToken: CancellationToken) =
+            result.AddRange(Tokenizer.getClassifiedSpans(DocumentId.CreateNewId(ProjectId.CreateNewId()), sourceText, textSpan, Some("fake.fs"), [], cancellationToken))
         
         member _.AddSyntacticClassificationsAsync(document: Document, textSpan: TextSpan, result: List<ClassifiedSpan>, cancellationToken: CancellationToken) =
             async {
@@ -182,5 +269,4 @@ type internal FSharpClassificationService
 
         // Do not perform classification if we don't have project options (#defines matter)
         member _.AdjustStaleClassification(_: SourceText, classifiedSpan: ClassifiedSpan) : ClassifiedSpan = classifiedSpan
-
 

@@ -18,6 +18,7 @@ open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Editor
 open FSharp.Compiler.Text
 open FSharp.Compiler.SourceCodeServices
 open Symbols
+open FSharp.Compiler.Range
 
 type internal FailureInlineRenameInfo private () =
     interface IFSharpInlineRenameInfo with
@@ -58,7 +59,7 @@ type internal InlineRenameLocationSet(locations: FSharpInlineRenameLocation [], 
                     match symbolKind with
                     | LexerSymbolKind.GenericTypeParameter
                     | LexerSymbolKind.StaticallyResolvedTypeParameter -> replacementText
-                    | _ -> FSharpKeywords.NormalizeIdentifierBackticks replacementText
+                    | _ -> Keywords.NormalizeIdentifierBackticks replacementText
                 return 
                     { new IFSharpInlineRenameReplacementInfo with
                         member _.NewSolution = newSolution

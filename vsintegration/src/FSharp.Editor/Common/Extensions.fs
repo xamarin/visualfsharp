@@ -14,10 +14,43 @@ open Microsoft.CodeAnalysis.Host
 open FSharp.Compiler.SourceCodeServices
 open FSharp.Compiler.Text
 open FSharp.Compiler.SyntaxTree
+open MonoDevelop.Core
 
 type private FSharpGlyph = FSharp.Compiler.SourceCodeServices.FSharpGlyph
-type private FSharpRoslynGlyph = Microsoft.CodeAnalysis.ExternalAccess.FSharp.FSharpGlyph
+//type private FSharpRoslynGlyph = Microsoft.CodeAnalysis.ExternalAccess.FSharp.FSharpGlyph
 
+module LoggingService =
+    let inline private log f = Printf.kprintf f
+
+    let inline private logWithThread f format =
+        log (log f "[UI - %b] %s" Runtime.IsMainThread) format
+
+    let logDebug format = logWithThread LoggingService.LogDebug format
+    let logError format = logWithThread LoggingService.LogError format
+    let logInfo format = logWithThread LoggingService.LogInfo format
+    let logWarning format = logWithThread LoggingService.LogWarning format
+    
+[<RequireQualifiedAccess>]
+module Option =
+
+    let guard (x: bool) : Option<unit> =
+        if x then Some() else None
+
+    let attempt (f: unit -> 'T) = try Some <| f() with _ -> None
+
+    /// Returns 'Some list' if all elements in the list are Some, otherwise None
+    let ofOptionList (xs : 'a option list) : 'a list option =
+
+        if xs |> List.forall Option.isSome then
+            xs |> List.map Option.get |> Some
+        else
+            None
+
+    let inline tryCast<'T> (o: obj): 'T option =
+        match o with
+        | null -> None
+        | :? 'T as a -> Some a
+        | _ -> None
 
 type Path with
     static member GetFullPathSafe path =
@@ -47,6 +80,32 @@ type Document with
             | languageServices ->
                 languageServices.GetService<'T>()
                 |> Some
+
+type FSharpMemberOrFunctionOrValue with
+  // FullType may raise exceptions (see https://github.com/fsharp/fsharp/issues/307).
+    member x.FullTypeSafe = Option.attempt (fun _ -> x.FullType)
+    member x.IsConstructor = x.CompiledName = ".ctor"
+    member x.IsOperatorOrActivePattern =
+        let name = x.DisplayName
+        if name.StartsWith "( " && name.EndsWith " )" && name.Length > 4
+        then name.Substring (2, name.Length - 4) |> String.forall (fun c -> c <> ' ')
+        else false
+
+type internal FSharpEntity with
+    member x.AllBaseTypes =
+        let rec allBaseTypes (entity:FSharpEntity) =
+            [
+                match entity.TryFullName with
+                | Some _ ->
+                    match entity.BaseType with
+                    | Some bt ->
+                        yield bt
+                        if bt.HasTypeDefinition then
+                            yield! allBaseTypes bt.TypeDefinition
+                    | _ -> ()
+                | _ -> ()
+            ]
+        allBaseTypes x
 
 module private SourceText =
 
@@ -133,10 +192,9 @@ module private SourceText =
         sourceText
 
 type SourceText with
-
     member this.ToFSharpSourceText() =
         SourceText.weakTable.GetValue(this, Runtime.CompilerServices.ConditionalWeakTable<_,_>.CreateValueCallback(SourceText.create))
-
+(*
 type FSharpNavigationDeclarationItem with
     member x.RoslynGlyph : FSharpRoslynGlyph =
         match x.Glyph with
@@ -209,6 +267,7 @@ type FSharpNavigationDeclarationItem with
             | Some SynAccess.Internal -> FSharpRoslynGlyph.ExtensionMethodInternal
             | _ -> FSharpRoslynGlyph.ExtensionMethodPublic
         | FSharpGlyph.Error -> FSharpRoslynGlyph.Error
+*)
 
 [<RequireQualifiedAccess>]
 module String =   
@@ -226,21 +285,6 @@ module String =
         |]
 
 
-[<RequireQualifiedAccess>]
-module Option =
-
-    let guard (x: bool) : Option<unit> =
-        if x then Some() else None
-
-    let attempt (f: unit -> 'T) = try Some <| f() with _ -> None
-
-    /// Returns 'Some list' if all elements in the list are Some, otherwise None
-    let ofOptionList (xs : 'a option list) : 'a list option =
-
-        if xs |> List.forall Option.isSome then
-            xs |> List.map Option.get |> Some
-        else
-            None
 
 [<RequireQualifiedAccess>]
 module Seq =

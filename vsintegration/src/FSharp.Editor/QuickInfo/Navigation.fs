@@ -7,9 +7,9 @@ open System
 open Microsoft.CodeAnalysis
 
 open FSharp.Compiler.SourceCodeServices
-open FSharp.Compiler.Text.Range
 open FSharp.Compiler.Text
-open Microsoft.VisualStudio.Shell.Interop
+
+open FSharp.Compiler.Range
 
 type internal QuickInfoNavigation
     (

@@ -10,7 +10,7 @@ open Microsoft.CodeAnalysis.ExternalAccess.FSharp.FindUsages
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Editor.FindUsages
 
 open FSharp.Compiler.SourceCodeServices
-open FSharp.Compiler.Text
+open FSharp.Compiler.Range
 open Microsoft.CodeAnalysis.Text
 
 open System.ComponentModel.Composition;
@@ -59,7 +59,7 @@ type internal FSharpFindUsagesService
             
             let! symbol = Tokenizer.getSymbolAtPosition(document.Id, sourceText, position, document.FilePath, defines, SymbolLookupKind.Greedy, false, false)
             let! symbolUse = checkFileResults.GetSymbolUseAtLocation(lineNumber, symbol.Ident.idRange.EndColumn, textLine, symbol.FullIsland)
-            let declaration = checkFileResults.GetDeclarationLocation (lineNumber, symbol.Ident.idRange.EndColumn, textLine, symbol.FullIsland, false)
+            let! declaration = checkFileResults.GetDeclarationLocation (lineNumber, symbol.Ident.idRange.EndColumn, textLine, symbol.FullIsland, false) |> liftAsync
             let tags = FSharpGlyphTags.GetTags(Tokenizer.GetGlyphForSymbol (symbolUse.Symbol, symbol.Kind))
             
             let declarationRange = 
@@ -90,7 +90,7 @@ type internal FSharpFindUsagesService
                 fun (doc: Document) (textSpan: TextSpan) (symbolUse: range) ->
                     async {
                         match declarationRange with
-                        | Some declRange when Range.equals declRange symbolUse -> ()
+                        | Some declRange when FSharp.Compiler.Range.equals declRange symbolUse -> ()
                         | _ ->
                             if allReferences then
                                 let definitionItem =
@@ -108,7 +108,7 @@ type internal FSharpFindUsagesService
             
             match symbolUse.GetDeclarationLocation document with
             | Some SymbolDeclarationLocation.CurrentDocument ->
-                let symbolUses = checkFileResults.GetUsesOfSymbolInFile(symbolUse.Symbol)
+                let! symbolUses = checkFileResults.GetUsesOfSymbolInFile(symbolUse.Symbol) |> liftAsync
                 for symbolUse in symbolUses do
                     match RoslynHelpers.TryFSharpRangeToTextSpan(sourceText, symbolUse.RangeAlternate) with
                     | Some textSpan ->

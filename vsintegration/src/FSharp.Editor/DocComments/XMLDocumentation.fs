@@ -6,19 +6,12 @@ open System
 open System.Runtime.CompilerServices
 open System.Text.RegularExpressions
 open FSharp.Compiler.SourceCodeServices
-open FSharp.Compiler.TextLayout
-open FSharp.Compiler.TextLayout.TaggedText
+open FSharp.Compiler.Layout
+open FSharp.Compiler.Layout.TaggedTextOps
 open System.Collections.Generic
+open System.Collections.Immutable
 open System.IO
 open System.Threading
-open Microsoft.CodeAnalysis.Text;
-open Microsoft.CodeAnalysis.Text.Shared.Extensions;
-open Microsoft.VisualStudio.Core.Imaging;
-open Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion;
-open Microsoft.VisualStudio.Text;
-open Microsoft.VisualStudio.Text.Adornments;
-open Microsoft.VisualStudio.Text.Editor;
-open System.Collections.Immutable
 
 type internal ITaggedTextCollector =
     abstract Add: text: TaggedText -> unit
@@ -36,7 +29,7 @@ type internal TextSanitizingCollector(collector, ?lineLimit: int) =
         match lineLimit with
         | Some lineLimit when lineLimit = count ->
             // add ... when line limit is reached
-            collector (tagText "...")
+            collector (TaggedTextOps.tagText "...")
             count <- count + 1
         | _ ->
             isEmpty <- false
@@ -62,11 +55,11 @@ type internal TextSanitizingCollector(collector, ?lineLimit: int) =
                     paragraph.TrimStart() 
                 else paragraph
                 
-            addTaggedTextEntry (tagText paragraph)
+            addTaggedTextEntry (TaggedTextOps.tagText paragraph)
             if i < paragraphs.Length - 1 then
                 // insert two line breaks to separate paragraphs
-                addTaggedTextEntry TaggedText.lineBreak
-                addTaggedTextEntry TaggedText.lineBreak)
+                addTaggedTextEntry Literals.lineBreak
+                addTaggedTextEntry Literals.lineBreak)
 
     interface ITaggedTextCollector with
         member this.Add taggedText = 
@@ -186,7 +179,7 @@ module internal XmlDocumentation =
             else xml
 
     let AppendHardLine(collector: ITaggedTextCollector) =
-        collector.Add TaggedText.lineBreak
+        collector.Add Literals.lineBreak
        
     let EnsureHardLine(collector: ITaggedTextCollector) =
         if not collector.EndsWithLineBreak then AppendHardLine collector
@@ -194,7 +187,7 @@ module internal XmlDocumentation =
     let AppendOnNewLine (collector: ITaggedTextCollector) (line:string) =
         if line.Length > 0 then 
             EnsureHardLine collector
-            collector.Add(TaggedText.tagText line)
+            collector.Add(TaggedTextOps.tagText line)
 
     open System.Xml
     open System.Xml.Linq
@@ -234,7 +227,7 @@ module internal XmlDocumentation =
         let parts = typeName.Split([|'.'|])
         for i = 0 to parts.Length - 2 do
             collector.Add(tagNamespace parts.[i])
-            collector.Add(TaggedText.dot)
+            collector.Add(Literals.dot)
         collector.Add(tagClass parts.[parts.Length - 1])
 
     type XmlDocReader private (doc: XElement) = 
@@ -270,8 +263,8 @@ module internal XmlDocumentation =
                 | name ->
                     EnsureHardLine collector
                     collector.Add(tagParameter name.Value)
-                    collector.Add(TaggedText.colon)
-                    collector.Add(TaggedText.space)
+                    collector.Add(Literals.colon)
+                    collector.Add(Literals.space)
                     WriteNodes collector (p.Nodes())
 
         member this.CollectExceptions(collector: ITaggedTextCollector) =
@@ -288,9 +281,9 @@ module internal XmlDocumentation =
                     collector.Add(tagSpace "    ")
                     WriteTypeName collector exnType.Value
                     if not (Seq.isEmpty (p.Nodes())) then
-                        collector.Add TaggedText.space
-                        collector.Add TaggedText.minus
-                        collector.Add TaggedText.space
+                        collector.Add Literals.space
+                        collector.Add Literals.minus
+                        collector.Add Literals.space
                         WriteNodes collector (p.Nodes())
 
     type VsThreadToken() = class end
@@ -404,7 +397,7 @@ module internal XmlDocumentation =
                 for tp in tps do 
                     AppendHardLine typeParameterMapCollector
                     typeParameterMapCollector.Add(tagSpace "    ")
-                    LayoutRender.emitL typeParameterMapCollector.Add tp |> ignore
+                    renderL (taggedTextListR typeParameterMapCollector.Add) tp |> ignore
 
         let Process add (dataTipElement: FSharpStructuredToolTipElement) =
 
@@ -422,7 +415,7 @@ module internal XmlDocumentation =
                             if not(Layout.isEmptyL item.MainDescription) then
                                 if not textCollector.IsEmpty then 
                                     AppendHardLine textCollector
-                                LayoutRender.emitL textCollector.Add item.MainDescription |> ignore
+                                renderL (taggedTextListR textCollector.Add) item.MainDescription |> ignore
 
                         AppendOverload(overloads.[0])
                         if len >= 2 then AppendOverload(overloads.[1])
@@ -438,7 +431,7 @@ module internal XmlDocumentation =
                     item0.Remarks |> Option.iter (fun r -> 
                         if not(Layout.isEmptyL r) then
                             AppendHardLine usageCollector
-                            LayoutRender.emitL usageCollector.Add r |> ignore)
+                            renderL (taggedTextListR usageCollector.Add) r |> ignore)
 
                     AppendXmlComment(documentationProvider, xmlCollector, exnCollector, item0.XmlDoc, showExceptions, showParameters, item0.ParamName)
 

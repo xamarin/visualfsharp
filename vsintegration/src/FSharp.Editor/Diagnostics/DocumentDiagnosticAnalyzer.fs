@@ -31,7 +31,7 @@ type internal FSharpDocumentDiagnosticAnalyzer
     static let userOpName = "DocumentDiagnosticAnalyzer"
 
     static let errorInfoEqualityComparer =
-        { new IEqualityComparer<FSharpDiagnostic> with 
+        { new IEqualityComparer<FSharpErrorInfo> with 
             member _.Equals (x, y) =
                 x.FileName = y.FileName &&
                 x.StartLineAlternate = y.StartLineAlternate &&
