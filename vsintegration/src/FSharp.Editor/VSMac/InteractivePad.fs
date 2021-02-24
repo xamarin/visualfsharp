@@ -303,8 +303,8 @@ type FSharpInteractivePad() as this =
         try let pad = IdeApp.Workbench.GetPad<FSharpInteractivePad>()
             
             if pad <> null then
-                pad.BringToFront(true)
-                FSharpInteractivePad.FocusEditor()
+                if not pad.Visible then
+                    pad.Visible <- true
                 Some(pad)
             else
                 //*attempt* to add the pad manually this seems to fail sporadically on updates and reinstalls, returning null
@@ -339,6 +339,7 @@ type FSharpInteractivePad() as this =
         else
           //if nothing is selected send the whole line
             x.SendLine()
+        FSharpInteractivePad.FocusEditor()
 
     member x.SendLine() =
         if isNull IdeApp.Workbench.ActiveDocument then ()
@@ -352,6 +353,7 @@ type FSharpInteractivePad() as this =
     member x.SendFile() =
         let text = IdeApp.Workbench.ActiveDocument.TextBuffer.CurrentSnapshot.GetText()
         x.SendCommand text
+        FSharpInteractivePad.FocusEditor()
 
     member x.IsSelectionNonEmpty =
         if isNull IdeApp.Workbench.ActiveDocument ||
