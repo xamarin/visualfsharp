@@ -423,8 +423,9 @@ type InteractiveCommand(command) =
 
     override x.Run() =
         FSharpInteractivePad.Fsi
-        |> Option.iter (fun fsi -> command fsi
-                                   FSharpInteractivePad.BringToFront(false))
+        |> Option.iter (fun fsi ->
+            FSharpInteractivePad.BringToFront(false)
+            command fsi)
 
 type FSharpFileInteractiveCommand(command) =
     inherit InteractiveCommand(command)

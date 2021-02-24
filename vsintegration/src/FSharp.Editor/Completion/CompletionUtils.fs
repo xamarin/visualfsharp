@@ -35,8 +35,9 @@ module internal CompletionUtils =
         // identifier-start-character:
         //   letter-character
         //   _ (the underscore character U+005F)
-
-        if ch < 'a' then // '\u0061'
+        if ch = '#' then
+            true
+        elif ch < 'a' then // '\u0061'
             if ch < 'A' then // '\u0041'
                 false
             else ch <= 'Z'   // '\u005A'
