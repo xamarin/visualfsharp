@@ -206,6 +206,7 @@
     </EmbeddedResource>
     <IncludeCopyLocal Include="Microsoft.CodeAnalysis.ExternalAccess.FSharp.dll" />
     <IncludeCopyLocal Include="FSharp.Compiler.Service.dll" />
+    <IncludeCopyLocal Include="FSharp.DependencyManager.Nuget.dll" />
     <IncludeCopyLocal Include="FSharp.Core.dll" />
     <IncludeCopyLocal Include="FSharpBinding.Gui.dll" />
     <EmbeddedResource Include="FSharp.Editor.resx">
