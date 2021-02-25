@@ -8,11 +8,15 @@
     <TargetFrameworks Condition="'$(ProtoTargetFramework)' == ''">net472;netcoreapp2.1</TargetFrameworks>
     <TargetFrameworks Condition="'$(OS)' == 'Unix'">netcoreapp2.1</TargetFrameworks>
     <TargetFrameworks>net472;netcoreapp2.1</TargetFrameworks>
-    <TargetExt>.exe</TargetExt>
+    <TargetFrameworks Condition="'$(ProtoTargetFramework)' == ''">net472;netcoreapp3.0</TargetFrameworks>
+    <TargetFrameworks Condition="'$(OS)' == 'Unix'">netcoreapp3.0</TargetFrameworks>
+    <TargetFrameworks Condition="'$(ProtoTargetFramework)' == ''">net472;netcoreapp3.1</TargetFrameworks>
+    <TargetFrameworks Condition="'$(OS)' == 'Unix'">netcoreapp3.1</TargetFrameworks>
     <NoWarn>$(NoWarn);45;55;62;75;1204</NoWarn>
     <AllowCrossTargeting>true</AllowCrossTargeting>
     <OtherFlags>$(OtherFlags) --maxerrors:20 --extraoptimizationloops:1</OtherFlags>
     <NGenBinary>true</NGenBinary>
+    <UseAppHost>true</UseAppHost>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(TargetFramework)' == 'net472'">
@@ -23,8 +27,7 @@
     <Compile Include="..\fscmain.fs">
       <Link>fscmain.fs</Link>
     </Compile>
-    <None Include="..\..\windows\default.win32manifest">
-      <Link>default.win32manifest</Link>
+    <None Include="default.win32manifest">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <NoneSubstituteText Include="App.config">
@@ -37,6 +40,7 @@
     <ProjectReference Include="$(MSBuildThisFileDirectory)..\FSharp.Core\FSharp.Core.fsproj" />
     <ProjectReference Include="$(MSBuildThisFileDirectory)..\FSharp.Build\FSharp.Build.fsproj" />
     <ProjectReference Include="$(MSBuildThisFileDirectory)..\FSharp.Compiler.Private\FSharp.Compiler.Private.fsproj" />
+    <ProjectReference Include="$(MSBuildThisFileDirectory)..\FSharp.DependencyManager.Nuget\FSharp.DependencyManager.Nuget.fsproj" />
   </ItemGroup>
 
   <ItemGroup>

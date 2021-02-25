@@ -9,16 +9,9 @@ open FSharp.Compiler.SourceCodeServices
 open FSharp.Compiler.Layout
 open FSharp.Compiler.Layout.TaggedTextOps
 open System.Collections.Generic
+open System.Collections.Immutable
 open System.IO
 open System.Threading
-open Microsoft.CodeAnalysis.Text;
-open Microsoft.CodeAnalysis.Text.Shared.Extensions;
-open Microsoft.VisualStudio.Core.Imaging;
-open Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion;
-open Microsoft.VisualStudio.Text;
-open Microsoft.VisualStudio.Text.Adornments;
-open Microsoft.VisualStudio.Text.Editor;
-open System.Collections.Immutable
 
 type internal ITaggedTextCollector =
     abstract Add: text: TaggedText -> unit
@@ -36,7 +29,7 @@ type internal TextSanitizingCollector(collector, ?lineLimit: int) =
         match lineLimit with
         | Some lineLimit when lineLimit = count ->
             // add ... when line limit is reached
-            collector (tagText "...")
+            collector (TaggedTextOps.tagText "...")
             count <- count + 1
         | _ ->
             isEmpty <- false
@@ -62,7 +55,7 @@ type internal TextSanitizingCollector(collector, ?lineLimit: int) =
                     paragraph.TrimStart() 
                 else paragraph
                 
-            addTaggedTextEntry (tagText paragraph)
+            addTaggedTextEntry (TaggedTextOps.tagText paragraph)
             if i < paragraphs.Length - 1 then
                 // insert two line breaks to separate paragraphs
                 addTaggedTextEntry Literals.lineBreak
@@ -249,7 +242,7 @@ module internal XmlDocumentation =
         static member TryCreate (xml: string) =
             try Some (XmlDocReader(XElement.Parse(ProcessXml xml))) with _ -> None
 
-        member __.CollectSummary(collector: ITaggedTextCollector) = 
+        member _.CollectSummary(collector: ITaggedTextCollector) = 
             match Seq.tryHead (doc.Descendants(XName.op_Implicit "summary")) with
             | None -> ()
             | Some el ->
@@ -334,7 +327,7 @@ module internal XmlDocumentation =
 
         interface IDocumentationBuilder with 
             /// Append the given processed XML formatted into the string builder
-            override __.AppendDocumentationFromProcessedXML(xmlCollector, exnCollector, processedXml, showExceptions, showParameters, paramName) =
+            override _.AppendDocumentationFromProcessedXML(xmlCollector, exnCollector, processedXml, showExceptions, showParameters, paramName) =
                 match XmlDocReader.TryCreate processedXml with
                 | Some xmlDocReader ->
                     match paramName with
@@ -371,8 +364,8 @@ module internal XmlDocumentation =
         | FSharpXmlDoc.None -> ()
         | FSharpXmlDoc.XmlDocFileSignature(filename,signature) ->
             documentationProvider.AppendDocumentation(xmlCollector, exnCollector, filename, signature, showExceptions, showParameters, paramName)
-        | FSharpXmlDoc.Text(rawXml) ->
-            let processedXml = ProcessXml(rawXml)
+        | FSharpXmlDoc.Text(_rawText, processedXml) ->
+            let processedXml = ProcessXml("\n\n" + String.concat "\n" processedXml)
             documentationProvider.AppendDocumentationFromProcessedXML(xmlCollector, exnCollector, processedXml, showExceptions, showParameters, paramName)
 
     let private AddSeparator (collector: ITaggedTextCollector) =
@@ -419,7 +412,7 @@ module internal XmlDocumentation =
                     addSeparatorIfNecessary add
                     if showText then 
                         let AppendOverload (item: FSharpToolTipElementData<_>) = 
-                            if not(isEmptyL item.MainDescription) then
+                            if not(Layout.isEmptyL item.MainDescription) then
                                 if not textCollector.IsEmpty then 
                                     AppendHardLine textCollector
                                 renderL (taggedTextListR textCollector.Add) item.MainDescription |> ignore
@@ -436,7 +429,7 @@ module internal XmlDocumentation =
                     let item0 = overloads.[0]
 
                     item0.Remarks |> Option.iter (fun r -> 
-                        if not(isEmptyL r) then
+                        if not(Layout.isEmptyL r) then
                             AppendHardLine usageCollector
                             renderL (taggedTextListR usageCollector.Add) r |> ignore)
 

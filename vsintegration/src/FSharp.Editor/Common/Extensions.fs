@@ -5,12 +5,15 @@ module internal Microsoft.VisualStudio.FSharp.Editor.Extensions
 
 open System
 open System.IO
+open System.Collections.Immutable
+
 open Microsoft.CodeAnalysis
 open Microsoft.CodeAnalysis.Text
 open Microsoft.CodeAnalysis.Host
-open FSharp.Compiler.Text
-open FSharp.Compiler.Ast
+
 open FSharp.Compiler.SourceCodeServices
+open FSharp.Compiler.Text
+open FSharp.Compiler.SyntaxTree
 open MonoDevelop.Core
 
 type private FSharpGlyph = FSharp.Compiler.SourceCodeServices.FSharpGlyph
@@ -26,6 +29,28 @@ module LoggingService =
     let logError format = logWithThread LoggingService.LogError format
     let logInfo format = logWithThread LoggingService.LogInfo format
     let logWarning format = logWithThread LoggingService.LogWarning format
+    
+[<RequireQualifiedAccess>]
+module Option =
+
+    let guard (x: bool) : Option<unit> =
+        if x then Some() else None
+
+    let attempt (f: unit -> 'T) = try Some <| f() with _ -> None
+
+    /// Returns 'Some list' if all elements in the list are Some, otherwise None
+    let ofOptionList (xs : 'a option list) : 'a list option =
+
+        if xs |> List.forall Option.isSome then
+            xs |> List.map Option.get |> Some
+        else
+            None
+
+    let inline tryCast<'T> (o: obj): 'T option =
+        match o with
+        | null -> None
+        | :? 'T as a -> Some a
+        | _ -> None
 
 type Path with
     static member GetFullPathSafe path =
@@ -56,6 +81,32 @@ type Document with
                 languageServices.GetService<'T>()
                 |> Some
 
+type FSharpMemberOrFunctionOrValue with
+  // FullType may raise exceptions (see https://github.com/fsharp/fsharp/issues/307).
+    member x.FullTypeSafe = Option.attempt (fun _ -> x.FullType)
+    member x.IsConstructor = x.CompiledName = ".ctor"
+    member x.IsOperatorOrActivePattern =
+        let name = x.DisplayName
+        if name.StartsWith "( " && name.EndsWith " )" && name.Length > 4
+        then name.Substring (2, name.Length - 4) |> String.forall (fun c -> c <> ' ')
+        else false
+
+type internal FSharpEntity with
+    member x.AllBaseTypes =
+        let rec allBaseTypes (entity:FSharpEntity) =
+            [
+                match entity.TryFullName with
+                | Some _ ->
+                    match entity.BaseType with
+                    | Some bt ->
+                        yield bt
+                        if bt.HasTypeDefinition then
+                            yield! allBaseTypes bt.TypeDefinition
+                    | _ -> ()
+                | _ -> ()
+            ]
+        allBaseTypes x
+
 module private SourceText =
 
     open System.Runtime.CompilerServices
@@ -75,7 +126,7 @@ module private SourceText =
         let sourceText =
             { 
                 new Object() with
-                    override __.GetHashCode() =
+                    override _.GetHashCode() =
                         let checksum = sourceText.GetChecksum()
                         let contentsHash = if not checksum.IsDefault then Hash.combineValues checksum else 0
                         let encodingHash = if not (isNull sourceText.Encoding) then sourceText.Encoding.GetHashCode() else 0
@@ -87,24 +138,24 @@ module private SourceText =
 
                 interface ISourceText with
             
-                    member __.Item with get index = sourceText.[index]
+                    member _.Item with get index = sourceText.[index]
 
-                    member __.GetLineString(lineIndex) =
+                    member _.GetLineString(lineIndex) =
                         sourceText.Lines.[lineIndex].ToString()
 
-                    member __.GetLineCount() =
+                    member _.GetLineCount() =
                         sourceText.Lines.Count
 
-                    member __.GetLastCharacterPosition() =
+                    member _.GetLastCharacterPosition() =
                         if sourceText.Lines.Count > 0 then
                             (sourceText.Lines.Count, sourceText.Lines.[sourceText.Lines.Count - 1].Span.Length)
                         else
                             (0, 0)
 
-                    member __.GetSubTextString(start, length) =
+                    member _.GetSubTextString(start, length) =
                         sourceText.GetSubText(TextSpan(start, length)).ToString()
 
-                    member __.SubTextEquals(target, startIndex) =
+                    member _.SubTextEquals(target, startIndex) =
                         if startIndex < 0 || startIndex >= sourceText.Length then
                             invalidArg "startIndex" "Out of range."
 
@@ -127,14 +178,14 @@ module private SourceText =
 
                         didEqual
 
-                    member __.ContentEquals(sourceText) =
+                    member _.ContentEquals(sourceText) =
                         match sourceText with
                         | :? SourceText as sourceText -> sourceText.ContentEquals(sourceText)
                         | _ -> false
 
-                    member __.Length = sourceText.Length
+                    member _.Length = sourceText.Length
 
-                    member __.CopyTo(sourceIndex, destination, destinationIndex, count) =
+                    member _.CopyTo(sourceIndex, destination, destinationIndex, count) =
                         sourceText.CopyTo(sourceIndex, destination, destinationIndex, count)
             }
 
@@ -234,31 +285,9 @@ module String =
         |]
 
 
-[<RequireQualifiedAccess>]
-module Option =
-
-    let guard (x: bool) : Option<unit> =
-        if x then Some() else None
-
-    let attempt (f: unit -> 'T) = try Some <| f() with _ -> None
-
-    /// Returns 'Some list' if all elements in the list are Some, otherwise None
-    let ofOptionList (xs : 'a option list) : 'a list option =
-
-        if xs |> List.forall Option.isSome then
-            xs |> List.map Option.get |> Some
-        else
-            None
-
-    let inline tryCast<'T> (o: obj): 'T option =
-        match o with
-        | null -> None
-        | :? 'T as a -> Some a
-        | _ -> None
 
 [<RequireQualifiedAccess>]
 module Seq =
-    open System.Collections.Immutable
 
     let toImmutableArray (xs: seq<'a>) : ImmutableArray<'a> = xs.ToImmutableArray()
 
@@ -271,6 +300,8 @@ module Array =
             state <- folder state i x
             i <- i + 1
         state
+
+    let toImmutableArray (xs: 'T[]) = xs.ToImmutableArray()
 
 [<RequireQualifiedAccess>]
 module Exception =

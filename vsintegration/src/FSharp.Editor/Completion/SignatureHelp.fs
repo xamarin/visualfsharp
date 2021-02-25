@@ -2,12 +2,16 @@
 
 namespace Microsoft.VisualStudio.FSharp.Editor
 
+open System
 open System.Composition
 open System.Collections.Generic
 
 open Microsoft.CodeAnalysis
+open Microsoft.CodeAnalysis.SignatureHelp
 open Microsoft.CodeAnalysis.Text
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp.SignatureHelp
+
+open Microsoft.VisualStudio.Text
 
 open FSharp.Compiler.Layout
 open FSharp.Compiler.Range
@@ -23,13 +27,13 @@ type internal FSharpSignatureHelpProvider
     ) =
 
     static let userOpName = "SignatureHelpProvider"
-    let documentationBuilder = XmlDocumentation.CreateDocumentationBuilder()
+    let documentationBuilder = XmlDocumentation.CreateDocumentationBuilder((*serviceProvider.XMLMemberIndexService*))
 
     static let oneColAfter (lp: LinePosition) = LinePosition(lp.Line,lp.Character+1)
     static let oneColBefore (lp: LinePosition) = LinePosition(lp.Line,max 0 (lp.Character-1))
 
     // Unit-testable core routine
-    static member internal ProvideMethodsAsyncAux(checker:FSharpChecker, documentationBuilder: IDocumentationBuilder, sourceText: SourceText, caretPosition: int, options: FSharpProjectOptions, triggerIsTypedChar: char option, filePath: string, textVersionHash: int) = async {
+    static member internal ProvideMethodsAsyncAux(checker: FSharpChecker, documentationBuilder: IDocumentationBuilder, sourceText: SourceText, caretPosition: int, options: FSharpProjectOptions, triggerIsTypedChar: char option, filePath: string, textVersionHash: int) = async {
         let! parseResults, checkFileAnswer = checker.ParseAndCheckFileInProject(filePath, textVersionHash, sourceText.ToFSharpSourceText(), options, userOpName = userOpName)
         match checkFileAnswer with
         | FSharpCheckFileAnswer.Aborted -> return None
@@ -168,6 +172,7 @@ type internal FSharpSignatureHelpProvider
             let prefixParts = 
                 [| TaggedText(TextTags.Method, methodGroup.MethodName);  
                    TaggedText(TextTags.Punctuation, (if isStaticArgTip then "<" else "(")) |]
+
             let separatorParts = [| TaggedText(TextTags.Punctuation, ","); TaggedText(TextTags.Space, " ") |]
             let suffixParts = [| TaggedText(TextTags.Punctuation, (if isStaticArgTip then ">" else ")")) |]
 
@@ -189,7 +194,7 @@ type internal FSharpSignatureHelpProvider
         member this.GetItemsAsync(document, position, triggerInfo, cancellationToken) = 
             asyncMaybe {
               try
-                let! _parsingOptions, projectOptions = projectInfoManager.TryGetOptionsForEditingDocumentOrProject(document, cancellationToken)
+                let! _parsingOptions, projectOptions = projectInfoManager.TryGetOptionsForEditingDocumentOrProject(document, cancellationToken, userOpName)
                 let! sourceText = document.GetTextAsync(cancellationToken)
                 let! textVersion = document.GetTextVersionAsync(cancellationToken)
 

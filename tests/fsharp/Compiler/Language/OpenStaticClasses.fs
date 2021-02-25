@@ -4,6 +4,7 @@ namespace FSharp.Compiler.UnitTests
 
 open FSharp.Compiler.SourceCodeServices
 open NUnit.Framework
+open FSharp.Test.Utilities
 
 
 (*
@@ -45,13 +46,13 @@ module OpenSystemMathOnce =
                let x = Min(1.0, 2.0)""")
             [|
                 (FSharpErrorSeverity.Error, 39, (22,28,22,32), "The namespace 'Math' is not defined.");
-                (FSharpErrorSeverity.Error, 39, (23,24,23,27), "The value or constructor 'Min' is not defined.")
+                (FSharpErrorSeverity.Error, 39, (23,24,23,27), "The value or constructor 'Min' is not defined. Maybe you want one of the following:\r\n   min\r\n   sin")
             |]
 
     [<Test>]
     let ``OpenStaticClassesTests - OpenSystemMathOnce - langversion:preview`` () =
         CompilerAssert.TypeCheckWithErrorsAndOptions
-            [| "--langversion:preview" |]
+            [| "--langversion:5.0" |]
             (baseModule + """
 module OpenSystemMathOnce =
 
@@ -73,15 +74,15 @@ module OpenSystemMathTwice =
     let x2 = Min(2.0, 1.0)""")
             [|
                 (FSharpErrorSeverity.Error, 39, (22,17,22,21), "The namespace 'Math' is not defined.");
-                (FSharpErrorSeverity.Error, 39, (23,13,23,16), "The value or constructor 'Min' is not defined.")
+                (FSharpErrorSeverity.Error, 39, (23,13,23,16), "The value or constructor 'Min' is not defined. Maybe you want one of the following:\r\n   min\r\n   sin")
                 (FSharpErrorSeverity.Error, 39, (25,17,25,21), "The namespace 'Math' is not defined.");
-                (FSharpErrorSeverity.Error, 39, (26,14,26,17), "The value or constructor 'Min' is not defined.")
+                (FSharpErrorSeverity.Error, 39, (26,14,26,17), "The value or constructor 'Min' is not defined. Maybe you want one of the following:\r\n   min\r\n   sin")
             |]
 
     [<Test>]
     let ``OpenStaticClassesTests - OpenSystemMathTwice - langversion:preview`` () =
         CompilerAssert.TypeCheckWithErrorsAndOptions
-            [| "--langversion:preview" |]
+            [| "--langversion:5.0" |]
             (baseModule + """
 module OpenSystemMathOnce =
 
@@ -100,15 +101,15 @@ module OpenMyMathOnce =
     let x = Min(1.0, 2.0)
     let x2 = Min(1, 2)""")
             [|
-                (FSharpErrorSeverity.Error, 39, (22,10,22,16), "The namespace or module 'MyMath' is not defined.");
-                (FSharpErrorSeverity.Error, 39, (23,13,23,16), "The value or constructor 'Min' is not defined.")
-                (FSharpErrorSeverity.Error, 39, (24,14,24,17), "The value or constructor 'Min' is not defined.")
+                (FSharpErrorSeverity.Error, 39, (22,10,22,16), "The namespace or module 'MyMath' is not defined. Maybe you want one of the following:\r\n   Math");
+                (FSharpErrorSeverity.Error, 39, (23,13,23,16), "The value or constructor 'Min' is not defined. Maybe you want one of the following:\r\n   min\r\n   sin")
+                (FSharpErrorSeverity.Error, 39, (24,14,24,17), "The value or constructor 'Min' is not defined. Maybe you want one of the following:\r\n   min\r\n   sin")
             |]
 
     [<Test>]
     let ``OpenStaticClassesTests - OpenMyMathOnce - langversion:preview`` () =
         CompilerAssert.TypeCheckWithErrorsAndOptions
-            [| "--langversion:preview" |]
+            [| "--langversion:5.0" |]
             (baseModule + """
 module OpenMyMathOnce = 
 
@@ -134,7 +135,7 @@ module DontOpenAutoMath =
     [<Test>]
     let ``OpenStaticClassesTests - DontOpenAutoMath - langversion:preview`` () =
         CompilerAssert.TypeCheckWithErrorsAndOptions
-            [| "--langversion:preview" |]
+            [| "--langversion:5.0" |]
             (baseModule + """
 module DontOpenAutoMath = 
 
@@ -162,7 +163,7 @@ module OpenAutoMath =
     [<Test>]
     let ``OpenStaticClassesTests - OpenAutoMath - langversion:preview`` () =
         CompilerAssert.TypeCheckWithErrorsAndOptions
-            [| "--langversion:preview" |]
+            [| "--langversion:5.0" |]
             (baseModule + """
 module OpenAutoMath = 
     open AutoOpenMyMath
@@ -175,7 +176,7 @@ module OpenAutoMath =
     [<Test>]
     let ``OpenStaticClassesTests - OpenAccessibleFields - langversion:preview`` () =
         CompilerAssert.TypeCheckWithErrorsAndOptions
-            [| "--langversion:preview" |]
+            [| "--langversion:5.0" |]
             (baseModule + """
 module OpenAFieldFromMath =
     open System.Math

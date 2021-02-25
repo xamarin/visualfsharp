@@ -80,7 +80,7 @@ type internal BreakpointSpanResolver() =
                 let! document = buffer.CurrentSnapshot.GetRelatedDocumentsWithChanges() |> Seq.tryHead
                 let checkerService = getCheckerService document
                 let projectInfoManager = checkerService.FSharpProjectOptionsManager
-                let! parsingOptions, _options = projectInfoManager.TryGetOptionsForEditingDocumentOrProject(document, cancellationToken)
+                let! parsingOptions, _options = projectInfoManager.TryGetOptionsForEditingDocumentOrProject(document, cancellationToken, "GetBreakpointSpanAsync")
                 let sourceText = buffer.AsTextContainer().CurrentText
                 let! range = BreakpointSpanResolver.GetBreakpointLocation(checkerService.Checker, sourceText, document.Name, position, parsingOptions)
                 return fsharpRangeToSpan(sourceText, range)

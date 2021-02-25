@@ -35,15 +35,11 @@ type internal FSharpCompletionService
     let builtInProviders = 
         ImmutableArray.Create<CompletionProvider>(
             FSharpCompletionProvider(workspace, checkerProvider, projectInfoManager, assemblyContentProvider),
-            FSharpCommonCompletionProvider.Create(
-                HashDirectiveCompletionProvider(workspace, projectInfoManager,
-                    [ Completion.Create("""\s*#load\s+(@?"*(?<literal>"[^"]*"?))""", [".fs"; ".fsx"], useIncludeDirectives = true)
-                      Completion.Create("""\s*#r\s+(@?"*(?<literal>"[^"]*"?))""", [".dll"; ".exe"], useIncludeDirectives = true)
-                      Completion.Create("""\s*#I\s+(@?"*(?<literal>"[^"]*"?))""", ["\x00"], useIncludeDirectives = false) ])))
+            FSharpCommonCompletionProvider.Create(HashDirectiveCompletionProvider.Create(workspace, projectInfoManager)))
 
-    override this.Language = FSharpConstants.FSharpLanguageName
-    override this.GetBuiltInProviders() = builtInProviders
-    override this.GetRules() =
+    override _.Language = FSharpConstants.FSharpLanguageName
+    override _.GetBuiltInProviders() = builtInProviders
+    override _.GetRules() =
         let enterKeyRule =
             match settings.IntelliSense.EnterKeySetting with
             | NeverNewline -> EnterKeyRule.Never
@@ -54,6 +50,14 @@ type internal FSharpCompletionService
             .WithDismissIfEmpty(true)
             .WithDismissIfLastCharacterDeleted(true)
             .WithDefaultEnterKeyRule(enterKeyRule)
+
+    /// Indicates the text span to be replaced by a committed completion list item.
+    override _.GetDefaultCompletionListSpan(sourceText, caretIndex) =
+        let documentId = workspace.GetDocumentIdInCurrentContext(sourceText.Container)
+        let document = workspace.CurrentSolution.GetDocument(documentId)
+        let defines = projectInfoManager.GetCompilationDefinesForEditingDocument(document)
+        let itemSpan = CompletionUtils.getCompletionItemSpan sourceText caretIndex
+        TextSpan.FromBounds(itemSpan.Start, itemSpan.End)
 
 type internal FSharpCompletionSource
     (textView: ITextView, checkerProvider: FSharpCheckerProvider, projectInfoManager: FSharpProjectOptionsManager, assemblyContentProvider: AssemblyContentProvider) =
@@ -222,7 +226,7 @@ type internal FSharpCompletionSource
                 let document = session.TextView.TextSnapshot.GetOpenDocumentInCurrentContextWithChanges()
 
                 let sourceText = session.TextView.TextSnapshot.AsText()
-                let! options = projectInfoManager.TryGetOptionsForEditingDocumentOrProject(document, token)
+                let! options = projectInfoManager.TryGetOptionsForEditingDocumentOrProject(document, token, "GetCompletionContextAsync")
                 match options with
                 | Some (_parsingOptions, projectOptions) ->
                     let! textVersion = document.GetTextVersionAsync(token) |> liftTaskAsync
@@ -320,7 +324,6 @@ type internal CompletionSourceProvider
         projectInfoManager: FSharpProjectOptionsManager,
         assemblyContentProvider: AssemblyContentProvider
     ) =
-
     interface IAsyncCompletionSourceProvider with
         member __.GetOrCreate(textView) =
             System.Diagnostics.Trace.WriteLine("Completion .ctor")

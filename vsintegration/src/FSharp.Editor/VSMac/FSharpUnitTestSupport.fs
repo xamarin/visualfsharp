@@ -163,7 +163,7 @@ type internal FSharpUnitTestTagger(textView, checkerProvider: FSharpCheckerProvi
                     let snapshot = collection.[0].Snapshot
                     let document = snapshot.GetOpenDocumentInCurrentContextWithChanges()
                     let! sourceText = document.GetTextAsync(CancellationToken.None)
-                    let! _, _, projectOptions = projectInfoManager.TryGetOptionsForDocumentOrProject(document, CancellationToken.None)
+                    let! _, _, projectOptions = projectInfoManager.TryGetOptionsForDocumentOrProject(document, CancellationToken.None, "GetTags")
 
                     let! _, _, checkResults = checkerProvider.Checker.ParseAndCheckDocument(document, projectOptions, sourceText = sourceText, allowStaleResults = false, userOpName="FSharpUnitTests")
                     let! symbols = checkResults.GetAllUsesOfAllSymbolsInFile() |> liftAsync

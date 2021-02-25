@@ -3,11 +3,11 @@
 // Various tests for the:
 // Microsoft.FSharp.Collections.List module
 
-namespace FSharp.Core.UnitTests.FSharp_Core.Microsoft_FSharp_Collections
+namespace FSharp.Core.UnitTests.Collections
 
 open System
 open FSharp.Core.UnitTests.LibraryTestFx
-open NUnit.Framework
+open Xunit
 
 (*
 [Test Strategy]
@@ -25,9 +25,8 @@ type ListWindowedTestInput<'t> =
         Exception : Type option
     }
 
-[<TestFixture>][<Category "Collections.List">][<Category "FSharp.Core.Collections">]
 type ListModule02() =
-    [<Test>]
+    [<Fact>]
     member this.Length() =
         // integer List  
         let resultInt = List.length [1..8]        
@@ -43,7 +42,7 @@ type ListModule02() =
         
         ()
 
-    [<Test>]
+    [<Fact>]
     member this.Map() = 
         // integer List
         let funcInt x = 
@@ -64,7 +63,7 @@ type ListModule02() =
         
         ()
 
-    [<Test>]
+    [<Fact>]
     member this.Map2() = 
         // integer List 
         let funcInt x y = x+y
@@ -83,7 +82,7 @@ type ListModule02() =
         
         ()
         
-    [<Test>]
+    [<Fact>]
     member this.Map3 () =
 
         // integer List  
@@ -94,35 +93,22 @@ type ListModule02() =
         
         // string List
         let funcStr x y z = x + y + z        
-        let resultStr = List.map3 funcStr ["A";"B";"C";"D"] ["a";"b";"c";"d"] ["1";"2";"3";"4"]        
+        let resultStr = List.map3 funcStr ["A";"B";"C";"D"] ["a";"b";"c";"d"] ["1";"2";"3";"4"]
         Assert.AreEqual(["Aa1";"Bb2";"Cc3";"Dd4"], resultStr)
-        
+
         // lists of different length
         let shortList = [1]
         let longerList = [1; 2]
         CheckThrowsArgumentException  (fun () -> List.map3 funcInt shortList shortList longerList |> ignore)
         CheckThrowsArgumentException  (fun () -> List.map3 funcInt shortList longerList shortList |> ignore)
         CheckThrowsArgumentException  (fun () -> List.map3 funcInt shortList shortList longerList |> ignore)
-        
-        // exception message checking
-        let expectedMessage =
-            "The lists had different lengths.\n" +
-            sprintf " list1.Length = %i, list2.Length = %i, list3.Length = %i" shortList.Length shortList.Length longerList.Length +
-            Environment.NewLine + "Parameter name: list1, list2, list3"
-        let ex = Assert.Throws(typeof<ArgumentException>,
-                               (fun () -> List.map3 funcInt shortList shortList longerList |> ignore))
-        Assert.AreEqual(expectedMessage, ex.Message)
 
         // empty List
         let resultEpt = List.map3 funcInt List.empty List.empty List.empty
         Assert.AreEqual(List.empty<int>, resultEpt)
-        
-        ()
 
-
-    [<Test>]
-    member this.Collect() = 
-        // integer List
+    [<Fact>]
+    member this.Collect() =        // integer List
         let funcInt x = 
                 match x with
                 | _ when x % 3 = 0 -> [999;999]            
@@ -145,7 +131,7 @@ type ListModule02() =
         
         ()
 
-    [<Test>]
+    [<Fact>]
     member this.Collect2() = 
         // The collect implementation uses mutation to create the result list; this test
         // helps verify that lists created by the user are never mutated
@@ -161,7 +147,7 @@ type ListModule02() =
         Assert.AreEqual( [1; 2; 3], lists.[2] )
         ()
 
-    [<Test>]
+    [<Fact>]
     member this.Mapi() = 
         // integer List 
         let funcInt x y = x+y
@@ -180,7 +166,7 @@ type ListModule02() =
         
         ()
 
-    [<Test>]
+    [<Fact>]
     member this.Mapi2() = 
         // integer List 
         let funcInt x y z = x + y + z
@@ -205,7 +191,7 @@ type ListModule02() =
 
         ()
 
-    [<Test>]
+    [<Fact>]
     member this.Indexed() =
         // integer List
         Assert.AreEqual([(0,10);(1,12);(2,14);(3,16);(4,18);(5,20)], List.indexed [10..2..20])
@@ -222,7 +208,7 @@ type ListModule02() =
 
         ()
 
-    [<Test>]
+    [<Fact>]
     member this.MapFold() =
         // integer List
         let funcInt acc x = if x % 2 = 0 then 10*x, acc + 1 else x, acc
@@ -249,7 +235,7 @@ type ListModule02() =
 
         ()
 
-    [<Test>]
+    [<Fact>]
     member this.MapFoldBack() =
         // integer List
         let funcInt x acc = if acc < 105 then 10*x, acc + 2 else x, acc
@@ -275,7 +261,7 @@ type ListModule02() =
 
         ()
 
-    [<Test>]
+    [<Fact>]
     member this.Max() = 
         // integer List 
         let resultInt = List.max  [2..2..20]        
@@ -290,7 +276,7 @@ type ListModule02() =
         
         ()
 
-    [<Test>]
+    [<Fact>]
     member this.MaxBy() = 
         // integer List 
         let funcInt x = x%8
@@ -307,7 +293,7 @@ type ListModule02() =
 
         ()
 
-    [<Test>]
+    [<Fact>]
     member this.Min() =
         // integer List 
         let resultInt = List.min  [3;7;8;9;4;1;1;2]        
@@ -322,7 +308,7 @@ type ListModule02() =
         
         () 
 
-    [<Test>]
+    [<Fact>]
     member this.MinBy() = 
         // integer List 
         let funcInt x = x%8
@@ -340,7 +326,7 @@ type ListModule02() =
        
         ()
 
-    [<Test>]
+    [<Fact>]
     member this.Item() =
         // integer List
         let resultInt = List.item 3 [3;7;9;4;8;1;1;2]
@@ -362,7 +348,7 @@ type ListModule02() =
            CheckThrowsArgumentException (fun () -> List.item i [3;7;9;4;8;1;1;2] |> ignore)
 
 
-    [<Test>]
+    [<Fact>]
     member this.Of_Array() =
         // integer List  
         let resultInt = List.ofArray [|1..10|]        
@@ -378,7 +364,7 @@ type ListModule02() =
         
         ()
 
-    [<Test>]
+    [<Fact>]
     member this.Of_Seq() =
         // integer List  
         let resultInt = List.ofSeq {1..10}        
@@ -394,7 +380,7 @@ type ListModule02() =
         
         ()
 
-    [<Test>]
+    [<Fact>]
     member this.Partition() =
         // integer List  
         let resultInt = List.partition (fun x -> x % 3 = 0) [1..10]        
@@ -412,7 +398,7 @@ type ListModule02() =
         
         ()
 
-    [<Test>]
+    [<Fact>]
     member this.Permute() =
         // integer List  
         let resultInt = List.permute (fun i -> (i+1) % 4) [1;2;3;4]
@@ -428,7 +414,7 @@ type ListModule02() =
         
         ()
 
-    [<Test>]
+    [<Fact>]
     member this.Reduce() =
         // integer List  
         let resultInt = List.reduce (fun x y -> x/y) [5*4*3*2; 4;3;2;1]
@@ -444,7 +430,7 @@ type ListModule02() =
         
         ()
         
-    [<Test>]
+    [<Fact>]
     member this.ReduceBack() =
         // integer List  
         let resultInt = List.reduceBack (fun x y -> x/y) [5*4*3*2; 4;3;2;1]
@@ -459,7 +445,7 @@ type ListModule02() =
         
         ()
 
-    [<Test>]
+    [<Fact>]
     member this.Rev() =
         // integer List  
         let resultInt = List.rev  [1..10]        
@@ -475,7 +461,7 @@ type ListModule02() =
         
         ()
 
-    [<Test>]
+    [<Fact>]
     member this.Scan() =
         // integer List
         let funcInt x y = x+y
@@ -492,7 +478,7 @@ type ListModule02() =
         Assert.AreEqual([5], resultEpt)
         
         ()   
-    [<Test>]
+    [<Fact>]
     member this.ScanBack() =
         // integer List 
         let funcInt x y = x+y
@@ -510,7 +496,7 @@ type ListModule02() =
         
         () 
 
-    [<Test>]
+    [<Fact>]
     member this.Skip() =
         // integer List
         let resultInt = List.skip 2 [1..10]
@@ -534,7 +520,7 @@ type ListModule02() =
         CheckThrowsArgumentException(fun () -> List.skip 1 [] |> ignore)
         CheckThrowsArgumentException(fun () -> List.skip 4 [1; 2; 3] |> ignore)
 
-    [<Test>]
+    [<Fact>]
     member this.SkipWhile() =
         // integer list
         let funcInt x = (x < 4)
@@ -562,7 +548,7 @@ type ListModule02() =
 
         ()
 
-    [<Test>]
+    [<Fact>]
     member this.Sort() =
         // integer List  
         let intArr = [3;5;7;2;4;8]
@@ -586,7 +572,7 @@ type ListModule02() =
         
         ()    
 
-    [<Test>]
+    [<Fact>]
     member this.SortBy() =
         // integer List  
         let intArr = [3;5;7;2;4;8]
@@ -610,7 +596,7 @@ type ListModule02() =
         
         ()
         
-    [<Test>]
+    [<Fact>]
     member this.SortDescending() =
         // integer List
         let minInt,maxInt = System.Int32.MinValue,System.Int32.MaxValue
@@ -642,7 +628,7 @@ type ListModule02() =
 
         () 
         
-    [<Test>]
+    [<Fact>]
     member this.SortByDescending() =
         // integer List  
         let intArr = [3;5;7;2;4;8]
@@ -673,7 +659,7 @@ type ListModule02() =
 
         ()  
   
-    [<Test>]
+    [<Fact>]
     member this.SortWith() =
 
         // integer list
@@ -691,7 +677,7 @@ type ListModule02() =
 
         ()
 
-    [<Test>]
+    [<Fact>]
     member this.Sum() =
         // empty integer List 
         let resultEptInt = List.sum ([]:int list)         
@@ -734,7 +720,7 @@ type ListModule02() =
        
         ()
 
-    [<Test>]
+    [<Fact>]
     member this.SumBy() =
         // empty integer List 
         let resultEptInt = List.sumBy int ([]:int list)         
@@ -777,7 +763,7 @@ type ListModule02() =
         
         ()
 
-    [<Test>]
+    [<Fact>]
     member this.Tl() =
         // integer List  
         let resultInt = List.tail [1..10]        
@@ -790,7 +776,7 @@ type ListModule02() =
         CheckThrowsArgumentException(fun () -> List.tail [] |> ignore)
         ()        
 
-    [<Test>]
+    [<Fact>]
     member this.To_Array() =
         // integer List  
         let resultInt = List.toArray [1..10]        
@@ -806,7 +792,7 @@ type ListModule02() =
       
         ()    
         
-    [<Test>]
+    [<Fact>]
     member this.To_Seq() =
         // integer List  
         let resultInt = [1..10] |> List.toSeq  |> List.ofSeq        
@@ -822,7 +808,7 @@ type ListModule02() =
         
         ()   
 
-    [<Test>]
+    [<Fact>]
     member this.Transpose() =
         // integer list
         Assert.AreEqual([[1; 4]; [2; 5]; [3; 6]], List.transpose (seq [[1..3]; [4..6]]))
@@ -846,7 +832,7 @@ type ListModule02() =
         CheckThrowsArgumentException (fun () -> List.transpose [[1; 2]; []; [3; 4]] |> ignore)
         CheckThrowsArgumentException (fun () -> List.transpose [[1; 2]; [3; 4]; []] |> ignore)
 
-    [<Test>]
+    [<Fact>]
     member this.Truncate() =
         // integer list
         Assert.AreEqual([1..3], List.truncate 3 [1..5])
@@ -866,7 +852,7 @@ type ListModule02() =
 
         ()
 
-    [<Test>]
+    [<Fact>]
     member this.TryFind() =
         // integer List  
         let resultInt = [1..10] |> List.tryFind (fun x -> x%7 = 0)          
@@ -886,7 +872,7 @@ type ListModule02() =
 
         ()
         
-    [<Test>]
+    [<Fact>]
     member this.TryFindBack() =
         // integer List
         Assert.AreEqual(Some 20, [1..20] |> List.tryFindBack (fun x -> x%5 = 0))
@@ -909,7 +895,7 @@ type ListModule02() =
 
         ()
 
-    [<Test>]
+    [<Fact>]
     member this.TryFindIndex() =
         // integer List  
         let resultInt = [1..10] |> List.tryFindIndex (fun x -> x%7 = 0)          
@@ -924,7 +910,7 @@ type ListModule02() =
         Assert.AreEqual(None, resultEpt)
         ()
 
-    [<Test>]
+    [<Fact>]
     member this.TryFindIndexBack() =
         // integer List
         Assert.AreEqual(Some 19, [1..20] |> List.tryFindIndexBack (fun x -> x%5 = 0))
@@ -943,7 +929,7 @@ type ListModule02() =
 
         ()
 
-    [<Test>]
+    [<Fact>]
     member this.Unfold() =
         // integer Seq
         let resultInt = List.unfold (fun x -> if x < 20 then Some (x+1,x*2) else None) 1
@@ -960,7 +946,7 @@ type ListModule02() =
 
         ()
 
-    [<Test>]
+    [<Fact>]
     member this.Unzip() =
         // integer List  
         let resultInt =  List.unzip [(1,2);(2,4);(3,6)]         
@@ -979,7 +965,7 @@ type ListModule02() =
         
         ()
 
-    [<Test>]
+    [<Fact>]
     member this.Unzip3() =
         // integer List  
         let resultInt =  List.unzip3 [(1,2,3);(2,4,6);(3,6,9)]        
@@ -997,7 +983,7 @@ type ListModule02() =
         
         ()
 
-    [<Test>]
+    [<Fact>]
     member this.Windowed() =
         let testWindowed config =
             try
@@ -1081,7 +1067,7 @@ type ListModule02() =
 
         ()
 
-    [<Test>]
+    [<Fact>]
     member this.Zip() =
         // integer List  
         let resultInt =  List.zip [1..3] [2..2..6]         
@@ -1098,7 +1084,7 @@ type ListModule02() =
         
         ()
 
-    [<Test>]
+    [<Fact>]
     member this.Zip3() =
         // integer List  
         let resultInt =  List.zip3 [1..3] [2..2..6] [3;6;9]        
@@ -1115,7 +1101,7 @@ type ListModule02() =
        
         ()            
 
-    [<Test>]
+    [<Fact>]
     member this.tryItem() =
         // integer List
         let resultInt = List.tryItem 4 [3;7;9;4;8;1;1;2]

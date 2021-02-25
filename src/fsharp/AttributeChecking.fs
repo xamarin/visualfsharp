@@ -4,21 +4,22 @@
 /// on items from name resolution
 module internal FSharp.Compiler.AttributeChecking
 
+open System
 open System.Collections.Generic
 open FSharp.Compiler.AbstractIL.IL 
 open FSharp.Compiler.AbstractIL.Internal.Library
 
 open FSharp.Compiler 
-open FSharp.Compiler.Range
 open FSharp.Compiler.ErrorLogger
 open FSharp.Compiler.Infos
-open FSharp.Compiler.Tast
-open FSharp.Compiler.Tastops
 open FSharp.Compiler.TcGlobals
+open FSharp.Compiler.Text
+open FSharp.Compiler.TypedTree
+open FSharp.Compiler.TypedTreeOps
 
 #if !NO_EXTENSIONTYPING
 open FSharp.Compiler.ExtensionTyping
-open Microsoft.FSharp.Core.CompilerServices
+open FSharp.Core.CompilerServices
 #endif
 
 exception ObsoleteWarning of string * range
@@ -77,6 +78,11 @@ let rec private evalFSharpAttribArg g e =
 type AttribInfo = 
     | FSAttribInfo of TcGlobals * Attrib
     | ILAttribInfo of TcGlobals * Import.ImportMap * ILScopeRef * ILAttribute * range
+
+    member x.Range = 
+         match x with 
+         | FSAttribInfo(_, attrib) -> attrib.Range
+         | ILAttribInfo (_, _, _, _, m) -> m
 
     member x.TyconRef = 
          match x with 
@@ -173,29 +179,6 @@ let GetAttribInfosOfEvent amap m einfo =
     | ProvidedEvent _ -> []
 #endif
 
-/// Analyze three cases for attributes declared on type definitions: IL-declared attributes, F#-declared attributes and
-/// provided attributes.
-//
-// This is used for AttributeUsageAttribute, DefaultMemberAttribute and ConditionalAttribute (on attribute types)
-let TryBindTyconRefAttribute g m (AttribInfo (atref, _) as args) (tcref:TyconRef) f1 f2 f3 = 
-    ignore m; ignore f3
-    match metadataOfTycon tcref.Deref with 
-#if !NO_EXTENSIONTYPING
-    | ProvidedTypeMetadata info -> 
-        let provAttribs = info.ProvidedType.PApply((fun a -> (a :> IProvidedCustomAttributeProvider)), m)
-        match provAttribs.PUntaint((fun a -> a.GetAttributeConstructorArgs(provAttribs.TypeProvider.PUntaintNoFailure(id), atref.FullName)), m) with
-        | Some args -> f3 args
-        | None -> None
-#endif
-    | ILTypeMetadata (TILObjectReprData(_, _, tdef)) -> 
-        match TryDecodeILAttribute g atref tdef.CustomAttrs with 
-        | Some attr -> f1 attr
-        | _ -> None
-    | FSharpOrArrayOrByrefOrTupleOrExnTypeMetadata -> 
-        match TryFindFSharpAttribute g args tcref.Attribs with 
-        | Some attr -> f2 attr
-        | _ -> None
-
 /// Analyze three cases for attributes declared on methods: IL-declared attributes, F#-declared attributes and
 /// provided attributes.
 let BindMethInfoAttributes m minfo f1 f2 f3 = 
@@ -210,9 +193,8 @@ let BindMethInfoAttributes m minfo f1 f2 f3 =
 
 /// Analyze three cases for attributes declared on methods: IL-declared attributes, F#-declared attributes and
 /// provided attributes.
-let TryBindMethInfoAttribute g m (AttribInfo(atref, _) as attribSpec) minfo f1 f2 f3 = 
-#if !NO_EXTENSIONTYPING
-#else
+let TryBindMethInfoAttribute g (m: range) (AttribInfo(atref, _) as attribSpec) minfo f1 f2 f3 = 
+#if NO_EXTENSIONTYPING
     // to prevent unused parameter warning
     ignore f3
 #endif
@@ -231,7 +213,7 @@ let TryBindMethInfoAttribute g m (AttribInfo(atref, _) as attribSpec) minfo f1 f
 /// Try to find a specific attribute on a method, where the attribute accepts a string argument.
 ///
 /// This is just used for the 'ConditionalAttribute' attribute
-let TryFindMethInfoStringAttribute g m attribSpec minfo  =
+let TryFindMethInfoStringAttribute g (m: range) attribSpec minfo  =
     TryBindMethInfoAttribute g m attribSpec minfo 
                     (function ([ILAttribElem.String (Some msg) ], _) -> Some msg | _ -> None) 
                     (function (Attrib(_, _, [ AttribStringArg msg ], _, _, _, _)) -> Some msg | _ -> None)
@@ -244,7 +226,6 @@ let MethInfoHasAttribute g m attribSpec minfo  =
                     (fun _ -> Some ())
                     (fun _ -> Some ())
         |> Option.isSome
-
 
 
 /// Check IL attributes for 'ObsoleteAttribute', returning errors and warnings as data
@@ -265,11 +246,19 @@ let private CheckILAttributes (g: TcGlobals) isByrefLikeTyconRef cattrs m =
     | _ -> 
         CompleteD
 
+let langVersionPrefix = "--langversion:preview"
+
 /// Check F# attributes for 'ObsoleteAttribute', 'CompilerMessageAttribute' and 'ExperimentalAttribute',
 /// returning errors and warnings as data
-let CheckFSharpAttributes g attribs m = 
-    if isNil attribs then CompleteD 
-    else 
+let CheckFSharpAttributes (g:TcGlobals) attribs m =
+    let isExperimentalAttributeDisabled (s:string) =
+        if g.compilingFslib then
+            true
+        else
+            g.langVersion.IsPreviewEnabled && (s.IndexOf(langVersionPrefix, StringComparison.OrdinalIgnoreCase) >= 0)
+
+    if isNil attribs then CompleteD
+    else
         (match TryFindFSharpAttribute g g.attrib_SystemObsolete attribs with
         | Some(Attrib(_, _, [ AttribStringArg s ], _, _, _, _)) ->
             WarnD(ObsoleteWarning(s, m))
@@ -283,28 +272,34 @@ let CheckFSharpAttributes g attribs m =
         | None -> 
             CompleteD
         ) ++ (fun () -> 
-            
+
         match TryFindFSharpAttribute g g.attrib_CompilerMessageAttribute attribs with
-        | Some(Attrib(_, _, [ AttribStringArg s ; AttribInt32Arg n ], namedArgs, _, _, _)) -> 
+        | Some(Attrib(_, _, [ AttribStringArg s ; AttribInt32Arg n ], namedArgs, _, _, _)) ->
             let msg = UserCompilerMessage(s, n, m)
             let isError = 
                 match namedArgs with 
                 | ExtractAttribNamedArg "IsError" (AttribBoolArg v) -> v 
                 | _ -> false 
-            if isError && (not g.compilingFslib || n <> 1204) then ErrorD msg else WarnD msg
-                 
+            // If we are using a compiler that supports nameof then error 3501 is always suppressed.
+            // See attribute on FSharp.Core 'nameof'
+            if n = 3501 then CompleteD
+            elif isError && (not g.compilingFslib || n <> 1204) then ErrorD msg 
+            else WarnD msg
         | _ -> 
             CompleteD
         ) ++ (fun () -> 
-            
+
         match TryFindFSharpAttribute g g.attrib_ExperimentalAttribute attribs with
-        | Some(Attrib(_, _, [ AttribStringArg(s) ], _, _, _, _)) -> 
-            WarnD(Experimental(s, m))
-        | Some _ -> 
+        | Some(Attrib(_, _, [ AttribStringArg(s) ], _, _, _, _)) ->
+            if isExperimentalAttributeDisabled s then
+                CompleteD
+            else
+                WarnD(Experimental(s, m))
+        | Some _ ->
             WarnD(Experimental(FSComp.SR.experimentalConstruct (), m))
-        | _ ->  
+        | _ ->
             CompleteD
-        ) ++ (fun () -> 
+        ) ++ (fun () ->
 
         match TryFindFSharpAttribute g g.attrib_UnverifiableAttribute attribs with
         | Some _ -> 
@@ -419,7 +414,7 @@ let CheckMethInfoAttributes g m tyargsOpt minfo =
 
 /// Indicate if a method has 'Obsolete', 'CompilerMessageAttribute' or 'TypeProviderEditorHideMethodsAttribute'. 
 /// Used to suppress the item in intellisense.
-let MethInfoIsUnseen g m ty minfo = 
+let MethInfoIsUnseen g (m: range) (ty: TType) minfo = 
     let isUnseenByObsoleteAttrib () = 
         match BindMethInfoAttributes m minfo 
                 (fun ilAttribs -> Some(CheckILAttributesForUnseen g ilAttribs m)) 

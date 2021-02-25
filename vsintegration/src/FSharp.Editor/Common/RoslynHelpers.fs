@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation.  All Rights Reserved.  See License.txt in the project root for license information.
 
 namespace Microsoft.VisualStudio.FSharp.Editor
-
 open System
 open System.Collections.Immutable
 open System.Collections.Generic
@@ -17,8 +16,14 @@ open FSharp.Compiler.Range
 open Microsoft.VisualStudio.FSharp.Editor.Logging
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Diagnostics
 
+type RoslynTaggedText = Microsoft.CodeAnalysis.TaggedText
 [<RequireQualifiedAccess>]
-module RoslynHelpers =
+module internal RoslynHelpers =
+    let joinWithLineBreaks segments =
+        let lineBreak = TaggedTextOps.Literals.lineBreak
+        match segments |> List.filter (Seq.isEmpty >> not) with
+        | [] -> Seq.empty
+        | xs -> xs |> List.reduce (fun acc elem -> seq { yield! acc; yield lineBreak; yield! elem })
 
     let FSharpRangeToTextSpan(sourceText: SourceText, range: range) =
         // Roslyn TextLineCollection is zero-based, F# range lines are one-based
@@ -47,51 +52,50 @@ module RoslynHelpers =
             Assert.Exception(task.Exception.GetBaseException())
             raise(task.Exception.GetBaseException())
 
-
-
     /// maps from `LayoutTag` of the F# Compiler to Roslyn `TextTags` for use in tooltips
     let roslynTag = function
-    | LayoutTag.ActivePatternCase
-    | LayoutTag.ActivePatternResult
-    | LayoutTag.UnionCase
-    | LayoutTag.Enum -> TextTags.Enum
-    | LayoutTag.Alias
-    | LayoutTag.Class
-    | LayoutTag.Union
-    | LayoutTag.Record
-    | LayoutTag.UnknownType -> TextTags.Class
-    | LayoutTag.Delegate -> TextTags.Delegate
-    | LayoutTag.Event -> TextTags.Event
-    | LayoutTag.Field -> TextTags.Field
-    | LayoutTag.Interface -> TextTags.Interface
-    | LayoutTag.Struct -> TextTags.Struct
-    | LayoutTag.Keyword -> TextTags.Keyword
-    | LayoutTag.Local -> TextTags.Local
-    | LayoutTag.Member
-    | LayoutTag.ModuleBinding
-    | LayoutTag.RecordField
-    | LayoutTag.Property -> TextTags.Property
-    | LayoutTag.Method -> TextTags.Method
-    | LayoutTag.Namespace -> TextTags.Namespace
-    | LayoutTag.Module -> TextTags.Module
-    | LayoutTag.LineBreak -> TextTags.LineBreak
-    | LayoutTag.Space -> TextTags.Space
-    | LayoutTag.NumericLiteral -> TextTags.NumericLiteral
-    | LayoutTag.Operator -> TextTags.Operator
-    | LayoutTag.Parameter -> TextTags.Parameter
-    | LayoutTag.TypeParameter -> TextTags.TypeParameter
-    | LayoutTag.Punctuation -> TextTags.Punctuation
-    | LayoutTag.StringLiteral -> TextTags.StringLiteral
-    | LayoutTag.Text
-    | LayoutTag.UnknownEntity -> TextTags.Text
+        | LayoutTag.ActivePatternCase
+        | LayoutTag.ActivePatternResult
+        | LayoutTag.UnionCase
+        | LayoutTag.Enum -> TextTags.Enum
+        | LayoutTag.Struct -> TextTags.Struct
+        | LayoutTag.TypeParameter -> TextTags.TypeParameter
+        | LayoutTag.Alias
+        | LayoutTag.Class
+        | LayoutTag.Union
+        | LayoutTag.Record
+        | LayoutTag.UnknownType // Default to class until/unless we use classification data
+        | LayoutTag.Module -> TextTags.Class
+        | LayoutTag.Interface -> TextTags.Interface
+        | LayoutTag.Keyword -> TextTags.Keyword
+        | LayoutTag.Member
+        //| LayoutTag.Function
+        | LayoutTag.Method -> TextTags.Method
+        | LayoutTag.RecordField
+        | LayoutTag.Property -> TextTags.Property
+        | LayoutTag.Parameter // parameter?
+        | LayoutTag.Local -> TextTags.Local
+        | LayoutTag.Namespace -> TextTags.Namespace
+        | LayoutTag.Delegate -> TextTags.Delegate
+        | LayoutTag.Event -> TextTags.Event
+        | LayoutTag.Field -> TextTags.Field
+        | LayoutTag.LineBreak -> TextTags.LineBreak
+        | LayoutTag.Space -> TextTags.Space
+        | LayoutTag.NumericLiteral -> TextTags.NumericLiteral
+        | LayoutTag.Operator -> TextTags.Operator
+        | LayoutTag.StringLiteral -> TextTags.StringLiteral
+        | LayoutTag.Punctuation -> TextTags.Punctuation
+        | LayoutTag.Text
+        | LayoutTag.ModuleBinding // why no 'Identifier'? Does it matter?
+        | LayoutTag.UnknownEntity -> TextTags.Text
 
-    let CollectTaggedText (list: List<_>) (t:TaggedText) = list.Add(TaggedText(roslynTag t.Tag, t.Text))
+    let CollectTaggedText (list: List<_>) (t:TaggedText) = list.Add(RoslynTaggedText(roslynTag t.Tag, t.Text))
 
     type VolatileBarrier() =
         [<VolatileField>]
         let mutable isStopped = false
-        member __.Proceed = not isStopped
-        member __.Stop() = isStopped <- true
+        member _.Proceed = not isStopped
+        member _.Stop() = isStopped <- true
 
     // This is like Async.StartAsTask, but
     //  1. if cancellation occurs we explicitly associate the cancellation with cancellationToken
@@ -188,19 +192,29 @@ module internal OpenDeclarationHelper =
 
         let getLineStr line = sourceText.Lines.[line].ToString().Trim()
         let pos = ParsedInput.adjustInsertionPoint getLineStr ctx
-        let docLine = pos.Line - 1
+        let docLine = Line.toZ pos.Line
         let lineStr = (String.replicate pos.Column " ") + "open " + ns
-        let sourceText = sourceText |> insert docLine lineStr
+
+        // If we're at the top of a file (e.g., F# script) then add a newline before adding the open declaration
+        let sourceText =
+            if docLine = 0 then
+                sourceText
+                |> insert docLine Environment.NewLine
+                |> insert docLine lineStr
+            else
+                sourceText |> insert docLine lineStr
+
         // if there's no a blank line between open declaration block and the rest of the code, we add one
         let sourceText = 
             if sourceText.Lines.[docLine + 1].ToString().Trim() <> "" then 
                 sourceText |> insert (docLine + 1) ""
             else sourceText
+
         let sourceText =
             // for top level module we add a blank line between the module declaration and first open statement
             if (pos.Column = 0 || ctx.ScopeKind = ScopeKind.Namespace) && docLine > 0
                 && not (sourceText.Lines.[docLine - 1].ToString().Trim().StartsWith "open") then
                     sourceText |> insert docLine ""
             else sourceText
-        sourceText, minPos |> Option.defaultValue 0
 
+        sourceText, minPos |> Option.defaultValue 0

@@ -12,11 +12,14 @@ open Microsoft.CodeAnalysis
 open Microsoft.CodeAnalysis.Completion
 open Microsoft.CodeAnalysis.Text
 
-open FSharp.Compiler
-open FSharp.Compiler.Range
 open FSharp.Compiler.SourceCodeServices
+open FSharp.Compiler.Text
+
 open Microsoft.VisualStudio.Text.Adornments
 open Microsoft.VisualStudio.Text.Editor
+open FSharp.Compiler.Range
+open FSharp.Compiler
+
 module Logger = Microsoft.VisualStudio.FSharp.Editor.Logger
 
 type internal FSharpCompletionProvider
@@ -37,14 +40,13 @@ type internal FSharpCompletionProvider
     static let [<Literal>] FullNamePropName = "FullName"
     static let [<Literal>] IsExtensionMemberPropName = "IsExtensionMember"
     static let [<Literal>] NamespaceToOpenPropName = "NamespaceToOpen"
-    static let [<Literal>] IsKeywordPropName = "IsKeyword"
     static let [<Literal>] IndexPropName = "Index"
+    static let [<Literal>] KeywordDescription = "KeywordDescription"
 
     static let keywordCompletionItems =
         Keywords.KeywordsWithDescription
         |> List.filter (fun (keyword, _) -> not (PrettyNaming.IsOperatorName keyword))
         |> List.sortBy (fun (keyword, _) -> keyword)
-
     
     let checker = checkerProvider.Checker
 
@@ -95,19 +97,18 @@ type internal FSharpCompletionProvider
 
     static member ProvideCompletionsAsyncAux(completionSource: Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion.IAsyncCompletionSource , checker: FSharpChecker, sourceText: SourceText, caretPosition: int, options: FSharpProjectOptions, filePath: string, 
                                              textVersionHash: int, getAllSymbols: FSharpCheckFileResults -> AssemblySymbol list, languageServicePerformanceOptions: LanguageServicePerformanceOptions, intellisenseOptions: IntelliSenseOptions) = 
+
         asyncMaybe {
             let! parseResults, _, checkFileResults = checker.ParseAndCheckDocument(filePath, textVersionHash, sourceText, options, languageServicePerformanceOptions, userOpName = userOpName)
-
             let textLines = sourceText.Lines
             let caretLinePos = textLines.GetLinePosition(caretPosition)
             let caretLine = textLines.GetLineFromPosition(caretPosition)
             let fcsCaretLineNumber = Line.fromZ caretLinePos.Line  // Roslyn line numbers are zero-based, FSharp.Compiler.Service line numbers are 1-based
             let caretLineColumn = caretLinePos.Character
             let partialName = QuickParse.GetPartialLongNameEx(caretLine.ToString(), caretLineColumn - 1) 
-            
             let getAllSymbols() =
                 getAllSymbols checkFileResults 
-                |> List.filter (fun assemblySymbol -> 
+                |> List.filter (fun assemblySymbol ->
                      assemblySymbol.FullName.Contains "." && not (PrettyNaming.IsOperatorName assemblySymbol.Symbol.DisplayName))
 
             let! declarations = checkFileResults.GetDeclarationListInfo(Some(parseResults), fcsCaretLineNumber, caretLine.ToString(), 
@@ -134,8 +135,8 @@ type internal FSharpCompletionProvider
                 let image = GlyphHelper.getImageId glyph |> ImageElement
                 let name =
                     match declarationItem.NamespaceToOpen with
-                    | Some namespaceToOpen -> sprintf "%s (open %s)" declarationItem.Name namespaceToOpen
-                    | _ -> declarationItem.Name
+                    | Some namespaceToOpen -> namespaceToOpen
+                    | _ -> null // Icky, but this is how roslyn handles it
                     
                 let filterText =
                     match declarationItem.NamespaceToOpen, declarationItem.Name.Split '.' with
@@ -146,7 +147,7 @@ type internal FSharpCompletionProvider
                     | _, idents -> Array.last idents
 
                 let completionItem =
-                    let item = new Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion.Data.CompletionItem(name, completionSource, icon = image)
+                    let item = new Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion.Data.CompletionItem(declarationItem.Name, completionSource, icon = image)
                     item.Properties.AddProperty(IndexPropName, declarationItem)
                     item
 
@@ -177,6 +178,7 @@ type internal FSharpCompletionProvider
                 let completionItem = completionItem//.WithSortText(sortText)
                 results.Add(completionItem))
 
+            
             if results.Count > 0 && not declarations.IsForType && not declarations.IsError && List.isEmpty partialName.QualifyingIdents then
                 let lineStr = textLines.[caretLinePos.Line].ToString()
 
@@ -205,8 +207,8 @@ type internal FSharpCompletionProvider
         asyncMaybe {
             context.AddItems([])//results)
         } |> Async.Ignore |> RoslynHelpers.StartAsyncUnitAsTask context.CancellationToken
-        
-    override this.GetDescriptionAsync(document: Document, completionItem: Completion.CompletionItem, cancellationToken: CancellationToken): Task<CompletionDescription> =
+
+    override _.GetDescriptionAsync(document: Document, completionItem: Completion.CompletionItem, cancellationToken: CancellationToken): Task<CompletionDescription> =
         async {
             use _logBlock = Logger.LogBlockMessage document.Name LogEditorFunctionId.Completion_GetDescriptionAsync
             match completionItem.Properties.TryGetValue IndexPropName with
@@ -220,10 +222,15 @@ type internal FSharpCompletionProvider
                     // mix main description and xmldoc by using one collector
                     XmlDocumentation.BuildDataTipText(documentationBuilder, collector, collector, collector, collector, collector, description) 
                     return CompletionDescription.Create(documentation.ToImmutableArray())
-                else 
+                else
                     return CompletionDescription.Empty
-            | _ -> 
-                return CompletionDescription.Empty
+            | _ ->
+                // Try keyword descriptions if they exist
+                match completionItem.Properties.TryGetValue KeywordDescription with
+                | true, keywordDescription ->
+                    return CompletionDescription.FromText(keywordDescription)
+                | false, _ ->
+                    return CompletionDescription.Empty
         } |> RoslynHelpers.StartAsyncAsTask cancellationToken
 
     member this.GetDescriptionAsync2(textView:  ITextView, completionItem: Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion.Data.CompletionItem, cancellationToken: CancellationToken): Task<CompletionDescription> =
@@ -249,9 +256,8 @@ type internal FSharpCompletionProvider
                 | true, x -> Some x
                 | _ -> None
 
-            // do not add extension members, keywords and not yet resolved symbols to the MRU list
-            if not (item.Properties.ContainsKey NamespaceToOpenPropName) && not (item.Properties.ContainsKey IsExtensionMemberPropName) &&
-               not (item.Properties.ContainsKey IsKeywordPropName) then
+            // do not add extension members and unresolved symbols to the MRU list
+            if not (item.Properties.ContainsKey NamespaceToOpenPropName) && not (item.Properties.ContainsKey IsExtensionMemberPropName) then
                 match fullName with
                 | Some fullName ->
                     match mruItems.TryGetValue fullName with
@@ -273,7 +279,7 @@ type internal FSharpCompletionProvider
                     let! sourceText = document.GetTextAsync(cancellationToken)
                     let textWithItemCommitted = sourceText.WithChanges(TextChange(item.Span, nameInCode))
                     let line = sourceText.Lines.GetLineFromPosition(item.Span.Start)
-                    let! parsingOptions, _options = projectInfoManager.TryGetOptionsForEditingDocumentOrProject(document, cancellationToken)
+                    let! parsingOptions, _options = projectInfoManager.TryGetOptionsForEditingDocumentOrProject(document, cancellationToken, userOpName)
                     let! parsedInput = checker.ParseDocument(document, parsingOptions, sourceText, userOpName)
                     let fullNameIdents = fullName |> Option.map (fun x -> x.Split '.') |> Option.defaultValue [||]
                     

@@ -6,6 +6,7 @@ open System
 open System.ComponentModel.Composition
 open System.Diagnostics
 open Microsoft.CodeAnalysis
+open FSharp.Compiler
 open FSharp.Compiler.SourceCodeServices
 open Microsoft.VisualStudio
 open Microsoft.VisualStudio.FSharp.Editor
@@ -49,7 +50,6 @@ type internal FSharpCheckerProvider
             //Assert.Exception(ex)
             None 
 
-
     let checker = 
         lazy
             let checker = 
@@ -59,7 +59,10 @@ type internal FSharpCheckerProvider
                     // Enabling this would mean that if devenv.exe goes above 2.3GB we do a one-off downsize of the F# Compiler Service caches
                     (* , MaxMemory = 2300 *)
                     (*legacyReferenceResolver=LegacyMSBuildReferenceResolver.getResolver(),*)
-                    tryGetMetadataSnapshot = tryGetMetadataSnapshot)
+                    tryGetMetadataSnapshot = tryGetMetadataSnapshot,
+                    keepAllBackgroundSymbolUses = false,
+                    enableBackgroundItemKeyStoreAndSemanticClassification = false) // This option crashes on Mono due to MemoryMappedFile usage
+                    //enablePartialTypeChecking = true)
 
             // This is one half of the bridge between the F# background builder and the Roslyn analysis engine.
             // When the F# background builder refreshes the background semantic build context for a file,

@@ -40,14 +40,12 @@ do()
 
 
 /// Set the current ui culture for the current thread.
-#if FX_LCIDFROMCODEPAGE
 let internal SetCurrentUICultureForThread (lcid : int option) =
     let culture = Thread.CurrentThread.CurrentUICulture
     match lcid with
     | Some n -> Thread.CurrentThread.CurrentUICulture <- new CultureInfo(n)
     | None -> ()
     { new IDisposable with member x.Dispose() = Thread.CurrentThread.CurrentUICulture <- culture }
-#endif
 
 let callStaticMethod (ty:Type) name args =
     ty.InvokeMember(name, (BindingFlags.InvokeMethod ||| BindingFlags.Static ||| BindingFlags.Public ||| BindingFlags.NonPublic), null, null, Array.ofList args,Globalization.CultureInfo.InvariantCulture)
@@ -67,13 +65,13 @@ type WinFormsEventLoop() =
     do mainForm.DoCreateHandle()
     let mutable lcid = None
     // Set the default thread exception handler
-    let restart = ref false
-    member __.LCID with get () = lcid and set v = lcid <- v
+    let mutable restart = false
+    member _.LCID with get () = lcid and set v = lcid <- v
     interface IEventLoop with
          member x.Run() =  
-             restart := false
+             restart <- false
              Application.Run()
-             !restart
+             restart
          member x.Invoke (f: unit -> 'T) : 'T =   
             if not mainForm.InvokeRequired then 
                 f() 
@@ -81,7 +79,7 @@ type WinFormsEventLoop() =
 
                 // Workaround: Mono's Control.Invoke returns a null result.  Hence avoid the problem by 
                 // transferring the resulting state using a mutable location.
-                let mainFormInvokeResultHolder = ref None
+                let mutable mainFormInvokeResultHolder = None
 
                 // Actually, Mono's Control.Invoke isn't even blocking (or wasn't on 1.1.15)!  So use a signal to indicate completion.
                 // Indeed, we should probably do this anyway with a timeout so we can report progress from 
@@ -95,12 +93,8 @@ type WinFormsEventLoop() =
                                            try 
                                               // When we get called back, someone may jack our culture
                                               // So we must reset our UI culture every time
-#if FX_LCIDFROMCODEPAGE
                                               use _scope = SetCurrentUICultureForThread lcid
-#else
-                                              ignore lcid
-#endif
-                                              mainFormInvokeResultHolder := Some(f ())
+                                              mainFormInvokeResultHolder <- Some(f ())
                                            finally 
                                               doneSignal.Set() |> ignore)) |> ignore
 
@@ -109,9 +103,9 @@ type WinFormsEventLoop() =
                     () // if !progress then fprintf outWriter "." outWriter.Flush()
 
                 //if !progress then fprintfn outWriter "RunCodeOnWinFormsMainThread: Got completion signal, res = %b" (Option.isSome !mainFormInvokeResultHolder)
-                !mainFormInvokeResultHolder |> Option.get
+                mainFormInvokeResultHolder |> Option.get
 
-         member x.ScheduleRestart()  =   restart := true; Application.Exit()  
+         member x.ScheduleRestart() = restart <- true; Application.Exit()  
 
 /// Try to set the unhandled exception mode of System.Windows.Forms
 let internal TrySetUnhandledExceptionMode() =  
@@ -231,32 +225,32 @@ let evaluateSession(argv: string[]) =
         // Update the configuration to include 'StartServer', WinFormsEventLoop and 'GetOptionalConsoleReadLine()'
         let rec fsiConfig = 
             { new FsiEvaluationSessionHostConfig () with 
-                member __.FormatProvider = fsiConfig0.FormatProvider
-                member __.FloatingPointFormat = fsiConfig0.FloatingPointFormat
-                member __.AddedPrinters = fsiConfig0.AddedPrinters
-                member __.ShowDeclarationValues = fsiConfig0.ShowDeclarationValues
-                member __.ShowIEnumerable = fsiConfig0.ShowIEnumerable
-                member __.ShowProperties = fsiConfig0.ShowProperties
-                member __.PrintSize = fsiConfig0.PrintSize  
-                member __.PrintDepth = fsiConfig0.PrintDepth
-                member __.PrintWidth = fsiConfig0.PrintWidth
-                member __.PrintLength = fsiConfig0.PrintLength
-                member __.ReportUserCommandLineArgs args = fsiConfig0.ReportUserCommandLineArgs args
-                member __.EventLoopRun() = 
+                member _.FormatProvider = fsiConfig0.FormatProvider
+                member _.FloatingPointFormat = fsiConfig0.FloatingPointFormat
+                member _.AddedPrinters = fsiConfig0.AddedPrinters
+                member _.ShowDeclarationValues = fsiConfig0.ShowDeclarationValues
+                member _.ShowIEnumerable = fsiConfig0.ShowIEnumerable
+                member _.ShowProperties = fsiConfig0.ShowProperties
+                member _.PrintSize = fsiConfig0.PrintSize  
+                member _.PrintDepth = fsiConfig0.PrintDepth
+                member _.PrintWidth = fsiConfig0.PrintWidth
+                member _.PrintLength = fsiConfig0.PrintLength
+                member _.ReportUserCommandLineArgs args = fsiConfig0.ReportUserCommandLineArgs args
+                member _.EventLoopRun() = 
 #if !FX_NO_WINFORMS
                     match (if fsiSession.IsGui then fsiWinFormsLoop.Value else None) with 
                     | Some l -> (l :> IEventLoop).Run()
                     | _ -> 
 #endif
                     fsiConfig0.EventLoopRun()
-                member __.EventLoopInvoke(f) = 
+                member _.EventLoopInvoke(f) = 
 #if !FX_NO_WINFORMS
                     match (if fsiSession.IsGui then fsiWinFormsLoop.Value else None) with 
                     | Some l -> (l :> IEventLoop).Invoke(f)
                     | _ -> 
 #endif
                     fsiConfig0.EventLoopInvoke(f)
-                member __.EventLoopScheduleRestart() = 
+                member _.EventLoopScheduleRestart() = 
 #if !FX_NO_WINFORMS
                     match (if fsiSession.IsGui then fsiWinFormsLoop.Value else None) with 
                     | Some l -> (l :> IEventLoop).ScheduleRestart()
@@ -264,12 +258,12 @@ let evaluateSession(argv: string[]) =
 #endif
                     fsiConfig0.EventLoopScheduleRestart()
 
-                member __.UseFsiAuxLib = fsiConfig0.UseFsiAuxLib
+                member _.UseFsiAuxLib = fsiConfig0.UseFsiAuxLib
 
-                member __.StartServer(fsiServerName) = StartServer fsiSession fsiServerName
+                member _.StartServer(fsiServerName) = StartServer fsiSession fsiServerName
                 
                 // Connect the configuration through to the 'fsi' Event loop
-                member __.GetOptionalConsoleReadLine(probe) = getConsoleReadLine(probe) }
+                member _.GetOptionalConsoleReadLine(probe) = getConsoleReadLine(probe) }
 
         // Create the console
         and fsiSession : FsiEvaluationSession = FsiEvaluationSession.Create (fsiConfig, argv, Console.In, Console.Out, Console.Error, collectible=false, legacyReferenceResolver=legacyReferenceResolver)
@@ -308,16 +302,20 @@ let evaluateSession(argv: string[]) =
     | e -> eprintf "Exception by fsi.exe:\n%+A\n" e; 1
 
 // Mark the main thread as STAThread since it is a GUI thread
+// We only set this for the desktop build of fsi.exe.  When we run on the coreclr we choose not to rely
+// On apartment threads.  A windows NanoServer docker container does not support apartment thread
+#if !FX_NO_WINFORMS
+[<STAThread()>]
+#endif
 [<EntryPoint>]
-[<STAThread()>]    
-[<LoaderOptimization(LoaderOptimization.MultiDomainHost)>]     
+[<LoaderOptimization(LoaderOptimization.MultiDomainHost)>]
 let MainMain argv = 
     ignore argv
     let argv = System.Environment.GetCommandLineArgs()
     let savedOut = Console.Out
     use __ =
         { new IDisposable with
-            member __.Dispose() =
+            member _.Dispose() =
                 try 
                     Console.SetOut(savedOut)
                 with _ -> ()}

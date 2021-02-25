@@ -10,12 +10,10 @@ module FSharp.Compiler.Service.Tests.PerfTests
 
 open NUnit.Framework
 open FsUnit
-open System
 open System.IO
-open System.Collections.Generic
 
-open FSharp.Compiler
 open FSharp.Compiler.SourceCodeServices
+open FSharp.Compiler.Text
 
 open FSharp.Compiler.Service.Tests.Common
 
@@ -23,7 +21,6 @@ open FSharp.Compiler.Service.Tests.Common
 let internal checker = FSharpChecker.Create()
 
 module internal Project1 = 
-    open System.IO
 
     let fileNamesI = [ for i in 1 .. 10 -> (i, Path.ChangeExtension(Path.GetTempFileName(), ".fs")) ]
     let base2 = Path.GetTempFileName()
@@ -31,7 +28,7 @@ module internal Project1 =
     let projFileName = Path.ChangeExtension(base2, ".fsproj")
     let fileSources = [ for (i,f) in fileNamesI -> (f, "module M" + string i) ]
     for (f,text) in fileSources do File.WriteAllText(f, text)
-    let fileSources2 = [ for (i,f) in fileSources -> FSharp.Compiler.Text.SourceText.ofString f ]
+    let fileSources2 = [ for (i,f) in fileSources -> SourceText.ofString f ]
 
     let fileNames = [ for (_,f) in fileNamesI -> f ]
     let args = mkProjectCommandLineArgs (dllName, fileNames)

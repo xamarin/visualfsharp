@@ -1,15 +1,15 @@
 // Copyright (c) Microsoft Corporation.  All Rights Reserved.  See License.txt in the project root for license information.
 
-//----------------------------------------------------------------------------
-// API for declaration lists and method overload lists
-
+/// API for declaration lists and method overload lists
 namespace FSharp.Compiler.SourceCodeServices
 
-open FSharp.Compiler.Range
+open System
+open FSharp.Compiler
 open FSharp.Compiler.NameResolution
 open FSharp.Compiler.InfoReader
-open FSharp.Compiler.Tastops
-
+open FSharp.Compiler.Text
+open FSharp.Compiler.TextLayout
+open FSharp.Compiler.TypedTreeOps
 
 [<Sealed>]
 /// Represents a declaration in F# source code, with information attached ready for display by an editor.
@@ -23,24 +23,22 @@ type public FSharpDeclarationListItem =
     /// Get the name for the declaration as it's presented in source code.
     member NameInCode : string
 
-    /// Get the description text for the declaration. Computing this property may require using compiler
-    /// resources and may trigger execution of a type provider method to retrieve documentation.
-    ///
-    /// May return "Loading..." if timeout occurs
-    member StructuredDescriptionText : FSharpStructuredToolTipText
-
-    member DescriptionText : FSharpToolTipText
-
-    /// Get the description text, asynchronously.  Never returns "Loading...".
+    [<Obsolete("This operation is no longer asynchronous, please use the non-async version")>]
     member StructuredDescriptionTextAsync : Async<FSharpStructuredToolTipText>
 
+    /// Get the description text.
+    member StructuredDescriptionText : FSharpStructuredToolTipText
+
+    [<Obsolete("This operation is no longer asynchronous, please use the non-async version")>]
     member DescriptionTextAsync : Async<FSharpToolTipText>
+
+    member DescriptionText : FSharpToolTipText
 
     member Glyph : FSharpGlyph
 
     member Accessibility : FSharpAccessibility option
 
-    member Kind : CompletionItemKind
+    member Kind : FSharpCompletionItemKind
 
     member IsOwnMember : bool
 
@@ -67,7 +65,7 @@ type public FSharpDeclarationListInfo =
     member IsError : bool
 
     // Implementation details used by other code in the compiler    
-    static member internal Create : infoReader:InfoReader * m:range * denv:DisplayEnv * getAccessibility:(Item -> FSharpAccessibility option) * items:CompletionItem list * reactor:IReactorOperations * currentNamespace:string[] option * isAttributeApplicationContex:bool -> FSharpDeclarationListInfo
+    static member internal Create : infoReader:InfoReader * m:range * denv:DisplayEnv * getAccessibility:(Item -> FSharpAccessibility option) * items:CompletionItem list * currentNamespace:string[] option * isAttributeApplicationContext:bool -> FSharpDeclarationListInfo
 
     static member internal Error : message:string -> FSharpDeclarationListInfo
 

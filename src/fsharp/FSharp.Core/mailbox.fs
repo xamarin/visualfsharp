@@ -4,54 +4,13 @@ namespace Microsoft.FSharp.Control
 
     open System
     open System.Threading
+    open System.Collections.Generic
     open Microsoft.FSharp.Core
     open Microsoft.FSharp.Core.LanguagePrimitives.IntrinsicOperators
     open Microsoft.FSharp.Control
     open Microsoft.FSharp.Control.AsyncBuilderImpl
     open Microsoft.FSharp.Control.AsyncPrimitives
     open Microsoft.FSharp.Collections
-
-    /// We use our own internal implementation of queues to avoid a dependency on System.dll
-    type Queue<'T>() =
-
-        let mutable array = [| |]
-        let mutable head = 0
-        let mutable size = 0
-        let mutable tail = 0
-
-        let SetCapacity capacity =
-            let destinationArray = Array.zeroCreate capacity
-            if (size > 0) then
-                if (head < tail) then
-                    Array.Copy(array, head, destinationArray, 0, size)
-
-                else
-                    Array.Copy(array, head, destinationArray, 0, array.Length - head)
-                    Array.Copy(array, 0, destinationArray, array.Length - head, tail)
-            array <- destinationArray
-            head <- 0
-            tail <- if (size = capacity) then 0 else size
-
-        member x.Dequeue() =
-            if (size = 0) then
-                failwith "Dequeue"
-            let local = array.[head]
-            array.[head] <- Unchecked.defaultof<'T>
-            head <- (head + 1) % array.Length
-            size <- size - 1
-            local
-
-        member this.Enqueue item =
-            if (size = array.Length) then
-                let capacity = int ((int64 array.Length * 200L) / 100L)
-                let capacity = max capacity (array.Length + 4)
-                SetCapacity capacity
-            array.[tail] <- item
-            tail <- (tail + 1) % array.Length
-            size <- size + 1
-
-        member x.Count = size
-
 
     module AsyncHelpers =
 
@@ -93,7 +52,7 @@ namespace Microsoft.FSharp.Control
     [<AutoSerializable(false)>]
     type Mailbox<'Msg>(cancellationSupported: bool) =
         let mutable inboxStore  = null
-        let mutable arrivals = new Queue<'Msg>()
+        let arrivals = Queue<'Msg>()
         let syncRoot = arrivals
 
         // Control elements indicating the state of the reader. When the reader is "blocked" at an
@@ -144,7 +103,7 @@ namespace Microsoft.FSharp.Control
             else
                 waitOneWithCancellation timeout
 
-        member __.inbox =
+        member _.inbox =
             match inboxStore with
             | null -> inboxStore <- new System.Collections.Generic.List<'Msg>(1)
             | _ -> ()
@@ -352,7 +311,7 @@ namespace Microsoft.FSharp.Control
             }
 
         interface System.IDisposable with
-            member __.Dispose() =
+            member _.Dispose() =
                 if isNotNull pulse then (pulse :> IDisposable).Dispose()
 
 #if DEBUG
@@ -378,17 +337,17 @@ namespace Microsoft.FSharp.Control
         let mutable started = false
         let errorEvent = new Event<Exception>()
 
-        member __.CurrentQueueLength = mailbox.CurrentQueueLength // nb. unprotected access gives an approximation of the queue length
+        member _.CurrentQueueLength = mailbox.CurrentQueueLength // nb. unprotected access gives an approximation of the queue length
 
-        member __.DefaultTimeout
+        member _.DefaultTimeout
             with get() = defaultTimeout
             and set v = defaultTimeout <- v
 
         [<CLIEvent>]
-        member __.Error = errorEvent.Publish
+        member _.Error = errorEvent.Publish
 
 #if DEBUG
-        member __.UnsafeMessageQueueContents = mailbox.UnsafeContents
+        member _.UnsafeMessageQueueContents = mailbox.UnsafeContents
 #endif
 
         member x.Start() =
@@ -408,9 +367,9 @@ namespace Microsoft.FSharp.Control
 
                 Async.Start(computation=p, cancellationToken=cancellationToken)
 
-        member __.Post message = mailbox.Post message
+        member _.Post message = mailbox.Post message
 
-        member __.TryPostAndReply(buildMessage : (_ -> 'Msg), ?timeout) : 'Reply option =
+        member _.TryPostAndReply(buildMessage : (_ -> 'Msg), ?timeout) : 'Reply option =
             let timeout = defaultArg timeout defaultTimeout
             use resultCell = new ResultCell<_>()
             let msg = buildMessage (new AsyncReplyChannel<_>(fun reply ->
@@ -425,7 +384,7 @@ namespace Microsoft.FSharp.Control
             | None ->  raise (TimeoutException(SR.GetString(SR.mailboxProcessorPostAndReplyTimedOut)))
             | Some res -> res
 
-        member __.PostAndTryAsyncReply(buildMessage, ?timeout) : Async<'Reply option> =
+        member _.PostAndTryAsyncReply(buildMessage, ?timeout) : Async<'Reply option> =
             let timeout = defaultArg timeout defaultTimeout
             let resultCell = new ResultCell<_>()
             let msg = buildMessage (new AsyncReplyChannel<_>(fun reply ->
@@ -460,20 +419,20 @@ namespace Microsoft.FSharp.Control
                         | None ->  return! raise (TimeoutException(SR.GetString(SR.mailboxProcessorPostAndAsyncReplyTimedOut)))
                         | Some res -> return res }
 
-        member __.Receive(?timeout) =
+        member _.Receive(?timeout) =
             mailbox.Receive(timeout=defaultArg timeout defaultTimeout)
 
-        member __.TryReceive(?timeout) =
+        member _.TryReceive(?timeout) =
             mailbox.TryReceive(timeout=defaultArg timeout defaultTimeout)
 
-        member __.Scan(scanner: 'Msg -> (Async<'T>) option, ?timeout) =
+        member _.Scan(scanner: 'Msg -> (Async<'T>) option, ?timeout) =
             mailbox.Scan(scanner, timeout=defaultArg timeout defaultTimeout)
 
-        member __.TryScan(scanner: 'Msg -> (Async<'T>) option, ?timeout) =
+        member _.TryScan(scanner: 'Msg -> (Async<'T>) option, ?timeout) =
             mailbox.TryScan(scanner, timeout=defaultArg timeout defaultTimeout)
 
         interface System.IDisposable with
-            member __.Dispose() = (mailbox :> IDisposable).Dispose()
+            member _.Dispose() = (mailbox :> IDisposable).Dispose()
 
         static member Start(body, ?cancellationToken) =
             let mailboxProcessor = new MailboxProcessor<'Msg>(body, ?cancellationToken=cancellationToken)

@@ -21,7 +21,7 @@ type internal FSharpCheckerWorkspaceService =
 type internal RoamingProfileStorageLocation(keyName: string) =
     inherit OptionStorageLocation()
     
-    member __.GetKeyNameForLanguage(languageName: string) =
+    member _.GetKeyNameForLanguage(languageName: string) =
         let unsubstitutedKeyName = keyName
         match languageName with
         | null -> unsubstitutedKeyName
@@ -38,14 +38,14 @@ type internal FSharpCheckerWorkspaceServiceFactory
         projectInfoManager: FSharpProjectOptionsManager
     ) =
     interface Microsoft.CodeAnalysis.Host.Mef.IWorkspaceServiceFactory with
-        member __.CreateService(_workspaceServices) =
+        member _.CreateService(_workspaceServices) =
             upcast { new FSharpCheckerWorkspaceService with
-                member __.Checker = checkerProvider.Checker
-                member __.FSharpProjectOptionsManager = projectInfoManager }
+                member _.Checker = checkerProvider.Checker
+                member _.FSharpProjectOptionsManager = projectInfoManager }
 
 [<Microsoft.CodeAnalysis.Host.Mef.ExportWorkspaceServiceFactory(typeof<EditorOptions>, Microsoft.CodeAnalysis.Host.Mef.ServiceLayer.Default)>]
 type internal FSharpSettingsFactory
     [<Composition.ImportingConstructor>] (settings: EditorOptions) =
     interface Microsoft.CodeAnalysis.Host.Mef.IWorkspaceServiceFactory with
-        member __.CreateService(_) = upcast settings
+        member _.CreateService(_) = upcast settings
 

@@ -3,6 +3,7 @@
 namespace FSharp.Compiler.UnitTests
 
 open NUnit.Framework
+open FSharp.Test.Utilities
 open FSharp.Compiler.SourceCodeServices
 
 [<TestFixture>]
@@ -18,10 +19,8 @@ let y = "hello"
 let changeX() =
     x = 20
     y = "test"
-    
-exit 0
             """
-            FSharpErrorSeverity.Warning
+            FSharpDiagnosticSeverity.Warning
             20
             (6, 5, 6, 11)
             "The result of this equality expression has type 'bool' and is implicitly discarded. Consider using 'let' to bind the result to a name, e.g. 'let result = expression'. If you intended to mutate a value, then mark the value 'mutable' and use the '<-' operator e.g. 'x <- expression'."
@@ -36,10 +35,8 @@ let y = "hello"
 let changeX() =
     x = 20
     y = "test"
-    
-exit 0
             """
-            FSharpErrorSeverity.Warning
+            FSharpDiagnosticSeverity.Warning
             20
             (6, 5, 6, 11)
             "The result of this equality expression has type 'bool' and is implicitly discarded. Consider using 'let' to bind the result to a name, e.g. 'let result = expression'. If you intended to mutate a value, then use the '<-' operator e.g. 'x <- expression'."
@@ -56,10 +53,8 @@ let y = "hello"
 let changeProperty() =
     z.Enabled = true
     y = "test"
-
-exit 0
             """
-            FSharpErrorSeverity.Warning
+            FSharpDiagnosticSeverity.Warning
             20
             (8, 5, 8, 21)
             "The result of this equality expression has type 'bool' and is implicitly discarded. Consider using 'let' to bind the result to a name, e.g. 'let result = expression'. If you intended to set a value to a property, then use the '<-' operator e.g. 'z.Enabled <- expression'."
@@ -78,10 +73,8 @@ let y = "hello"
 let changeProperty() =
     x.Property2 = "20"
     y = "test"
-    
-exit 0
             """
-            FSharpErrorSeverity.Warning
+            FSharpDiagnosticSeverity.Warning
             20
             (10, 5, 10, 23)
             "The result of this equality expression has type 'bool' and is implicitly discarded. Consider using 'let' to bind the result to a name, e.g. 'let result = expression'. If you intended to set a value to a property, then use the '<-' operator e.g. 'x.Property2 <- expression'."
@@ -99,10 +92,8 @@ let y = "hello"
 let changeProperty() =
     x.Property2 = "22"
     y = "test"
-    
-exit 0
             """
-            FSharpErrorSeverity.Warning
+            FSharpDiagnosticSeverity.Warning
             20
             (9, 5, 9, 23)
             "The result of this equality expression has type 'bool' and is implicitly discarded. Consider using 'let' to bind the result to a name, e.g. 'let result = expression'."

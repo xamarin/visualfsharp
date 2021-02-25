@@ -2,8 +2,9 @@
 
 namespace FSharp.Compiler.SourceCodeServices
 
-open FSharp.Compiler.Ast
-open FSharp.Compiler.Range
+open FSharp.Compiler
+open FSharp.Compiler.SyntaxTree
+open FSharp.Compiler.Text
 
 module public Structure =
 
@@ -15,7 +16,7 @@ module public Structure =
         | Below
         | Same
 
-    /// Tag to identify the constuct that can be stored alongside its associated ranges
+    /// Tag to identify the construct that can be stored alongside its associated ranges
     [<RequireQualifiedAccess>]
     type Scope =
         | Open
@@ -75,7 +76,7 @@ module public Structure =
         /// HintSpan in BlockSpan
         Range: range
         /// TextSpan in BlockSpan
-        CollapseRange:range
+        CollapseRange: range
     }
 
     /// Returns outlining ranges for given parsed input.

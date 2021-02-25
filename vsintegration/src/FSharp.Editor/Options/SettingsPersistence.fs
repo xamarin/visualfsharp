@@ -58,12 +58,12 @@ type SettingsStore() =
         //|> Option.iter (fun json -> try JsonConvert.PopulateObject(json, copy) with _ -> ())
         //copy
 
-    member __.Get() = getCached()
+    member _.Get() = getCached()
 
     // Used by the AbstractOptionPage to populate dialog controls.
     // We always have the latest value in the cache so we just return
     // cloned value here because it may be altered by the UI if declared with [<CLIMutable>]
-    member __.LoadSettings() = getCached() |> clone
+    member _.LoadSettings() = getCached() |> clone
 
     member __.SaveSettings _settings =
         //// We replace default serialization with Newtonsoft.Json for easy schema evolution.

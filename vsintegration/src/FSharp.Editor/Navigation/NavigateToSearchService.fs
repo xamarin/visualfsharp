@@ -16,15 +16,15 @@ open Microsoft.CodeAnalysis.Text
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp.Navigation
 open Microsoft.CodeAnalysis.ExternalAccess.FSharp.NavigateTo
 
-open FSharp.Compiler
 open FSharp.Compiler.SourceCodeServices
+open FSharp.Compiler
 
 type internal NavigableItem(document: Document, sourceSpan: TextSpan, glyph: Glyph, name: string, kind: string, additionalInfo: string) =
     inherit FSharpNavigableItem(glyph, ImmutableArray.Create (TaggedText(TextTags.Text, name)), document, sourceSpan)
 
-    member __.Name = name
-    member __.Kind = kind
-    member __.AdditionalInfo = additionalInfo
+    member _.Name = name
+    member _.Kind = kind
+    member _.AdditionalInfo = additionalInfo
 
 type internal NavigateToSearchResult(item: NavigableItem, matchKind: FSharpNavigateToMatchKind) =
     inherit FSharpNavigateToSearchResult(item.AdditionalInfo, item.Kind, matchKind, item.Name, item)
@@ -32,19 +32,19 @@ type internal NavigateToSearchResult(item: NavigableItem, matchKind: FSharpNavig
 module private Index =
     [<System.Diagnostics.DebuggerDisplay("{DebugString()}")>]
     type private IndexEntry(str: string, offset: int, item: NavigableItem, isOperator: bool) =
-        member __.String = str
-        member __.Offset = offset
-        member __.Length = str.Length - offset
-        member __.Item = item
-        member __.IsOperator = isOperator
+        member _.String = str
+        member _.Offset = offset
+        member _.Length = str.Length - offset
+        member _.Item = item
+        member _.IsOperator = isOperator
         member x.StartsWith (s: string) = 
             if s.Length > x.Length then false
             else CultureInfo.CurrentCulture.CompareInfo.IndexOf(str, s, offset, s.Length, CompareOptions.IgnoreCase) = offset
-        member private __.DebugString() = sprintf "%s (offset %d) (%s)" (str.Substring offset) offset str
+        member private _.DebugString() = sprintf "%s (offset %d) (%s)" (str.Substring offset) offset str
 
     let private indexEntryComparer =
         { new IComparer<IndexEntry> with
-            member __.Compare(a, b) = 
+            member _.Compare(a, b) = 
                 let res = CultureInfo.CurrentCulture.CompareInfo.Compare(a.String, a.Offset, b.String, b.Offset, CompareOptions.IgnoreCase)
                 if res = 0 then a.Offset.CompareTo(b.Offset) else res }
 
@@ -54,13 +54,13 @@ module private Index =
 
     let private navigateToSearchResultComparer =
         { new IEqualityComparer<FSharpNavigateToSearchResult> with 
-            member __.Equals(x: FSharpNavigateToSearchResult, y: FSharpNavigateToSearchResult) =
+            member _.Equals(x: FSharpNavigateToSearchResult, y: FSharpNavigateToSearchResult) =
                 match x, y with
                 | null, _ | _, null -> false
                 | _ -> x.NavigableItem.Document.Id = y.NavigableItem.Document.Id &&
                        x.NavigableItem.SourceSpan = y.NavigableItem.SourceSpan
             
-            member __.GetHashCode(x: FSharpNavigateToSearchResult) =
+            member _.GetHashCode(x: FSharpNavigateToSearchResult) =
                 if isNull x then 0
                 else 23 * (17 * 23 + x.NavigableItem.Document.Id.GetHashCode()) + x.NavigableItem.SourceSpan.GetHashCode() }
 
@@ -78,7 +78,7 @@ module private Index =
 
         entries.Sort(indexEntryComparer)
         { new IIndexedNavigableItems with
-              member __.Find (searchValue) =
+              member _.Find (searchValue) =
                   let result = HashSet(navigateToSearchResultComparer)
                   if entries.Count > 0 then 
                      let entryToFind = IndexEntry(searchValue, 0, Unchecked.defaultof<_>, Unchecked.defaultof<_>)
@@ -110,7 +110,7 @@ module private Index =
                          handle pos
                          pos <- pos + 1
                   Seq.toArray result 
-              member __.AllItems = items }
+              member _.AllItems = items }
 
 [<AutoOpen>]
 module private Utils =
@@ -166,6 +166,7 @@ type internal FSharpNavigateToSearchService
         projectInfoManager: FSharpProjectOptionsManager
     ) =
 
+    let userOpName = "FSharpNavigateToSearchService"
     let kindsProvided = ImmutableHashSet.Create(FSharpNavigateToItemKind.Module, FSharpNavigateToItemKind.Class, FSharpNavigateToItemKind.Field, FSharpNavigateToItemKind.Property, FSharpNavigateToItemKind.Method, FSharpNavigateToItemKind.Enum, FSharpNavigateToItemKind.EnumItem) :> IImmutableSet<string>
 
     // Save the backing navigation data in a memory cache held in a sliding window
@@ -212,16 +213,9 @@ type internal FSharpNavigateToSearchService
                 itemsByDocumentId.Set(cacheItem, policy)
                 return indexedItems }
 
-    let _patternMatchKindToNavigateToMatchKind = function
-        //| PatternMatchKind.Exact -> FSharpNavigateToMatchKind.Exact
-        //| PatternMatchKind.Prefix -> FSharpNavigateToMatchKind.Prefix
-        //| PatternMatchKind.Substring -> FSharpNavigateToMatchKind.Substring
-        //| PatternMatchKind.CamelCase -> FSharpNavigateToMatchKind.Regular
-        //| PatternMatchKind.Fuzzy -> FSharpNavigateToMatchKind.Regular
-        | _ -> FSharpNavigateToMatchKind.Regular
 
     interface IFSharpNavigateToSearchService with
-        member __.SearchProjectAsync(project, _priorityDocuments, _searchPattern, kinds, cancellationToken) : Task<ImmutableArray<FSharpNavigateToSearchResult>> =
+        member _.SearchProjectAsync(project, _priorityDocuments, _searchPattern, kinds, cancellationToken) : Task<ImmutableArray<FSharpNavigateToSearchResult>> =
             asyncMaybe {
                 let! parsingOptions, _options = projectInfoManager.TryGetOptionsByProject(project, cancellationToken)
                 let! _items =
@@ -253,9 +247,9 @@ type internal FSharpNavigateToSearchService
             |> Async.map Seq.toImmutableArray
             |> RoslynHelpers.StartAsyncAsTask(cancellationToken)
 
-        member __.SearchDocumentAsync(document, searchPattern, kinds, cancellationToken) : Task<ImmutableArray<FSharpNavigateToSearchResult>> =
+        member _.SearchDocumentAsync(document, searchPattern, kinds, cancellationToken) : Task<ImmutableArray<FSharpNavigateToSearchResult>> =
             asyncMaybe {
-                let! parsingOptions, _, _ = projectInfoManager.TryGetOptionsForDocumentOrProject(document, cancellationToken)
+                let! parsingOptions, _, _ = projectInfoManager.TryGetOptionsForDocumentOrProject(document, cancellationToken, userOpName)
                 let! items = getCachedIndexedNavigableItems(document, parsingOptions, kinds) |> liftAsync
                 return items.Find(searchPattern)
             }
@@ -263,6 +257,6 @@ type internal FSharpNavigateToSearchService
             |> Async.map Seq.toImmutableArray
             |> RoslynHelpers.StartAsyncAsTask(cancellationToken)
 
-        member __.KindsProvided = kindsProvided
+        member _.KindsProvided = kindsProvided
 
-        member __.CanFilter = true
+        member _.CanFilter = true
